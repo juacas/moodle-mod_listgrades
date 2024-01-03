@@ -37,7 +37,7 @@
  $string['gradeitems'] = 'Elementos de calificación para publicar.';
  $string['gradeitems_help'] = 'Seleccione los elementos de calificación que se publicarán. Mantenga presionada la tecla CTRL para seleccionar varios campos.';
 
- $string['modulename'] = 'listgrades';
+ $string['modulename'] = 'Publicación de notas';
  $string['modulename_help'] = 'El módulo "list grades" permite a un profesor publicar las calificaciones de todos los estudiantes en una página del curso para cumplir con los requisitos de transparencia. Protege la privacidad de los estudiantes al ocultar el campo de usuario seleccionado por el profesor.';
  $string['modulename_link'] = 'mod/listgrades/view';
  $string['modulenameplural'] = 'Listar Calificaciones';

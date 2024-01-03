@@ -37,7 +37,7 @@ $string['createlisting'] = 'Create listing';
 $string['gradeitems'] = 'Grade items to publish';
 $string['gradeitems_help'] = 'Select the grade items that will be published. Hold CTRL key to select multiple fields.';
 
-$string['modulename'] = 'listgrades';
+$string['modulename'] = 'Grades publication';
 $string['modulename_help'] = 'The "list grades" module enables a teacher to publish the grades of all the students on a page in the course to fullfill transparency requirements. It protects the privacy of the students by masking the user field selected by the teacher.';
 $string['modulename_link'] = 'mod/listgrades/view';
 $string['modulenameplural'] = 'List Grades';
