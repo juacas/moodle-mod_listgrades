@@ -26,9 +26,12 @@ defined('MOODLE_INTERNAL') || die;
 
 $capabilities = [
     'mod/listgrades:view' => [
+        'riskbitmask' => RISK_PERSONAL,
         'captype' => 'read',
         'contextlevel' => CONTEXT_MODULE,
-        'archetypes' => ['student' => CAP_ALLOW,],
+        'archetypes' => [
+            'user' => CAP_ALLOW,
+        ]
     ],
     'mod/listgrades:addinstance' => [
         'riskbitmask' => RISK_XSS,
@@ -40,15 +43,5 @@ $capabilities = [
             'manager' => CAP_ALLOW
         ],
         'clonepermissionsfrom' => 'moodle/course:manageactivities',
-    ],
-    'mod/listgrades:manage' => [
-        'riskbitmask' => RISK_XSS,
-
-        'captype' => 'write',
-        'contextlevel' => CONTEXT_MODULE,
-        'archetypes' => [
-            'editingteacher' => CAP_ALLOW,
-            'manager' => CAP_ALLOW,
-        ],
     ],
 ];
