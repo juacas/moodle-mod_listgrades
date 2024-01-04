@@ -48,12 +48,14 @@ class mod_listgrades_mod_form extends moodleform_mod {
         $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
 
         $this->standard_intro_elements();
-        $mform->setDefault('introeditor', ['text' => $config->defaultintro]); // Doesn't work!
+        $defaultintro = isset($config->defaultintro) ? $config->defaultintro : '';
+        $mform->setDefault('introeditor', ['text' => $defaultintro]); // Doesn't work!
 
         $mform->addElement('header', 'signaturesection', get_string('footerheader', 'listgrades'));
         $mform->addElement('editor', 'signature', get_string('footer', 'listgrades'), null,
                             listgrades_get_editor_options($this->context));
-        $mform->setDefault('signature', ['text' => $config->defaultfooter]); // Need an array, really Moodle?
+        $defaultfooter = isset($config->defaultfooter) ? $config->defaultfooter : '';
+        $mform->setDefault('signature', ['text' => $defaultfooter]); // Need an array, really Moodle?
         $mform->addRule('signature', get_string('required'), 'required', null, 'client');
 
         // Get Grade items from the course and create a multi-select box.

@@ -60,8 +60,11 @@ if ($ADMIN->fulltree) {
 
     // Get site logos.
     $a = new stdClass();
-    $a->logourl = $OUTPUT->get_logo_url()->out();
-    $a->logocompacturl = $OUTPUT->get_compact_logo_url()->out();
+    $logo = $OUTPUT->get_logo_url();
+    $a->logourl = $logo == false ? '' : $logo->out();
+    $logo = $OUTPUT->get_compact_logo_url();
+    $a->logocompacturl = $logo->out();
+
     // Default texts.
     // TODO: Intro does not accept default value! Disabled until a workaround is found.
     // $settings->add(new admin_setting_confightmleditor('listgrades/defaultintro',
