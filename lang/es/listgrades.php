@@ -28,7 +28,8 @@
  $string['configdisplayoptions'] = 'Seleccione todas las opciones que deben estar disponibles; las configuraciones existentes no se modifican. Mantenga presionada la tecla CTRL para seleccionar varios campos.';
  $string['defaultfooter'] = 'Texto predeterminado del pie de página';
  $string['defaultfooter_help'] = 'Texto predeterminado del pie de página que se mostrará al final del listado.';
- $string['defaultfootertext'] = '<p><img class="img-fluid align-bottom" style="margin: 10px;" role="presentation" src="{$a->logocompacturl}" alt="" width="64" height="64" align="left">Esta publicación se realiza con fines informativos en ejercicio de misiones de interés público previstas en la Ley Orgánica de Universidades. Su uso por el estudiante para otros fines, y en particular su alteración, manipulación o distribución indebida en redes sociales u otros medios públicos puede generar responsabilidad jurídica.</p>';
+ $string['defaultfootertext'] = '<p><img class="img-fluid align-bottom" style="margin: 10px;" role="presentation" src="{$a->logocompacturl}" alt="" width="64" height="64" align="left">Esta publicación se realiza con fines informativos en ejercicio de misiones de interés público previstas en la ¿Qué es la LOSU?
+ Ley Orgánica del Sistema Universitario (LOSU). Su uso por el estudiante para otros fines, y en particular su alteración, manipulación o distribución indebida en redes sociales u otros medios públicos puede generar responsabilidad jurídica.</p>';
  $string['defaultintro'] = 'Texto predeterminado de introducción';
  $string['defaultintro_help'] = 'Texto predeterminado de introducción que se mostrará en la lista.';
  $string['footer'] = 'Sección de pie de página';
@@ -43,7 +44,8 @@
  $string['modulenameplural'] = 'Listar Calificaciones';
  $string['opendate'] = 'Publicación de notas';
  $string['opendate_help'] = 'La fecha y hora en que se publicará la lista.';
- $string['listgrades:view'] = 'Ver listas';
+ $string['listgrades:addinstance'] = 'Añadir un listado de notas';
+ $string['listgrades:view'] = 'Ver listados de notas';
  $string['pluginadministration'] = 'Administración del módulo List Grades';
  $string['pluginname'] = 'Listgrades';
 

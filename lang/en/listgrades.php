@@ -28,7 +28,7 @@ $string['closedate_help'] = 'The date and time when the listing will be closed.'
 $string['configdisplayoptions'] = 'Select all options that should be available, existing settings are not modified. Hold CTRL key to select multiple fields.';
 $string['defaultfooter'] = 'Default text footer';
 $string['defaultfooter_help'] = 'Default text footer that will be displayed in the listing.';
-$string['defaultfootertext'] = '<p><img class="img-fluid align-bottom" style="margin: 10px;" role="presentation" src="{$a->logocompacturl}" alt="" width="64" height="64" align="left">This publication is made for informational purposes in exercise of missions of public interest provided for in the Organic Law of Universities. Its use by the student for other purposes, and in particular its alteration, manipulation or improper distribution in social networks or other public media may generate legal liability.</p>';
+$string['defaultfootertext'] = '<p><img class="img-fluid align-bottom" style="margin: 10px;" role="presentation" src="{$a->logocompacturl}" alt="" width="64" height="64" align="left">This publication is made for informational purposes in exercise of missions of public interest provided for in the Organic Law of the University System (LOSU). Its use by the student for other purposes, and in particular its alteration, manipulation or improper distribution in social networks or other public media may generate legal liability.</p>';
 $string['defaultintro'] = 'Default text introduction';
 $string['defaultintro_help'] = 'Default text introduction that will be displayed in the listing.';
 $string['footer'] = 'Footer section';
@@ -43,6 +43,7 @@ $string['modulename_link'] = 'mod/listgrades/view';
 $string['modulenameplural'] = 'List Grades';
 $string['opendate'] = 'Publication of grades';
 $string['opendate_help'] = 'The date and time when the listing will be published.';
+$string['listgrades:addinstance'] = 'Add a new grade listing';
 $string['listgrades:view'] = 'View listings';
 $string['pluginadministration'] = 'List grades module administration';
 $string['pluginname'] = 'Listgrades';
