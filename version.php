@@ -24,8 +24,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2024010302;       // The current module version (Date: YYYYMMDDXX).
-$plugin->release   = 'v1.0.0';
+$plugin->version   = 2024010303;       // The current module version (Date: YYYYMMDDXX).
+$plugin->release   = 'v1.0.0a';
 $plugin->maturity  = MATURITY_STABLE;
 $plugin->requires  = 2022111800;    // Requires this Moodle version.
 $plugin->component = 'mod_listgrades';       // Full name of the plugin (used for diagnostics).
