@@ -60,3 +60,6 @@ $string['userfield_help'] = 'Select the user field that will be used to display 
 $string['userfieldmask'] = 'User field mask';
 $string['userfieldmask_help'] = 'Define the mask that will be used to hide the user field. An X will substitute the character, a - will omit the character and a * will show the character.';
 $string['notopen'] = 'This listing is not open.';
+$string['useridalways'] = 'Always';
+$string['useridonlyifnamecollide'] = 'Only if name collide';
+$string['useridnever'] = 'Never';

@@ -98,7 +98,7 @@ if ($isopen || has_capability('mod/listgrades:manage', $context)) {
     if ($config->showusername) {
         $headers[] = 'Name';
     }
-    if ($config->showuserfield) {
+    if ($config->showuserfield == 'always') {
         $headers[] = 'ID';
     }
     $gradeitems = $grader->get_gradeitems();
@@ -138,6 +138,16 @@ if ($isopen || has_capability('mod/listgrades:manage', $context)) {
     $users = $DB->get_records_list('user', 'id', $ids, $userfield);
     $graderurl = new moodle_url('/grade/report/user/index.php', ['id' => $course->id]);
     $group = groups_get_members($groupid, 'u.id', 'u.id');
+    $namecollisions = [];
+    // Compute full names.
+    foreach ($users as $user) {
+        $user->fullname = fullname($user);
+    }
+    // if showuserfield is onlyifnamecollide, get the users that have the same username.
+    if ($config->showuserfield == 'onlyifnamecollide') {
+        // Get the list of users that have the same fullname.
+        $namecollisions = array_keys(array_count_values(array_column($users, 'fullname')), 2);
+    }
     // Iterate over the users.
     foreach ($users as $user) {
         if ($groupid != null && !array_key_exists($user->id, $group)) {
@@ -161,9 +171,13 @@ if ($isopen || has_capability('mod/listgrades:manage', $context)) {
         $graderurl->param('userid', $user->id);
         // Print user fullname.
         if ($config->showusername) {
-            $row[] = fullname($user);
+            $nametoshow = $user->fullname;
+            if ($config->showuserfield == 'onlyifnamecollide' && in_array($user->fullname, $namecollisions)) {
+                $nametoshow .= " ($maskeduserfield)";
+            }
+            $row[] = $nametoshow;
         }
-        if ($config->showuserfield) {
+        if ($config->showuserfield == 'always') {
             $row[] = $maskeduserfield;
         }
         // Collect the gradeitems.

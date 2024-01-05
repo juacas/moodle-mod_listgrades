@@ -33,8 +33,14 @@ if ($ADMIN->fulltree) {
     $settings->add(new admin_setting_configcheckbox('listgrades/showusername',
                     get_string('showusername', 'listgrades'), get_string('showusername_help', 'listgrades'), 1));
     // Checkbox to show the userfield.
-    $settings->add(new admin_setting_configcheckbox('listgrades/showuserfield',
-                    get_string('showuserfield', 'listgrades'), get_string('showuserfield_help', 'listgrades'), 1));
+    // 'always', 'onlyifnamecollide', 'never'.
+    $options = [
+        'always' => get_string('useridalways', 'listgrades'),
+        'onlyifnamecollide' => get_string('useridonlyifnamecollide', 'listgrades'),
+        'never' => get_string('useridnever', 'listgrades'),
+    ];
+    $settings->add(new admin_setting_configselect('listgrades/showuserfield',
+                    get_string('showuserfield', 'listgrades'), get_string('showuserfield_help', 'listgrades'), 'onlyifnamecollide', $options));
     // User field section.
     // Get userfields.
     $fields = get_user_fieldnames();
@@ -54,7 +60,7 @@ if ($ADMIN->fulltree) {
         get_string('userfield', 'listgrades'), get_string('userfield_help', 'listgrades'), 'userid', $userfields));
 
     // Define mask string to hide digits of the userfield.
-    $mask = '-**XXXX***-';
+    $mask = '-XXX****XX-';
     $settings->add(new admin_setting_configtext('listgrades/userfieldmask',
         get_string('userfieldmask', 'listgrades'), get_string('userfieldmask_help', 'listgrades'), $mask, PARAM_TEXT));
 
