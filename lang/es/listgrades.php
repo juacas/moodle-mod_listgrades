@@ -53,7 +53,7 @@
  $string['listgrades:addinstance'] = 'Añadir un listado de notas';
  $string['listgrades:view'] = 'Ver listados de notas';
  $string['pluginadministration'] = 'Administración del módulo List Grades';
- $string['pluginname'] = 'Listgrades';
+ $string['pluginname'] = 'Publicación de notas';
 
  $string['printintro'] = 'Mostrar descripción del encabezado';
  $string['privacy:metadata'] = 'El complemento de recurso Listgrades no almacena ningún dato personal.';
