@@ -47,9 +47,10 @@ class mod_listgrades_mod_form extends moodleform_mod {
         $mform->addRule('name', null, 'required', null, 'client');
         $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
 
-        $this->standard_intro_elements();
         $defaultintro = isset($config->defaultintro) ? $config->defaultintro : '';
         $mform->setDefault('introeditor', ['text' => $defaultintro]); // Doesn't work!
+
+        $this->standard_intro_elements();
 
         $mform->addElement('header', 'signaturesection', get_string('footerheader', 'listgrades'));
         $mform->addElement('editor', 'signature', get_string('footer', 'listgrades'), null,
@@ -103,6 +104,13 @@ class mod_listgrades_mod_form extends moodleform_mod {
         if (!empty($defaultvalues['items'])) {
             $gradeitems = (array) unserialize($defaultvalues['items']);
             $defaultvalues['items'] = array_keys($gradeitems);
+        }
+        // Simulate default intro.
+        if (!empty($defaultvalues['introeditor']) && $defaultvalues['introeditor']['text'] == '') {
+            $config = get_config('listgrades');
+            $defaultintro = isset($config->defaultintro) ? $config->defaultintro : '';
+            $defaultvalues['introeditor']['text'] = $defaultintro;
+            $defaultvalues['introeditor']['format'] = FORMAT_HTML;
         }
     }
 }

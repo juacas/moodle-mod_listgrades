@@ -72,7 +72,7 @@ if (!$isopen) {
     echo $OUTPUT->notification(get_string('notopen', 'listgrades'), 'notifyproblem');
     echo $OUTPUT->box_end();
 }
-if ($isopen || has_capability('mod/listgrades:manage', $context)) {
+if ($isopen || has_capability('moodle/course:manageactivities', $context)) {
     // Grdoup mode.
     groups_print_activity_menu($cm, $PAGE->url);
     $groupid = groups_get_activity_group($cm, true) ?: null;

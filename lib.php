@@ -249,7 +249,7 @@ function listgrades_get_file_info($browser, $areas, $course, $cm, $context, $fil
             }
         }
         require_once("$CFG->dirroot/mod/listgrades/locallib.php");
-        return new page_content_file_info($browser, $context, $storedfile, $urlbase, $areas[$filearea], true, true, true, false);
+        return new listgrades_content_file_info($browser, $context, $storedfile, $urlbase, $areas[$filearea], true, true, true, false);
     }
 
     // Note: intro handled in file_browser automatically.
@@ -336,7 +336,7 @@ function listgrades_pluginfile($course, $cm, $context, $filearea, $args, $forced
  * @param stdClass $currentcontext Current context of block
  */
 function listgrades_page_type_list($pagetype, $parentcontext, $currentcontext) {
-    $modulepagetype = ['mod-page-*' => get_string('page-mod-page-x', 'listgrades')];
+    $modulepagetype = ['mod-listgrades-*' => get_string('page-mod-listgrades-x', 'listgrades')];
     return $modulepagetype;
 }
 

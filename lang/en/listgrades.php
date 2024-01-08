@@ -45,6 +45,7 @@ $string['opendate'] = 'Publication of grades';
 $string['opendate_help'] = 'The date and time when the listing will be published.';
 $string['listgrades:addinstance'] = 'Add a new grade listing';
 $string['listgrades:view'] = 'View listings';
+$string['page-mod-listgrades-x'] = 'Any listgrades module page';
 $string['pluginadministration'] = 'List grades module administration';
 $string['pluginname'] = 'Listgrades';
 
