@@ -28,6 +28,7 @@ if ($ADMIN->fulltree) {
     require_once("$CFG->libdir/resourcelib.php");
 
     // Modedit defaults.
+    // @var admin_settingpage $settings
     $settings->add(new admin_setting_heading('listgradesmodeditdefaults', get_string('modeditdefaults', 'admin'), get_string('condifmodeditdefaults', 'admin')));
     // Show the username in listing.
     $settings->add(new admin_setting_configcheckbox('listgrades/showusername',
@@ -58,11 +59,16 @@ if ($ADMIN->fulltree) {
 
     $settings->add(new admin_setting_configselect('listgrades/userfield',
         get_string('userfield', 'listgrades'), get_string('userfield_help', 'listgrades'), 'userid', $userfields));
+    // Checkbox to use  AEPD method.
+    $settings->add(new admin_setting_configcheckbox('listgrades/aepdmethod',
+        get_string('aepdmethod', 'listgrades'), get_string('aepdmethod_help', 'listgrades'), 1));
 
     // Define mask string to hide digits of the userfield.
     $mask = '-XXX****XX-';
     $settings->add(new admin_setting_configtext('listgrades/userfieldmask',
         get_string('userfieldmask', 'listgrades'), get_string('userfieldmask_help', 'listgrades'), $mask, PARAM_TEXT));
+    // Hide custom mask if aepdmethod is selected.
+    $settings->hide_if('listgrades/userfieldmask', 'listgrades/aepdmethod', 'eq', 1);
 
     // Get site logos.
     $a = new stdClass();

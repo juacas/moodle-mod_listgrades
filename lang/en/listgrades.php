@@ -22,6 +22,8 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+$string['aepdmethod'] = 'AEPD identifiers obfuscation';
+$string['aepdmethod_help'] = 'Select the method of obfuscation of identifiers that will be used to comply with the regulations of the Spanish Data Protection Agency.';
 $string['closedate'] = 'Unpublication of grades';
 $string['closedate_help'] = 'The date and time when the listing will be closed.';
 
@@ -59,7 +61,7 @@ $string['showuserfield_help'] = 'Select if the userid will be displayed in the l
 $string['userfield'] = 'User field';
 $string['userfield_help'] = 'Select the user field that will be used to display the list of users.';
 $string['userfieldmask'] = 'User field mask';
-$string['userfieldmask_help'] = 'Define the mask that will be used to hide the user field. An X will substitute the character, a - will omit the character and a * will show the character.';
+$string['userfieldmask_help'] = 'Define the mask that will be used to hide the user field. An * will substitute the character, a - will omit the character and a + will show the character.';
 $string['notopen'] = 'This listing is not open.';
 $string['useridalways'] = 'Always';
 $string['useridonlyifnamecollide'] = 'Only if name collide';

@@ -22,6 +22,26 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+ $string['aepdmethod'] = 'Ofuscación de identificadores AEPD';
+ $string['aepdmethod_help'] = 'Seleccione el método de ofuscación de identificadores que se utilizará para cumplir con la normativa de la Agencia Española de Protección de Datos:
+ <li>Dado un DNI con formato 12345678X, se publicarán los dígitos que en el formato que ocupen las posiciones cuarta, quinta, sexta y séptima. En el ejemplo: \*\*\*4567\*\*.
+ <li>Dado un NIE con formato L1234567X, se publicarán los dígitos que en el formato ocupen las posiciones, evitando el primer carácter alfabéticos, 
+ cuarta, quinta, sexta y séptima. En el ejemplo: \*\*\*\*4567\*.
+ <li> Dado un pasaporte con formato ABC123456, al tener sólo seis cifras, se 
+  publicarán los dígitos que en el formato ocupen las posiciones, evitando los 
+  tres caracteres alfabéticos, tercera, cuarta, quinta y sexta. En el ejemplo: \*\*\*\*\*3456.
+ <li> Dado otro tipo de identificación, siempre que esa identificación contenga al 
+  menos 7 dígitos numéricos, se numerarán dichos dígitos de izquierda a 
+  derecha, evitando todos los caracteres alfabéticos, y se seguirá el 
+  procedimiento de publicar aquellos caracteres numéricos que ocupen las 
+  posiciones cuarta, quinta, sexta y séptima. Por ejemplo, en el caso de una 
+  identificación como: XY12345678AB, la publicación sería: \*\*\*\*\*4567\*\*\*
+ <li> Si ese tipo de identificación es distinto de un pasaporte y tiene menos de 7
+  dígitos numéricos, se numerarán todos los caracteres, alfabéticos incluidos, 
+  con el mismo procedimiento anterior y se seleccionarán aquellos que ocupen 
+  las cuatro últimas posiciones. Por ejemplo, en el caso de una identificación 
+  como: ABCD123XY, la publicación sería: \*\*\*\*\*23XY
+  </ul>';
  $string['closedate'] = 'Fin de publicación de notas';
  $string['closedate_help'] = 'La fecha y hora en que se cerrará la lista.';
 
@@ -65,7 +85,7 @@
  $string['userfield'] = 'Campo de usuario';
  $string['userfield_help'] = 'Seleccione el campo de usuario que se utilizará para mostrar la lista de usuarios.';
  $string['userfieldmask'] = 'Máscara de campo de usuario';
- $string['userfieldmask_help'] = 'Defina la máscara que se utilizará para ocultar el campo de usuario. Una X sustituirá al carácter, un - omitirá el carácter y un * mostrará el carácter.';
+ $string['userfieldmask_help'] = 'Defina la máscara que se utilizará para ocultar el campo de usuario. Una * sustituirá al carácter, un - omitirá el carácter y un + mostrará el carácter.';
  $string['notopen'] = 'Esta lista aún no está disponible.';
  $string['useridalways'] = 'Siempre';
  $string['useridonlyifnamecollide'] = 'Solo si hay colisión de nombres';

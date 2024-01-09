@@ -55,10 +55,10 @@ function listgrades_mask($userfield, $mask) {
     $i = 0;
     $userfield = str_pad($userfield, strlen($mask), ' ', STR_PAD_RIGHT);
     while ($i < strlen($mask)) {
-        if ($mask[$i] == '*') {
+        if ($mask[$i] == '+') {
             $maskeduserfield .= $userfield[$i];
-        } else if ($mask[$i] == 'X') {
-            $maskeduserfield .= 'X';
+        } else if ($mask[$i] == '*') {
+            $maskeduserfield .= '*';
         } else if ($mask[$i] == '-') {
             $maskeduserfield .= '';
         }
@@ -66,6 +66,79 @@ function listgrades_mask($userfield, $mask) {
     }
     return $maskeduserfield;
 }
+/** Mask identifiers according to AEPD rules.
+ * - Dado un DNI con formato 12345678X, se publicarán los dígitos que en el 
+ * formato que ocupen las posiciones cuarta, quinta, sexta y séptima. En el 
+ * ejemplo: ***4567**.
+ * • Dado un NIE con formato L1234567X, se publicarán los dígitos que en el 
+ * formato ocupen las posiciones, evitando el primer carácter alfabéticos, 
+ * cuarta, quinta, sexta y séptima. En el ejemplo: ****4567*.
+ * • Dado un pasaporte con formato ABC123456, al tener sólo seis cifras, se 
+ * publicarán los dígitos que en el formato ocupen las posiciones, evitando los 
+ * tres caracteres alfabéticos, tercera, cuarta, quinta y sexta. En el ejemplo: *****3456.
+ * • Dado otro tipo de identificación, siempre que esa identificación contenga al 
+ * menos 7 dígitos numéricos, se numerarán dichos dígitos de izquierda a 
+ * derecha, evitando todos los caracteres alfabéticos, y se seguirá el 
+ * procedimiento de publicar aquellos caracteres numéricos que ocupen las 
+ * posiciones cuarta, quinta, sexta y séptima. Por ejemplo, en el caso de una 
+ * identificación como: XY12345678AB, la publicación sería: *****4567***
+ * Si ese tipo de identificación es distinto de un pasaporte y tiene menos de 7
+ * dígitos numéricos, se numerarán todos los caracteres, alfabéticos incluidos, 
+ * con el mismo procedimiento anterior y se seleccionarán aquellos que ocupen 
+ * las cuatro últimas posiciones. Por ejemplo, en el caso de una identificación 
+ * como: ABCD123XY, la publicación sería: *****23XY
+ * 
+ * DNI format allows an optional, initial "E" character (local UVa requirement).
+ * @param string $userfield
+ */
+function listgrades_mask_identifier_aepd($userfield) {
+    $userfield = strtoupper($userfield);
+    $maskeduserfield = '';
+    $i = 0;
+    $userfield = str_pad($userfield, 9, ' ', STR_PAD_RIGHT);
+    $matches = [];
+
+    if (preg_match('/^E?([0-9]{8}[A-Z])$/', $userfield)) {
+        // DNI
+        // Remove first character if it is an E.
+        if ($userfield[0] == 'E') {
+            $userfield = substr($userfield, 1);
+        }
+        $maskeduserfield = '***' . substr($userfield, 3, 4) . '**';
+    } else if (preg_match('/^[A-Z][0-9]{7}[A-Z]$/', $userfield)) {
+        // NIE
+        $maskeduserfield = '****' . substr($userfield, 4, 4) . '*';
+    } else if (preg_match('/^[A-Z]{3}[0-9]{6}$/', $userfield)) {
+        // Pasaporte
+        $maskeduserfield = '*****' . substr($userfield, 5, 4);
+    } else if (preg_match('/[0-9]{7,}/', $userfield, $matches, PREG_OFFSET_CAPTURE)){
+        // Otro tipo de identificación.
+        $offset = $matches[0][1];
+        $numbers = $matches[0][0];
+        $length = strlen($numbers);
+        $maskeduserfield = listgrades_asterisks($offset + 3)
+                            . substr($numbers, 3, 4)
+                            . listgrades_asterisks(strlen($userfield) - $offset -3 - 4);
+    } else {
+        // Otro tipo de identificación
+        $maskeduserfield = listgrades_asterisks(strlen($userfield) - 4) . substr($userfield, -4);
+    }
+    return $maskeduserfield;
+}
+/**
+ * Create a string of N '*'.
+ * @param int $n >= 0
+ * @return string
+ */
+function listgrades_asterisks($n) {
+    if ($n == 0) {
+        return '';
+    } else {
+        return str_repeat('*', $n);
+    }
+}
+
+
 
 /**
  * Find items matching by name and id

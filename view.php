@@ -167,7 +167,11 @@ if ($isopen || has_capability('moodle/course:manageactivities', $context)) {
             debugging("User $user->id does not have a $userfield");
             continue;
         }
-        $maskeduserfield = listgrades_mask($id, $mask);
+        if ($config->aepdmethod) {
+            $maskeduserfield = listgrades_mask_identifier_aepd($id);
+        } else {
+            $maskeduserfield = listgrades_mask($id, $mask);
+        }
         $graderurl->param('userid', $user->id);
         // Print user fullname.
         if ($config->showusername) {
