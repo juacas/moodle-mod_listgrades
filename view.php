@@ -141,7 +141,7 @@ if ($isopen || has_capability('moodle/course:manageactivities', $context)) {
     $namecollisions = [];
     // Compute full names.
     foreach ($users as $user) {
-        $user->fullname = fullname($user);
+        $user->fullname = "{$user->lastname}, {$user->firstname}";
     }
     // if showuserfield is onlyifnamecollide, get the users that have the same username.
     if ($config->showuserfield == 'onlyifnamecollide') {
