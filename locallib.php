@@ -95,7 +95,6 @@ function listgrades_mask_identifier_aepd($userfield) {
     $userfield = strtoupper($userfield);
     $maskeduserfield = '';
     $i = 0;
-    $userfield = str_pad($userfield, 9, ' ', STR_PAD_RIGHT);
     $matches = [];
 
     if (preg_match('/^E?([0-9]{8}[A-Z])$/', $userfield)) {
