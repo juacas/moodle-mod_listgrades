@@ -23,7 +23,7 @@
  */
 
 $string['aepdmethod'] = 'AEPD identifiers obfuscation';
-$string['aepdmethod_help'] = 'Select the method of obfuscation of identifiers that will be used to comply with the regulations of the Spanish Data Protection Agency.';
+$string['aepdmethod_help'] = 'Select the method of obfuscation of identifiers that will be used to comply with the regulations of the Spanish Data Protection Agency: <a href="https://www.aepd.es/documento/orientaciones-da7.pdf">https://www.aepd.es/documento/orientaciones-da7.pdf</a>';
 $string['closedate'] = 'Unpublication of grades';
 $string['closedate_help'] = 'The date and time when the listing will be closed.';
 
