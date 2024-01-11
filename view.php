@@ -102,6 +102,7 @@ if ($isopen || has_capability('moodle/course:manageactivities', $context)) {
         $headers[] = 'ID';
     }
     $gradeitems = $grader->get_gradeitems();
+    $itemnames = $grader->get_item_names();
     $listeditems = [];
     // Extract the items preserving the order of gradetree.
     foreach ($gradeitems as $item) {
@@ -109,7 +110,7 @@ if ($isopen || has_capability('moodle/course:manageactivities', $context)) {
             continue;
         };
         $listeditems[] = $item;
-        $headertext = $item->itemtype == 'course' ? get_string('total') : $item->itemname;
+        $headertext = $itemnames[$item->id];
         // Add the range of the grade item formatted to $gradeitem->get_decimals() decimals.
 
         $headertext .= " (" . $item->get_formatted_range() . ")";

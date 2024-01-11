@@ -29,6 +29,36 @@ require_once("$CFG->libdir/resourcelib.php");
 require_once("$CFG->dirroot/mod/listgrades/lib.php");
 require_once($CFG->dirroot . '/grade/report/grader/lib.php');
 class grade_report_listing extends grade_report_grader {
+    /**
+     * Gets the gradetree object.
+     */
+    public function get_gradetree() {
+        return $this->gtree;
+    }
+    public function get_item_names() {
+        $items = [];
+        // Get grade category names.
+        $categories = $this->get_category_names();
+        foreach ($this->get_gradeitems() as $key => $item) {
+            if ($item->itemtype == 'course') {
+                $items[$key] = $item->get_name();
+            } else if ($item->itemtype == 'category') {
+                $items[$key] = get_string('total') . ' ' . $categories[$item->iteminstance];
+            } else {
+                $items[$key] = $item->get_name();
+            }
+        }
+        return $items;
+    }
+    public function get_category_names() {
+        $categories = [];
+        array_walk_recursive($this->gtree->top_element, function($item, $key) use (&$categories) {
+            if ($item instanceof grade_category) {
+                $categories[$item->id] = $item->get_name();
+            }
+        });
+        return $categories;
+    }
     public function get_gradeitems() {
         $items = $this->gtree->get_items();
         $allgradeitems = array_filter($items, function ($item) {
@@ -104,7 +134,7 @@ function listgrades_mask_identifier_aepd($userfield) {
             $userfield = substr($userfield, 1);
         }
         $maskeduserfield = '***' . substr($userfield, 3, 4) . '**';
-    } else if (preg_match('/^[A-Z][0-9]{7}[A-Z]$/', $userfield)) {
+    } else if (preg_match('/^[XYZ][0-9]{7}[A-Z]$/', $userfield)) {
         // NIE
         $maskeduserfield = '****' . substr($userfield, 4, 4) . '*';
     } else if (preg_match('/^[A-Z]{3}[0-9]{6}$/', $userfield)) {

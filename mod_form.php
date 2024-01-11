@@ -60,14 +60,11 @@ class mod_listgrades_mod_form extends moodleform_mod {
         $mform->addRule('signature', get_string('required'), 'required', null, 'client');
 
         // Get Grade items from the course and create a multi-select box.
-        // Use grader report to get the grades of the students.
+        // Use grader report as base to get the grades of the students.
         $grader = new grade_report_listing($this->current->course, "0", $this->context);
-        $gradeitems = $grader->get_gradeitems();
-
-        $gradeitems = array_map(function($item) {
-            return $item->get_name();
-        }, $gradeitems);
-        $mform->addElement('select', 'items', get_string('gradeitems', 'listgrades'), $gradeitems,
+        $items = $grader->get_item_names();
+       
+        $mform->addElement('select', 'items', get_string('gradeitems', 'listgrades'), $items,
                             ['multiple' => 'multiple', 'size' => 10]);
         $mform->addRule('items', get_string('required'), 'required', null, 'client');
         // Date window for grade items.
