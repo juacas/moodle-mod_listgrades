@@ -28,7 +28,34 @@ require_once("$CFG->libdir/filelib.php");
 require_once("$CFG->libdir/resourcelib.php");
 require_once("$CFG->dirroot/mod/listgrades/lib.php");
 require_once($CFG->dirroot . '/grade/report/grader/lib.php');
+
 class grade_report_listing extends grade_report_grader {
+    /**
+     * Constructor to override the calculation of grade_tree (avoid removing collapsed categories).
+     */
+    public function __construct($courseid, $gpr, $context, $page=null, $sortitemid='lastname') {
+        global $CFG;
+        parent::__construct($courseid, $gpr, $context, $page);
+
+        // Don't collapse categories.
+        $this->collapsed =  ['aggregatesonly' => [], 'gradesonly' => []];
+
+        if (empty($CFG->enableoutcomes)) {
+            $nooutcomes = false;
+        } else {
+            $nooutcomes = get_user_preferences('grade_report_shownooutcomes');
+        }
+
+        // if user report preference set or site report setting set use it, otherwise use course or site setting
+        $switch = $this->get_pref('aggregationposition');
+        if ($switch == '') {
+            $switch = grade_get_setting($this->courseid, 'aggregationposition', $CFG->grade_aggregationposition);
+        }
+        // Grab the grade_tree for this course
+        $this->gtree = new grade_tree($this->courseid, true, $switch, $this->collapsed, $nooutcomes);
+        $this->sortitemid = $sortitemid;    
+    }
+    
     /**
      * Gets the gradetree object.
      */
@@ -64,7 +91,7 @@ class grade_report_listing extends grade_report_grader {
         $allgradeitems = array_filter($items, function ($item) {
             return $item->gradetype != GRADE_TYPE_NONE;
         });
-        return $items;
+        return $allgradeitems;
     }
     public function get_grades() {
         return $this->grades;
