@@ -71,3 +71,4 @@ Change log
 ==========
 - v1.0.0 Initial release.
 - v1.0.3 AEPD ofuscation method.
+- v1.0.4 Show collapsed categories.
