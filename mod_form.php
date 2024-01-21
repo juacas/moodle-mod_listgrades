@@ -63,7 +63,10 @@ class mod_listgrades_mod_form extends moodleform_mod {
         // Use grader report as base to get the grades of the students.
         $grader = new grade_report_listing($this->current->course, "0", $this->context);
         $items = $grader->get_item_names();
-       
+        // Add feedback items.
+        foreach ($items as $itemid => $itemname) {
+            $items[-$itemid] = get_string('feedbackforgradeitems', 'grades', $itemname);
+        }
         $mform->addElement('select', 'items', get_string('gradeitems', 'listgrades'), $items,
                             ['multiple' => 'multiple', 'size' => 10]);
         $mform->addRule('items', get_string('required'), 'required', null, 'client');
