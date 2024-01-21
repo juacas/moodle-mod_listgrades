@@ -103,17 +103,21 @@ if ($isopen || has_capability('moodle/course:manageactivities', $context)) {
     }
     $gradeitems = $grader->get_gradeitems();
     $itemnames = $grader->get_item_names();
+
     $listeditems = [];
     // Extract the items preserving the order of gradetree.
-    foreach ($gradeitems as $item) {
-        if (!in_array($item->id, $items)) {
-            continue;
-        };
-        $listeditems[] = $item;
-        $headertext = $itemnames[$item->id];
+    foreach ($items as $itemid) {
+        $item = $gradeitems[abs($itemid)];
+        $listeditems[$itemid] = $item;
+        if ($itemid < 0) {
+            $headertext = get_string('feedbackforgradeitems', 'grades', $itemnames[-$itemid]);
+        } else {
+            $headertext = $itemnames[$itemid];
+        }
         // Add the range of the grade item formatted to $gradeitem->get_decimals() decimals.
-
-        $headertext .= " (" . $item->get_formatted_range() . ")";
+        if ($itemid > 0 ) {
+            $headertext .= " (" . $item->get_formatted_range() . ")";
+        }
         $headers[] = $headertext;
     }
 
@@ -186,9 +190,14 @@ if ($isopen || has_capability('moodle/course:manageactivities', $context)) {
             $row[] = $maskeduserfield;
         }
         // Collect the gradeitems.
-        foreach ($listeditems as $item) {
-            $gradevalue = $grade[$item->id];
-            $gradestr = $gradevalue->finalgrade ? format_float($gradevalue->finalgrade, $gradevalue->grade_item->get_decimals()) : '--';
+        foreach ($listeditems as $itemid => $item) {
+            if ($itemid < 0) {
+                $gradevalue = $grade[$item->id];
+                $gradestr = $gradevalue->feedback ? $gradevalue->feedback : '--';
+            } else {
+                $gradevalue = $grade[$item->id];
+                $gradestr = $gradevalue->finalgrade ? format_float($gradevalue->finalgrade, $gradevalue->grade_item->get_decimals()) : '--';
+            }
             if ($USER->id == $user->id) {
                 $row[] = html_writer::link($graderurl, $gradestr);
             } else {

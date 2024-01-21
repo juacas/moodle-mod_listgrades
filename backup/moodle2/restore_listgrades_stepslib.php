@@ -56,22 +56,41 @@ class restore_listgrades_activity_structure_step extends restore_activity_struct
         $candidateitems = $gradetreeroot->get_items();
 
         foreach ($dataitems as $id => $item) {
-            if ($item == '__COURSE__') {
+             // If the item begins with __FEEDBACK__ then it is a feedback item.
+             if (strpos($item, '__FEEDBACK__') === 0) {
+                // String comparison without the __FEEDBACK__ prefix.
+                $itemname = substr($item, 12);
+                $feedbackprefix = '__FEEDBACK__';
+                } else {
+                $itemname = $item;
+                $feedbackprefix = '';
+            }
+            if ($itemname == '__COURSE__') {
                 // Find the item with itemtype course.
                 foreach ($candidateitems as $candidateitem) {
                     if ($candidateitem->itemtype == 'course') {
-                        $gradeitems[$candidateitem->id] = '__COURSE__';
+                        if ($feedbackprefix == '__FEEDBACK__') {
+                            $candidateitemid = - $candidateitem->id;
+                        } else {
+                            $candidateitemid = $candidateitem->id;
+                        }
+                        $gradeitems[$candidateitemid] = $feedbackprefix . '__COURSE__';
                         break;
                     }
                 }
             } else {
-                // Find the grade item with the same name as the one in the backup.
-                foreach ($candidateitems as $candidateitem) {
-                    if ($item == $candidateitem->itemname) {
-                        $gradeitems[$candidateitem->id] = $candidateitem->itemname;
-                        break;
+                    // Find the grade item with the same name as the one in the backup.
+                    foreach ($candidateitems as $candidateitem) {
+                        if ($itemname == $candidateitem->itemname) {
+                            if ($feedbackprefix == '__FEEDBACK__') {
+                                $candidateitemid = - $candidateitem->id;
+                            } else {
+                                $candidateitemid = $candidateitem->id;
+                            }
+                            $gradeitems[$candidateitemid] = $feedbackprefix . $candidateitem->itemname;
+                            break;
+                        }
                     }
-                }
             }
         }
         $data->items = serialize($gradeitems);

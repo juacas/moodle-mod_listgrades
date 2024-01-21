@@ -197,20 +197,30 @@ function listgrades_asterisks($n) {
 
 
 /**
- * Find items matching by name and id
- * @param array $gradeitems ids
+ * Find item names matching by id. Negative ids are feedback items.
+ * @param array $gradeitems ids. Negative ids are feedback items.
  * @return array of grade_items with id -> name
  */
-function listgrades_get_gradeitems($items) {
+function listgrades_get_gradeitems_for_backup($itemids, $items = null) {
     global $DB;
-    // Query db for grade items.
-    $items = $DB->get_records_list('grade_items', 'id', $items);
+    $itemsidsquery = array_map( fn($itemid) => $itemid < 0 ? -$itemid : $itemid, $itemids);
+    if ($items == null) {
+        // Query db for grade items.
+        $items = $DB->get_records_list('grade_items', 'id', $itemsidsquery);
+    }
     $gradeitems = [];
-    foreach ($items as $item) {
-        if ($item->itemtype == 'course') {
-            $gradeitems[$item->id] = '__COURSE__';
+    foreach ($itemids as $itemid) {
+        if($itemid < 0) {
+            $item = $items[ -$itemid];
+            $feedbackprefix = '__FEEDBACK__';
         } else {
-            $gradeitems[$item->id] = $item->itemname;
+            $item = $items[$itemid];
+            $feedbackprefix = '';
+        }
+        if ($item->itemtype == 'course') {
+            $gradeitems[$itemid] = $feedbackprefix . '__COURSE__';
+        } else {
+            $gradeitems[$itemid] = $feedbackprefix . $item->itemname;
         }
     }
     return $gradeitems;

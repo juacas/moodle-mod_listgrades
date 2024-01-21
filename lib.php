@@ -100,7 +100,7 @@ function listgrades_add_instance($data, $mform = null) {
     $data->timemodified = time();
 
     $items = $data->items;
-    $items = listgrades_get_gradeitems($items);
+    $items = listgrades_get_gradeitems_for_backup($items);
     $data->items = serialize($items);
 
     if ($mform) {
@@ -144,7 +144,7 @@ function listgrades_update_instance($data, $mform) {
     $data->id           = $data->instance;
     $data->revision++;
 
-    $data->items = listgrades_get_gradeitems($data->items);
+    $data->items = listgrades_get_gradeitems_for_backup($data->items);
     $data->items = serialize($data->items);
 
     $data->footerformat = $data->signature['format'];
