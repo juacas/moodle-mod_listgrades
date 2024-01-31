@@ -180,13 +180,13 @@ function listgrades_delete_instance($id) {
     $cm = get_coursemodule_from_instance('listgrades', $id);
     \core_completion\api::update_completion_date_event($cm->id, 'listgrades', $id, null);
 
-    // Note: all context files are deleted automatically.
-    $DB->delete_records('listgrades', ['id' => $listgrades->id]);
     // Delete calendar events.
     $listgrades->opendate = null;
     $listgrades->closedate = null;
     listgrades_update_calendar($listgrades);
-
+    
+    // Note: all context files are deleted automatically.
+    $DB->delete_records('listgrades', ['id' => $listgrades->id]);
     return true;
 }
 
