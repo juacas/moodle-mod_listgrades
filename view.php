@@ -96,7 +96,7 @@ if ($isopen || has_capability('moodle/course:manageactivities', $context)) {
     // Create the headers.
     $headers = [];
     if ($config->showusername) {
-        $headers[] = 'Name';
+        $headers[] = get_string('outcomefullname', 'core_grades');
     }
     if ($config->showuserfield == 'always') {
         $headers[] = 'ID';
