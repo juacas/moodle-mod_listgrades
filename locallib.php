@@ -187,7 +187,7 @@ function listgrades_mask_identifier_aepd($userfield) {
  * @return string
  */
 function listgrades_asterisks($n) {
-    if ($n == 0) {
+    if ($n <= 0) {
         return '';
     } else {
         return str_repeat('*', $n);
