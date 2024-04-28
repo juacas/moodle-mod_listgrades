@@ -122,6 +122,7 @@ if ($isopen || has_capability('moodle/course:manageactivities', $context)) {
     }
 
     $grades = $grader->get_grades();
+    // Get users to be graded.
     $users = $grader->get_users();
     // Print a table with the grades.
     // Create table object.
@@ -136,11 +137,39 @@ if ($isopen || has_capability('moodle/course:manageactivities', $context)) {
     foreach ($customfields as $field) {
         if ($userfield == $field->shortname) {
             $iscustomfield = true;
+            $fieldid = $field->id;
+            break;
         }
     }
-    // Get full users records from $users array.
-    $ids = array_keys($users);
-    $users = $DB->get_records_list('user', 'id', $ids, $userfield);
+    // Load full user records.
+    $users = $DB->get_records_list('user', 'id', array_keys($users));
+
+    // Get users with userfield.
+    if ($iscustomfield) {
+        // Get custom field values.
+        $ids = array_keys($users);
+        [$sql_in, $params] = $DB->get_in_or_equal($ids);
+        // To Lower case.
+        $userfield = strtolower($userfield);
+        // Join the user_info_data table with the user table on userid and fieldid.
+        $sql = "SELECT d.userid, d.data as $userfield
+                 FROM {user_info_data} d
+                 WHERE d.fieldid = ?
+                   AND d.userid $sql_in
+                 ORDER BY d.data";
+        $paramssql = [$fieldid];
+        $paramssql = array_merge($paramssql, $params);
+        $customfields = $DB->get_records_sql($sql, $paramssql);
+        // Reset custom field.
+        foreach ($ids as $userid) {
+            $users[$userid]->$userfield = '';
+        }
+        // Add custom field to users.
+        foreach ($customfields as $userid => $customfield) {
+            $users[$userid]->$userfield = $customfield->$userfield;
+        }  
+    }
+    
     $graderurl = new moodle_url('/grade/report/user/index.php', ['id' => $course->id]);
     $group = groups_get_members($groupid, 'u.id', 'u.id');
     $namecollisions = [];
@@ -161,16 +190,9 @@ if ($isopen || has_capability('moodle/course:manageactivities', $context)) {
         $row = [];
         // Get the grade of the student.
         $grade = $grades[$user->id];
-        // Get masked userfield.
-        if ($iscustomfield) {
-            profile_load_custom_fields($user);
-            $id = $user->profile->$userfield;
-        } else {
-            $id = $user->$userfield;
-        }
+        $id = $user->$userfield;
         if ($id == null) {
             debugging("User $user->id does not have a $userfield");
-            continue;
         }
         if ($config->aepdmethod) {
             $maskeduserfield = listgrades_mask_identifier_aepd($id);
@@ -205,7 +227,7 @@ if ($isopen || has_capability('moodle/course:manageactivities', $context)) {
             }
         }
 
-        // Add the userfield to the table and the grade to the table.
+        // Add the userfield and the grades to the table.
         $table->data[] = $row;
     }
     // Sort the table by first column.

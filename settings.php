@@ -53,7 +53,7 @@ if ($ADMIN->fulltree) {
         $userfields[$field] = $field;
     }
     foreach ($customfields as $field) {
-        $userfields["profile_field_{$field->shortname}"] = $field->name;
+        $userfields[$field->shortname] = $field->name;
     }
 
 
