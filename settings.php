@@ -75,7 +75,7 @@ if ($ADMIN->fulltree) {
     $logo = $OUTPUT->get_logo_url();
     $a->logourl = $logo == false ? '' : $logo->out();
     $logo = $OUTPUT->get_compact_logo_url();
-    $a->logocompacturl = $logo->out();
+    $a->logocompacturl = $logo == false ? '' : $logo->out();
 
     // Default texts.
     // TODO: Intro does not accept default value! Disabled until a workaround is found.
