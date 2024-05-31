@@ -21,7 +21,7 @@
  */
 
 defined('MOODLE_INTERNAL') || die;
-
+require_once("{$CFG->dirroot}/mod/listgrades/locallib.php");
 /**
  * List of features supported in Page module
  * @param string $feature FEATURE_xx constant for requested feature
