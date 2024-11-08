@@ -58,11 +58,11 @@ class backup_listgrades_activity_task extends backup_activity_task {
 
         // Link to the list of listgradess.
         $search = "/(" . $base . "\/mod\/listgrades\/index.php\?id\=)([0-9]+)/";
-        $content = preg_replace($search, '$@PAGEINDEX*$2@$', $content);
+        $content = preg_replace($search, '$@LISTGRADEINDEX*$2@$', $content);
 
         // Link to listgrades view by moduleid.
         $search = "/(".$base."\/mod\/listgrades\/view.php\?id\=)([0-9]+)/";
-        $content = preg_replace($search, '$@PAGEVIEWBYID*$2@$', $content);
+        $content = preg_replace($search, '$@LISTGRADEVIEWBYID*$2@$', $content);
 
         return $content;
     }

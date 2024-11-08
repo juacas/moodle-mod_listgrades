@@ -65,8 +65,8 @@ class restore_listgrades_activity_task extends restore_activity_task {
     public static function define_decode_rules() {
         $rules = [];
 
-        $rules[] = new restore_decode_rule('PAGEVIEWBYID', '/mod/listgrades/view.php?id=$1', 'course_module');
-        $rules[] = new restore_decode_rule('PAGEINDEX', '/mod/listgrades/index.php?id=$1', 'course');
+        $rules[] = new restore_decode_rule('LISTGRADEVIEWBYID', '/mod/listgrades/view.php?id=$1', 'course_module');
+        $rules[] = new restore_decode_rule('LISTGRADEINDEX', '/mod/listgrades/index.php?id=$1', 'course');
 
         return $rules;
     }
