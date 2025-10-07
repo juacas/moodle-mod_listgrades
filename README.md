@@ -9,19 +9,19 @@ The **Moodle Privacy-Friendly Grade Publishing Plugin** is a powerful tool desig
 ### 1. Selective Grade Publishing
 
 - **Granular Control:** Teachers can choose which grades to publish, offering fine-grained control over the information shared with students.
-  
+
 - **Individual or Group Publishing:** Decide whether to give access to the grades to all students or by groups, providing flexibility based on course dynamics.
 
 ### 2. Privacy Masking
 
 - **Automatic ID Masking:** The plugin automatically masks personal IDs, hidding some digits to safeguard student privacy.
-  
+
 - **Configurable Masking Options:** Customize the masking process based on institutional policies, ensuring compliance with privacy regulations.
 
 ### 3. Transparency and Collaboration
 
 - **Viewing Options:** Students can view the grades of their peers, promoting transparency and collaboration within the learning community.
-  
+
 - **User-Friendly Interface:** A simple and intuitive interface allows both teachers and students to easily navigate and access the published grades.
 
 ## Installation
@@ -76,3 +76,5 @@ Change log
 - v1.0.6 Custom fields suport fixed.
 - v1.0.7 Fix error in settings when compact logo is not defined.
 - v1.0.8 Fix bug #8. Error when deleting course.
+- v1.0.9 Fix bug #9. Error when restoring a course with listgrades activities.
+- v1.0.10 Fix bug #10. Error when restoring a course with listgrades activities in Moodle 4.5.

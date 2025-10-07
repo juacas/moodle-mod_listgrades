@@ -40,7 +40,9 @@ class restore_listgrades_activity_structure_step extends restore_activity_struct
     }
 
     protected function process_listgrades($data) {
-        global $DB;
+        global $DB, $CFG;
+        // Load grade_tree class.
+        require_once($CFG->dirroot . '/grade/lib.php');
 
         $data = (object)$data;
         $oldid = $data->id;
