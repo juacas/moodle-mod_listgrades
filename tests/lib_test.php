@@ -49,6 +49,13 @@ class lib_test extends \advanced_testcase {
     }
 
     /**
+     * The activity chooser classifies List grades as an administration tool.
+     */
+    public function test_activity_chooser_purpose(): void {
+        $this->assertSame(MOD_PURPOSE_ADMINISTRATION, listgrades_supports(FEATURE_MOD_PURPOSE));
+    }
+
+    /**
      * Test listgrades_view
      * @return void
      */
