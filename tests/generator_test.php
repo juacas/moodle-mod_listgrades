@@ -46,6 +46,8 @@ class generator_test extends \advanced_testcase {
         $this->assertEquals($page->id, $cm->instance);
         $this->assertEquals('listgrades', $cm->modname);
         $this->assertEquals($SITE->id, $cm->course);
+        $this->assertEquals(LISTGRADES_DISPLAY_INDIVIDUAL, $page->displaymode);
+        $this->assertEquals(1, $page->showstatistics);
 
         $context = \context_module::instance($cm->id);
         $this->assertEquals($page->cmid, $context->instanceid);

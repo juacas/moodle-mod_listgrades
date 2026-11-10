@@ -70,6 +70,29 @@ class mod_listgrades_mod_form extends moodleform_mod {
         $mform->addElement('select', 'items', get_string('gradeitems', 'listgrades'), $items,
                             ['multiple' => 'multiple', 'size' => 10]);
         $mform->addRule('items', get_string('required'), 'required', null, 'client');
+
+        $allowedmodes = $config->alloweddisplaymodes ?? LISTGRADES_ALLOWED_BOTH;
+        if ($allowedmodes === LISTGRADES_DISPLAY_LIST) {
+            $displaymodes = [LISTGRADES_DISPLAY_LIST => get_string('displaymodelist', 'listgrades')];
+        } else if ($allowedmodes === LISTGRADES_DISPLAY_INDIVIDUAL) {
+            $displaymodes = [LISTGRADES_DISPLAY_INDIVIDUAL => get_string('displaymodeindividual', 'listgrades')];
+        } else {
+            $displaymodes = [
+                LISTGRADES_DISPLAY_LIST => get_string('displaymodelist', 'listgrades'),
+                LISTGRADES_DISPLAY_INDIVIDUAL => get_string('displaymodeindividual', 'listgrades'),
+            ];
+        }
+        $mform->addElement('select', 'displaymode', get_string('displaymode', 'listgrades'), $displaymodes);
+        $mform->addHelpButton('displaymode', 'displaymode', 'listgrades');
+        $defaultmode = $allowedmodes === LISTGRADES_ALLOWED_BOTH
+            ? ($config->defaultdisplaymode ?? LISTGRADES_DISPLAY_INDIVIDUAL)
+            : $allowedmodes;
+        $mform->setDefault('displaymode', listgrades_resolve_display_mode(null, $allowedmodes, $defaultmode));
+
+        $mform->addElement('advcheckbox', 'showstatistics', get_string('showstatistics', 'listgrades'));
+        $mform->addHelpButton('showstatistics', 'showstatistics', 'listgrades');
+        $mform->setDefault('showstatistics', 1);
+
         // Date window for grade items.
         $mform->addElement('date_time_selector', 'opendate', get_string('opendate', 'listgrades'), ['optional' => true]);
         $mform->addHelpButton('opendate', 'opendate', 'listgrades');

@@ -24,6 +24,8 @@
 
  $string['aepdmethod'] = 'Ofuscación de identificadores AEPD';
  $string['aepdmethod_help'] = 'Usar el método de ofuscación de identificadores que se utilizará para cumplir con la normativa de la Agencia Española de Protección de Datos: <a href="https://www.aepd.es/documento/orientaciones-da7.pdf">https://www.aepd.es/documento/orientaciones-da7.pdf</a>';
+ $string['alloweddisplaymodes'] = 'Listados permitidos';
+ $string['alloweddisplaymodes_help'] = 'Elija si las actividades pueden utilizar el formato Listado, Individual o ambos.';
  $string['closedate'] = 'Fin de publicación de notas';
  $string['closedate_help'] = 'La fecha y hora en que se cerrará la lista.';
 
@@ -41,11 +43,31 @@
  <td><h3>LISTADO DE CALIFICACIONES PROVISIONALES</h3><p>Convocatoria: ORDINARIA</p></td>
  </tr></tbody></table>';
  $string['defaultintro_help'] = 'Texto predeterminado de introducción que se mostrará en la lista.';
+ $string['defaultdisplaymode'] = 'Listados de notas por defecto';
+ $string['defaultdisplaymode_help'] = 'Formato de página seleccionado por defecto cuando se permiten ambos formatos.';
+ $string['displaymode'] = 'Formato de la página';
+ $string['displaymode_help'] = 'Elija entre mostrar el listado de calificaciones o solo las calificaciones del usuario actual.';
+ $string['displaymodeindividual'] = 'Individual';
+ $string['displaymodelist'] = 'Listado';
+ $string['displaymodeboth'] = 'Ambos';
  $string['footer'] = 'Sección de pie de página';
  $string['footerheader'] = 'Pie de página';
  $string['createlisting'] = 'Crear listado';
  $string['gradeitems'] = 'Elementos de calificación para publicar.';
  $string['gradeitems_help'] = 'Seleccione los elementos de calificación que se publicarán. Mantenga presionada la tecla CTRL para seleccionar varios campos.';
+ $string['grade'] = 'Calificación';
+ $string['feedback'] = 'Retroalimentación';
+ $string['gradeitem'] = 'Ítem de calificación';
+ $string['histogrambin'] = '{$a->range}: {$a->count} calificaciones ({$a->percentage} %)';
+$string['illustrativegrade'] = 'Calificación ilustrativa';
+ $string['individualgradedate'] = 'Fecha: {$a}';
+ $string['individualgradeintro'] = 'La calificación de {$a} es:';
+ $string['individualgradesintro'] = 'Las calificaciones de {$a} son:';
+ $string['nostatistics'] = 'No hay calificaciones disponibles para calcular estadísticas.';
+ $string['statistics'] = 'Estadísticas de calificaciones';
+ $string['showstatistics'] = 'Mostrar estadísticas de calificaciones';
+ $string['showstatistics_help'] = 'Muestra gráficos de distribución para cada ítem de calificación tanto en modo Listado como Individual.';
+ $string['boxplotsummary'] = 'Mínimo: {$a->min}; primer cuartil: {$a->q1}; mediana: {$a->median}; tercer cuartil: {$a->q3}; máximo: {$a->max}.';
 
  $string['modulename'] = 'Publicación de notas';
  $string['modulename_help'] = 'El módulo "list grades" permite a un profesor publicar las calificaciones de todos los estudiantes en una página del curso para cumplir con los requisitos de transparencia. Protege la privacidad de los estudiantes al ocultar el campo de usuario seleccionado por el profesor.';

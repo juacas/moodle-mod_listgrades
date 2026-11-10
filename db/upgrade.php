@@ -45,7 +45,9 @@
 defined('MOODLE_INTERNAL') || die;
 
 function xmldb_listgrades_upgrade($oldversion) {
-    global $CFG;
+    global $DB;
+
+    $dbman = $DB->get_manager();
 
     // Automatically generated Moodle v3.9.0 release upgrade line.
     // Put any upgrade step following this.
@@ -55,6 +57,33 @@ function xmldb_listgrades_upgrade($oldversion) {
 
     // Automatically generated Moodle v4.1.0 release upgrade line.
     // Put any upgrade step following this.
+
+    if ($oldversion < 2026111000) {
+        $table = new xmldb_table('listgrades');
+        $field = new xmldb_field('displaymode', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null,
+            'individualstats', 'items');
+
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_mod_savepoint(true, 2026111000, 'listgrades');
+    }
+
+    if ($oldversion < 2026111001) {
+        $table = new xmldb_table('listgrades');
+        $field = new xmldb_field('showstatistics', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1',
+            'displaymode');
+
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Preserve the behaviour of activities created with the former combined mode.
+        $DB->set_field('listgrades', 'displaymode', 'individual', ['displaymode' => 'individualstats']);
+
+        upgrade_mod_savepoint(true, 2026111001, 'listgrades');
+    }
 
     return true;
 }

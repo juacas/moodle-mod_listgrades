@@ -24,6 +24,8 @@
 
 $string['aepdmethod'] = 'AEPD identifiers obfuscation';
 $string['aepdmethod_help'] = 'Select the method of obfuscation of identifiers that will be used to comply with the regulations of the Spanish Data Protection Agency: <a href="https://www.aepd.es/documento/orientaciones-da7.pdf">https://www.aepd.es/documento/orientaciones-da7.pdf</a>';
+$string['alloweddisplaymodes'] = 'Allowed grade list formats';
+$string['alloweddisplaymodes_help'] = 'Choose whether activities may use Listing, Individual, or both page formats.';
 $string['closedate'] = 'Unpublication of grades';
 $string['closedate_help'] = 'The date and time when the listing will be closed.';
 
@@ -36,11 +38,31 @@ $string['defaultintrotext'] = '<table border="0" width="100%"><tbody><tr><td><h3
 </td></tr></tbody></table>';
 $string['defaultintro'] = 'Default text introduction';
 $string['defaultintro_help'] = 'Default text introduction that will be displayed in the listing.';
+$string['defaultdisplaymode'] = 'Default grade list format';
+$string['defaultdisplaymode_help'] = 'Page format selected by default when both formats are allowed.';
+$string['displaymode'] = 'Page format';
+$string['displaymode_help'] = 'Choose whether to show the grade listing or only the current user’s grades.';
+$string['displaymodeindividual'] = 'Individual';
+$string['displaymodelist'] = 'Listing';
+$string['displaymodeboth'] = 'Both';
 $string['footer'] = 'Footer section';
 $string['footerheader'] = 'Footer';
 $string['createlisting'] = 'Create listing';
 $string['gradeitems'] = 'Grade items to publish';
 $string['gradeitems_help'] = 'Select the grade items that will be published. Hold CTRL key to select multiple fields.';
+$string['grade'] = 'Grade';
+$string['feedback'] = 'Feedback';
+$string['gradeitem'] = 'Grade item';
+$string['histogrambin'] = '{$a->range}: {$a->count} grades ({$a->percentage}%)';
+$string['illustrativegrade'] = 'Illustrative grade';
+$string['individualgradedate'] = 'Date: {$a}';
+$string['individualgradeintro'] = 'The grade for {$a} is:';
+$string['individualgradesintro'] = 'The grades for {$a} are:';
+$string['nostatistics'] = 'There are no grades available to calculate statistics.';
+$string['statistics'] = 'Grade statistics';
+$string['showstatistics'] = 'Show grade statistics';
+$string['showstatistics_help'] = 'Display distribution charts for each grade item in both Listing and Individual modes.';
+$string['boxplotsummary'] = 'Minimum: {$a->min}; first quartile: {$a->q1}; median: {$a->median}; third quartile: {$a->q3}; maximum: {$a->max}.';
 
 $string['modulename'] = 'Grades publication';
 $string['modulename_help'] = 'The "list grades" module enables a teacher to publish the grades of all the students on a page in the course to fullfill transparency requirements. It protects the privacy of the students by masking the user field selected by the teacher.';

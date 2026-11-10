@@ -41,7 +41,7 @@ class backup_listgrades_activity_structure_step extends backup_activity_structur
         $listgrades = new backup_nested_element('listgrades',
             ['id'],
             ['name', 'intro', 'introformat', 'footer', 'footerformat',
-            'items', 'opendate', 'closedate', 'timemodified']);
+            'items', 'displaymode', 'showstatistics', 'opendate', 'closedate', 'timemodified']);
 
         // Build the tree.
         // (love this).

@@ -29,6 +29,37 @@ require_once("$CFG->libdir/resourcelib.php");
 require_once("$CFG->dirroot/mod/listgrades/lib.php");
 require_once($CFG->dirroot . '/grade/report/grader/lib.php');
 
+define('LISTGRADES_DISPLAY_LIST', 'list');
+define('LISTGRADES_DISPLAY_INDIVIDUAL', 'individual');
+define('LISTGRADES_ALLOWED_BOTH', 'both');
+
+/**
+ * Resolve the activity display mode according to the site-wide policy.
+ *
+ * @param string|null $activitymode mode stored in the activity
+ * @param string|null $allowedmodes site-wide allowed modes
+ * @param string|null $defaultmode site-wide default when both modes are allowed
+ * @return string resolved display mode
+ */
+function listgrades_resolve_display_mode(?string $activitymode, ?string $allowedmodes,
+        ?string $defaultmode = null): string {
+    if ($allowedmodes === LISTGRADES_DISPLAY_LIST) {
+        return LISTGRADES_DISPLAY_LIST;
+    }
+    if ($allowedmodes === LISTGRADES_DISPLAY_INDIVIDUAL) {
+        return LISTGRADES_DISPLAY_INDIVIDUAL;
+    }
+
+    $validmodes = [LISTGRADES_DISPLAY_LIST, LISTGRADES_DISPLAY_INDIVIDUAL];
+    if (in_array($activitymode, $validmodes, true)) {
+        return $activitymode;
+    }
+    if (in_array($defaultmode, $validmodes, true)) {
+        return $defaultmode;
+    }
+    return LISTGRADES_DISPLAY_INDIVIDUAL;
+}
+
 class grade_report_listing extends grade_report_grader {
     /**
      * Constructor to override the calculation of grade_tree (avoid removing collapsed categories).
@@ -102,6 +133,570 @@ class grade_report_listing extends grade_report_grader {
     public function get_students_per_page(): int {
         return PHP_INT_MAX;
     }
+}
+
+/**
+ * Return the selected grade item ids once, preserving their configured order.
+ *
+ * Negative ids select feedback for the corresponding positive grade item.
+ *
+ * @param array $selecteditems selected ids
+ * @return array positive grade item ids
+ */
+function listgrades_get_selected_gradeitem_ids(array $selecteditems): array {
+    $itemids = [];
+    foreach ($selecteditems as $itemid) {
+        $itemid = abs((int) $itemid);
+        if ($itemid && !in_array($itemid, $itemids, true)) {
+            $itemids[] = $itemid;
+        }
+    }
+    return $itemids;
+}
+
+/**
+ * Calculate a percentile using linear interpolation between adjacent values.
+ *
+ * @param array $values numeric values
+ * @param float $percentile percentile between 0 and 1
+ * @return float|null
+ */
+function listgrades_percentile(array $values, float $percentile): ?float {
+    if (!$values) {
+        return null;
+    }
+    sort($values, SORT_NUMERIC);
+    $position = max(0, min(1, $percentile)) * (count($values) - 1);
+    $lower = (int) floor($position);
+    $upper = (int) ceil($position);
+    if ($lower === $upper) {
+        return (float) $values[$lower];
+    }
+    $weight = $position - $lower;
+    return (float) ($values[$lower] + (($values[$upper] - $values[$lower]) * $weight));
+}
+
+/**
+ * Render the current user's selected grades.
+ *
+ * @param array $selecteditems selected ids, with negative ids representing feedback
+ * @param array $gradeitems grade_item objects keyed by id
+ * @param array $itemnames item names keyed by id
+ * @param array|null $usergrades current user's grades keyed by item id
+ * @param context $context module context
+ * @param stdClass $user current user
+ * @return string
+ */
+function listgrades_render_individual_table(array $selecteditems, array $gradeitems, array $itemnames,
+        ?array $usergrades, context $context, stdClass $user): string {
+    $showfeedback = [];
+    foreach ($selecteditems as $itemid) {
+        if ($itemid < 0) {
+            $showfeedback[abs($itemid)] = true;
+        }
+    }
+
+    $table = new html_table();
+    $table->attributes['class'] = 'generaltable listgrades-individual-table';
+    $table->head = [get_string('gradeitem', 'listgrades'), get_string('grade', 'listgrades')];
+    if ($showfeedback) {
+        $table->head[] = get_string('feedback', 'listgrades');
+    }
+
+    $itemcount = 0;
+    foreach (listgrades_get_selected_gradeitem_ids($selecteditems) as $itemid) {
+        if (!isset($gradeitems[$itemid])) {
+            continue;
+        }
+        $itemcount++;
+        $item = $gradeitems[$itemid];
+        $grade = $usergrades[$itemid] ?? null;
+        $finalgrade = $grade ? $grade->finalgrade : null;
+        $row = [format_string($itemnames[$itemid]), grade_format_gradevalue(
+            $finalgrade === null ? null : (float) $finalgrade, $item, true, GRADE_DISPLAY_TYPE_REAL
+        )];
+
+        if ($showfeedback) {
+            if (!empty($showfeedback[$itemid]) && $grade && $grade->feedback !== null && $grade->feedback !== '') {
+                $format = $grade->feedbackformat ?? FORMAT_MOODLE;
+                $row[] = format_text($grade->feedback, $format, ['context' => $context]);
+            } else {
+                $row[] = '-';
+            }
+        }
+        $table->data[] = $row;
+    }
+
+    $introstring = $itemcount === 1 ? 'individualgradeintro' : 'individualgradesintro';
+    $intro = html_writer::tag('p', get_string($introstring, 'listgrades', fullname($user)), [
+        'class' => 'listgrades-individual-intro',
+    ]);
+    $date = html_writer::tag('p', get_string('individualgradedate', 'listgrades', userdate(time(), '%d/%m/%Y')), [
+        'class' => 'listgrades-individual-date',
+    ]);
+
+    return $intro . html_writer::table($table) . $date;
+}
+
+/**
+ * Convert a grade to a percentage position in the item's range.
+ *
+ * @param float $value grade
+ * @param float $minimum range minimum
+ * @param float $maximum range maximum
+ * @return float percentage from 0 to 100
+ */
+function listgrades_grade_position(float $value, float $minimum, float $maximum): float {
+    if ($maximum <= $minimum) {
+        return 50.0;
+    }
+    return max(0, min(100, (($value - $minimum) / ($maximum - $minimum)) * 100));
+}
+
+/**
+ * Generate an illustrative grade within the observed range.
+ *
+ * This is used only to show the marker when a teacher previews the activity and
+ * does not have a grade of their own. The generated value is never persisted.
+ *
+ * @param array $values observed numeric grades
+ * @param int $decimals number of decimal places to retain
+ * @return float|null illustrative grade, or null when there are no grades
+ */
+function listgrades_random_preview_grade(array $values, int $decimals): ?float {
+    if (!$values) {
+        return null;
+    }
+
+    $minimum = (float) min($values);
+    $maximum = (float) max($values);
+    if ($minimum === $maximum) {
+        return $minimum;
+    }
+
+    $fraction = random_int(0, 10000) / 10000;
+    return round($minimum + (($maximum - $minimum) * $fraction), max(0, $decimals));
+}
+
+/**
+ * Render the current user's picture as a chart marker.
+ *
+ * @param grade_item $item grade item
+ * @param float $usergrade current user's grade
+ * @param stdClass $user current user
+ * @param int $courseid course id
+ * @param float $position horizontal percentage position
+ * @param bool $illustrative whether this is an illustrative teacher preview
+ * @return string
+ */
+function listgrades_render_user_marker(grade_item $item, float $usergrade, stdClass $user, int $courseid,
+        float $position, bool $illustrative): string {
+    global $OUTPUT;
+
+    $picture = $OUTPUT->user_picture($user, [
+        'courseid' => $courseid,
+        'size' => 35,
+        'link' => false,
+        'alttext' => true,
+    ]);
+    $gradelabel = grade_format_gradevalue($usergrade, $item, true, GRADE_DISPLAY_TYPE_REAL);
+    $markerlabel = $illustrative ? get_string('illustrativegrade', 'listgrades') : get_string('grade', 'listgrades');
+    return html_writer::span($picture, 'listgrades-user-marker', [
+        'style' => 'left:' . max(0, min(100, $position)) . '%',
+        'title' => $markerlabel . ': ' . $gradelabel,
+    ]);
+}
+
+/**
+ * Render a numeric grade item as a box plot.
+ *
+ * @param grade_item $item grade item
+ * @param array $values cohort grades
+ * @param float|null $usergrade current user's grade
+ * @param stdClass $user current user
+ * @param int $courseid course id
+ * @param bool $illustrative whether the marker is an illustrative teacher preview
+ * @return string
+ */
+function listgrades_render_box_plot(grade_item $item, array $values, ?float $usergrade, stdClass $user,
+        int $courseid, bool $illustrative = false): string {
+    if (!$values) {
+        return '';
+    }
+    sort($values, SORT_NUMERIC);
+    $stats = (object) [
+        'min' => (float) reset($values),
+        'q1' => listgrades_percentile($values, .25),
+        'median' => listgrades_percentile($values, .5),
+        'q3' => listgrades_percentile($values, .75),
+        'max' => (float) end($values),
+    ];
+    // Use the observed range. Configured course totals can retain a very large historical
+    // maximum which makes the actual distribution unreadable (for example, 0-2083 when
+    // the highest published grade is 182).
+    $rangemin = $stats->min;
+    $rangemax = $stats->max;
+    if ($usergrade !== null) {
+        $rangemin = min($rangemin, $usergrade);
+        $rangemax = max($rangemax, $usergrade);
+    }
+    if ($rangemin === $rangemax) {
+        $padding = max(1, abs($rangemin) * .1);
+        $rangemin -= $padding;
+        $rangemax += $padding;
+    }
+    $position = static fn(float $value): float => listgrades_grade_position($value, $rangemin, $rangemax);
+
+    $plot = html_writer::span('', 'listgrades-boxplot-whisker', [
+        'style' => 'left:' . $position($stats->min) . '%;width:' .
+            ($position($stats->max) - $position($stats->min)) . '%',
+    ]);
+    $plot .= html_writer::span('', 'listgrades-boxplot-cap', ['style' => 'left:' . $position($stats->min) . '%']);
+    $plot .= html_writer::span('', 'listgrades-boxplot-cap', ['style' => 'left:' . $position($stats->max) . '%']);
+    $plot .= html_writer::span('', 'listgrades-boxplot-box', [
+        'style' => 'left:' . $position($stats->q1) . '%;width:' .
+            ($position($stats->q3) - $position($stats->q1)) . '%',
+    ]);
+    $plot .= html_writer::span('', 'listgrades-boxplot-median', [
+        'style' => 'left:' . $position($stats->median) . '%',
+    ]);
+
+    if ($usergrade !== null) {
+        $plot .= listgrades_render_user_marker(
+            $item,
+            $usergrade,
+            $user,
+            $courseid,
+            $position($usergrade),
+            $illustrative
+        );
+    }
+
+    $decimals = $item->get_decimals();
+    $summary = (object) [];
+    foreach (['min', 'q1', 'median', 'q3', 'max'] as $stat) {
+        $summary->$stat = format_float($stats->$stat, $decimals);
+    }
+    $axis = html_writer::span(format_float($rangemin, $decimals), 'listgrades-axis-min');
+    $axis .= html_writer::span(format_float($rangemax, $decimals), 'listgrades-axis-max');
+
+    $output = html_writer::div($plot . $axis, 'listgrades-boxplot', [
+        'role' => 'img',
+        'aria-label' => get_string('boxplotsummary', 'listgrades', $summary),
+    ]);
+    $output .= html_writer::div(get_string('boxplotsummary', 'listgrades', $summary),
+        'small text-muted listgrades-stat-summary');
+    return html_writer::div($output, 'listgrades-stat-chart');
+}
+
+/**
+ * Build histogram bins for numeric grades.
+ *
+ * Small integer ranges get one bin per value. Other distributions use at most 10
+ * equal-width bins. When a passing grade is configured inside the observed range,
+ * the bin count is chosen so that a boundary falls as close to it as possible.
+ *
+ * @param array $values numeric values
+ * @param float|null $gradepass passing grade
+ * @param float|null $domainminimum configured domain minimum
+ * @param float|null $domainmaximum configured domain maximum
+ * @return array list of bins containing lower, upper, count and percentage
+ */
+function listgrades_build_histogram(array $values, ?float $gradepass = null, ?float $domainminimum = null,
+        ?float $domainmaximum = null): array {
+    if (!$values) {
+        return [];
+    }
+
+    $values = array_map('floatval', $values);
+    sort($values, SORT_NUMERIC);
+    $observedminimum = (float) reset($values);
+    $observedmaximum = (float) end($values);
+    $hasconfigureddomain = $domainminimum !== null && $domainmaximum !== null && $domainmaximum > $domainminimum;
+    $minimum = $hasconfigureddomain ? $domainminimum : $observedminimum;
+    $maximum = $hasconfigureddomain ? $domainmaximum : $observedmaximum;
+    $total = count($values);
+
+    if ($minimum === $maximum) {
+        return [[
+            'lower' => $minimum,
+            'upper' => $maximum,
+            'count' => $total,
+            'percentage' => 100.0,
+        ]];
+    }
+
+    $allintegers = count(array_filter($values, static fn(float $value): bool => floor($value) === $value)) === $total;
+    $integerrange = (int) round($maximum - $minimum);
+    $integerbins = $allintegers && $integerrange <= 9;
+    if ($integerbins) {
+        $bincount = $integerrange + 1;
+        $binwidth = 1.0;
+    } else {
+        $suggestedbincount = max(5, min(10, (int) ceil(sqrt($total))));
+        $bincount = $suggestedbincount;
+        if ($gradepass !== null && $gradepass > $minimum && $gradepass < $maximum) {
+            $passposition = ($gradepass - $minimum) / ($maximum - $minimum);
+            $bestdistance = INF;
+            for ($candidate = 5; $candidate <= 10; $candidate++) {
+                $nearestboundary = round($passposition * $candidate) / $candidate;
+                $distance = abs($passposition - $nearestboundary);
+                if ($distance < $bestdistance ||
+                        ($distance === $bestdistance &&
+                            abs($candidate - $suggestedbincount) < abs($bincount - $suggestedbincount))) {
+                    $bestdistance = $distance;
+                    $bincount = $candidate;
+                }
+            }
+        }
+        $binwidth = ($maximum - $minimum) / $bincount;
+    }
+
+    $bins = [];
+    for ($index = 0; $index < $bincount; $index++) {
+        $lower = $minimum + ($index * $binwidth);
+        if ($integerbins) {
+            $upper = $lower;
+        } else {
+            $upper = $index === $bincount - 1 ? $maximum : $minimum + (($index + 1) * $binwidth);
+        }
+        $bins[$index] = ['lower' => $lower, 'upper' => $upper, 'count' => 0, 'percentage' => 0.0];
+    }
+
+    foreach ($values as $value) {
+        if ($integerbins) {
+            $index = (int) round($value - $minimum);
+        } else {
+            $index = max(0, min($bincount - 1, (int) floor(($value - $minimum) / $binwidth)));
+        }
+        $bins[$index]['count']++;
+    }
+    foreach ($bins as &$bin) {
+        $bin['percentage'] = ($bin['count'] / $total) * 100;
+    }
+    unset($bin);
+
+    return $bins;
+}
+
+/**
+ * Render numeric grades as a histogram.
+ *
+ * @param grade_item $item grade item
+ * @param array $values cohort grades
+ * @param float|null $usergrade current user's grade
+ * @param stdClass $user current user
+ * @param int $courseid course id
+ * @param bool $illustrative whether this is an illustrative teacher preview
+ * @return string
+ */
+function listgrades_render_histogram(grade_item $item, array $values, ?float $usergrade, stdClass $user,
+        int $courseid, bool $illustrative = false): string {
+    $gradepass = empty($item->gradepass) ? null : (float) $item->gradepass;
+    $bins = listgrades_build_histogram(
+        $values,
+        $gradepass,
+        (float) $item->grademin,
+        (float) $item->grademax
+    );
+    if (!$bins) {
+        return '';
+    }
+
+    $maximumcount = max(array_column($bins, 'count'));
+    $decimals = $item->get_decimals();
+    $bars = '';
+    $summary = [];
+    foreach ($bins as $bin) {
+        if ($bin['lower'] === $bin['upper']) {
+            $label = format_float($bin['lower'], $decimals);
+        } else {
+            $label = format_float($bin['lower'], $decimals) . '–' . format_float($bin['upper'], $decimals);
+        }
+        $description = get_string('histogrambin', 'listgrades', (object) [
+            'range' => $label,
+            'count' => $bin['count'],
+            'percentage' => format_float($bin['percentage'], 1),
+        ]);
+        $height = $maximumcount ? ($bin['count'] / $maximumcount) * 100 : 0;
+        $bar = html_writer::span((string) $bin['count'], 'listgrades-histogram-count');
+        $bar .= html_writer::span('', 'listgrades-histogram-column', ['style' => 'height:' . $height . '%']);
+        $bar .= html_writer::span($label, 'listgrades-histogram-label');
+        $bars .= html_writer::span($bar, 'listgrades-histogram-bin', ['title' => $description]);
+        $summary[] = $description;
+    }
+
+    if ($usergrade !== null) {
+        $minimum = (float) $item->grademin;
+        $maximum = (float) $item->grademax;
+        $position = listgrades_grade_position($usergrade, $minimum, $maximum);
+        $bars .= listgrades_render_user_marker(
+            $item,
+            $usergrade,
+            $user,
+            $courseid,
+            $position,
+            $illustrative
+        );
+    }
+
+    $output = html_writer::div($bars, 'listgrades-histogram', [
+        'role' => 'img',
+        'aria-label' => implode('; ', $summary),
+    ]);
+    return html_writer::div($output, 'listgrades-stat-chart listgrades-histogram-chart');
+}
+
+/**
+ * Render a scale grade item as a horizontal stacked distribution.
+ *
+ * @param grade_item $item grade item
+ * @param array $values cohort grades
+ * @param float|null $usergrade current user's grade
+ * @param stdClass $user current user
+ * @param int $courseid course id
+ * @param bool $illustrative whether this is an illustrative teacher preview
+ * @return string
+ */
+function listgrades_render_scale_chart(grade_item $item, array $values, ?float $usergrade, stdClass $user,
+        int $courseid, bool $illustrative = false): string {
+    $scale = $item->load_scale();
+    if (!$scale || !$values) {
+        return '';
+    }
+
+    $counts = array_fill(0, count($scale->scale_items), 0);
+    foreach ($values as $value) {
+        $index = (int) round($item->bounded_grade($value)) - 1;
+        if (isset($counts[$index])) {
+            $counts[$index]++;
+        }
+    }
+    $total = array_sum($counts);
+    if (!$total) {
+        return '';
+    }
+
+    $bar = '';
+    $legend = '';
+    $legendtexts = [];
+    $userposition = null;
+    $cumulativepercentage = 0.0;
+    $userindex = $usergrade === null ? null : (int) round($item->bounded_grade($usergrade)) - 1;
+    foreach ($scale->scale_items as $index => $label) {
+        $percentage = ($counts[$index] / $total) * 100;
+        if ($index === $userindex) {
+            $userposition = $cumulativepercentage + ($percentage / 2);
+        }
+        if ($counts[$index]) {
+            $bar .= html_writer::span(format_float($percentage, 1) . '%', 'listgrades-scale-segment', [
+                'style' => 'width:' . $percentage . '%',
+                'title' => format_string($label) . ': ' . $counts[$index] . ' (' . format_float($percentage, 1) . '%)',
+            ]);
+        }
+        $legendtext = format_string($label) . ': ' . $counts[$index] . ' (' . format_float($percentage, 1) . '%)';
+        $legendtexts[] = $legendtext;
+        $legend .= html_writer::tag('li', $legendtext, ['class' => 'listgrades-scale-legend-item']);
+        $cumulativepercentage += $percentage;
+    }
+
+    $scalebar = html_writer::div($bar, 'listgrades-scale-bar', [
+        'role' => 'img',
+        'aria-label' => implode('; ', array_map('strip_tags', $legendtexts)),
+    ]);
+    if ($usergrade !== null && $userposition !== null) {
+        $scalebar .= listgrades_render_user_marker(
+            $item,
+            $usergrade,
+            $user,
+            $courseid,
+            $userposition,
+            $illustrative
+        );
+    }
+    $output = html_writer::div($scalebar, 'listgrades-scale-plot');
+    $output .= html_writer::tag('ul', $legend, ['class' => 'list-unstyled listgrades-scale-legend']);
+    return html_writer::div($output, 'listgrades-stat-chart');
+}
+
+/**
+ * Render statistics for all selected grade items.
+ *
+ * @param array $selecteditems selected ids
+ * @param array $gradeitems grade_item objects keyed by id
+ * @param array $itemnames item names keyed by id
+ * @param array $grades grades keyed by user and item ids
+ * @param array $statuserids user ids included in the statistics
+ * @param stdClass $user current user
+ * @param int $courseid course id
+ * @param bool $previewmissinggrades show an illustrative marker for an ungraded teacher
+ * @return string
+ */
+function listgrades_render_statistics(array $selecteditems, array $gradeitems, array $itemnames, array $grades,
+        array $statuserids, stdClass $user, int $courseid, bool $previewmissinggrades = false): string {
+    global $OUTPUT;
+
+    $charts = '';
+    foreach (listgrades_get_selected_gradeitem_ids($selecteditems) as $itemid) {
+        if (!isset($gradeitems[$itemid])) {
+            continue;
+        }
+        $item = $gradeitems[$itemid];
+        $values = [];
+        foreach ($statuserids as $userid) {
+            $value = $grades[$userid][$itemid]->finalgrade ?? null;
+            if ($value !== null) {
+                $values[] = (float) $value;
+            }
+        }
+        $usergrade = $grades[$user->id][$itemid]->finalgrade ?? null;
+        $usergrade = $usergrade === null ? null : (float) $usergrade;
+
+        $illustrative = $previewmissinggrades && $usergrade === null && !empty($values);
+        $itemcharts = '';
+        if ($item->gradetype == GRADE_TYPE_SCALE) {
+            if ($illustrative) {
+                $usergrade = (float) $values[array_rand($values)];
+            }
+            $itemcharts .= listgrades_render_scale_chart(
+                $item,
+                $values,
+                $usergrade,
+                $user,
+                $courseid,
+                $illustrative
+            );
+        } else if ($item->gradetype == GRADE_TYPE_VALUE) {
+            if ($illustrative) {
+                $usergrade = listgrades_random_preview_grade($values, $item->get_decimals());
+            }
+            $itemcharts .= listgrades_render_box_plot(
+                $item,
+                $values,
+                $usergrade,
+                $user,
+                $courseid,
+                $illustrative
+            );
+            $itemcharts .= listgrades_render_histogram(
+                $item,
+                $values,
+                $usergrade,
+                $user,
+                $courseid,
+                $illustrative
+            );
+        }
+        if ($itemcharts !== '') {
+            $heading = html_writer::tag('h4', format_string($itemnames[$itemid]), ['class' => 'h5']);
+            $charts .= html_writer::div($heading . $itemcharts, 'listgrades-stat-item');
+        }
+    }
+
+    if ($charts === '') {
+        return $OUTPUT->notification(get_string('nostatistics', 'listgrades'), 'info');
+    }
+    return html_writer::tag('h3', get_string('statistics', 'listgrades')) . $charts;
 }
 // Mask the field of the user using the mask code:
 // *: Show the digit.
