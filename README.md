@@ -101,6 +101,4 @@ Change log
 - v1.0.8 Fix bug #8. Error when deleting course.
 - v1.0.9 Fix bug #9. Error when restoring a course with listgrades activities.
 - v1.0.10 Fix bug #10. Error when restoring a course with listgrades activities in Moodle 4.5.
-- v1.1.1 Add Individual publication, optional grade statistics, user markers and site-wide publication format controls.
-- v1.1.2 Add course and branding placeholders to the default introduction and footer templates.
-- v1.1.3 Simplify template placeholders to the `{identifier}` syntax.
+- v1.1.0 Add Individual publication, optional grade statistics, student selection, user markers, publication format controls and customisable course templates.

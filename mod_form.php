@@ -24,12 +24,18 @@
 
 defined('MOODLE_INTERNAL') || die;
 
-require_once($CFG->dirroot.'/course/moodleform_mod.php');
-require_once($CFG->dirroot.'/mod/listgrades/locallib.php');
-require_once($CFG->dirroot.'/grade/lib.php');
-require_once($CFG->libdir.'/filelib.php');
+require_once($CFG->dirroot . '/course/moodleform_mod.php');
+require_once($CFG->dirroot . '/mod/listgrades/locallib.php');
+require_once($CFG->dirroot . '/grade/lib.php');
+require_once($CFG->libdir . '/filelib.php');
 
+/**
+ * Activity configuration form.
+ */
 class mod_listgrades_mod_form extends moodleform_mod {
+    /**
+     * Defines the activity form.
+     */
     public function definition() {
         global $CFG, $DB;
 
@@ -53,8 +59,13 @@ class mod_listgrades_mod_form extends moodleform_mod {
         $mform->setDefault('introeditor', ['text' => $defaultintro, 'format' => FORMAT_HTML]);
 
         $mform->addElement('header', 'signaturesection', get_string('footerheader', 'listgrades'));
-        $mform->addElement('editor', 'signature', get_string('footer', 'listgrades'), null,
-                            listgrades_get_editor_options($this->context));
+        $mform->addElement(
+            'editor',
+            'signature',
+            get_string('footer', 'listgrades'),
+            null,
+            listgrades_get_editor_options($this->context)
+        );
         $defaultfooter = listgrades_expand_course_template($config->defaultfooter ?? '', $course);
         $mform->setDefault('signature', ['text' => $defaultfooter, 'format' => FORMAT_HTML]);
         $mform->addRule('signature', get_string('required'), 'required', null, 'client');
@@ -67,8 +78,13 @@ class mod_listgrades_mod_form extends moodleform_mod {
         foreach ($items as $itemid => $itemname) {
             $items[-$itemid] = get_string('feedbackforgradeitems', 'grades', $itemname);
         }
-        $mform->addElement('select', 'items', get_string('gradeitems', 'listgrades'), $items,
-                            ['multiple' => 'multiple', 'size' => 10]);
+        $mform->addElement(
+            'select',
+            'items',
+            get_string('gradeitems', 'listgrades'),
+            $items,
+            ['multiple' => 'multiple', 'size' => 10]
+        );
         $mform->addRule('items', get_string('required'), 'required', null, 'client');
 
         $allowedmodes = $config->alloweddisplaymodes ?? LISTGRADES_ALLOWED_BOTH;
@@ -122,8 +138,15 @@ class mod_listgrades_mod_form extends moodleform_mod {
             $draftitemid = file_get_submitted_draft_itemid('signature');
             $defaultvalues['signature']['format'] = $defaultvalues['footerformat'];
 
-            $defaultvalues['signature']['text']   = file_prepare_draft_area($draftitemid, $this->context->id, 'mod_listgrades',
-                    'footer', 0, listgrades_get_editor_options($this->context), $defaultvalues['footer']);
+            $defaultvalues['signature']['text']   = file_prepare_draft_area(
+                $draftitemid,
+                $this->context->id,
+                'mod_listgrades',
+                'footer',
+                0,
+                listgrades_get_editor_options($this->context),
+                $defaultvalues['footer']
+            );
             $defaultvalues['signature']['itemid'] = $draftitemid;
         }
         if (!empty($defaultvalues['items'])) {
@@ -148,4 +171,3 @@ class mod_listgrades_mod_form extends moodleform_mod {
         }
     }
 }
-

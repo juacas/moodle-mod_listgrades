@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -20,6 +19,7 @@
  *
  * @package    mod
  * @subpackage listgrades
+ * @copyright  2023 Juan Pablo de Castro <juanpablo.decastro@uva.es>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -55,13 +55,13 @@ $string['modulename_help'] = 'El mòdul "listgrades" permet a un professor publi
 $string['modulenameplural'] = 'Llista de qualificacions';
 $string['notopen'] = 'Aquesta llista encara no està disponible.';
 $string['numericgradewithmaximum'] = '{$a->grade}/{$a->maximum}';
-$string['scalegradewithreference'] = '{$a->grade} ({$a->scale})';
 $string['opendate'] = 'Publicació de qualificacions';
 $string['opendate_help'] = 'Dia i hora en què es publicarà la llista.';
 $string['pluginadministration'] = 'Administració del mòdul "listgrades"';
 $string['pluginname'] = 'Publicació de qualificacions';
 $string['printintro'] = 'Mostra la descripció de l\'encapçalament';
 $string['privacy:metadata'] = 'El complement de recurs "listgrades" no emmagatzema cap dada personal.';
+$string['scalegradewithreference'] = '{$a->grade} ({$a->scale})';
 $string['showuserfield'] = 'Mostra els identificadors d\'usuari';
 $string['showuserfield_help'] = 'Marca si apareixerà l\'ID de l\'usuari a la llista de qualificacions.';
 $string['showusername'] = 'Mostra els noms d\'usuari';

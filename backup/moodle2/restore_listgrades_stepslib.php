@@ -15,6 +15,8 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
+ * Restore structure definitions for the List grades activity.
+ *
  * @package   mod_listgrades
  * @category  backup
  * @copyright 2010 onwards Eloy Lafuente (stronk7) {@link http://stronk7.com}
@@ -29,7 +31,11 @@
  * Structure step to restore one listgrades activity
  */
 class restore_listgrades_activity_structure_step extends restore_activity_structure_step {
-
+    /**
+     * Defines the paths restored for the activity.
+     *
+     * @return array
+     */
     protected function define_structure() {
 
         $paths = [];
@@ -39,6 +45,11 @@ class restore_listgrades_activity_structure_step extends restore_activity_struct
         return $this->prepare_activity_structure($paths);
     }
 
+    /**
+     * Restores one List grades activity record.
+     *
+     * @param array|stdClass $data restored activity data
+     */
     protected function process_listgrades($data) {
         global $DB, $CFG;
         // Load grade_tree class.
@@ -59,11 +70,11 @@ class restore_listgrades_activity_structure_step extends restore_activity_struct
 
         foreach ($dataitems as $id => $item) {
              // If the item begins with __FEEDBACK__ then it is a feedback item.
-             if (strpos($item, '__FEEDBACK__') === 0) {
+            if (strpos($item, '__FEEDBACK__') === 0) {
                 // String comparison without the __FEEDBACK__ prefix.
                 $itemname = substr($item, 12);
                 $feedbackprefix = '__FEEDBACK__';
-                } else {
+            } else {
                 $itemname = $item;
                 $feedbackprefix = '';
             }
@@ -82,17 +93,17 @@ class restore_listgrades_activity_structure_step extends restore_activity_struct
                 }
             } else {
                     // Find the grade item with the same name as the one in the backup.
-                    foreach ($candidateitems as $candidateitem) {
-                        if ($itemname == $candidateitem->itemname) {
-                            if ($feedbackprefix == '__FEEDBACK__') {
-                                $candidateitemid = - $candidateitem->id;
-                            } else {
-                                $candidateitemid = $candidateitem->id;
-                            }
-                            $gradeitems[$candidateitemid] = $feedbackprefix . $candidateitem->itemname;
-                            break;
+                foreach ($candidateitems as $candidateitem) {
+                    if ($itemname == $candidateitem->itemname) {
+                        if ($feedbackprefix == '__FEEDBACK__') {
+                            $candidateitemid = - $candidateitem->id;
+                        } else {
+                            $candidateitemid = $candidateitem->id;
                         }
+                        $gradeitems[$candidateitemid] = $feedbackprefix . $candidateitem->itemname;
+                        break;
                     }
+                }
             }
         }
         $data->items = serialize($gradeitems);
@@ -103,6 +114,9 @@ class restore_listgrades_activity_structure_step extends restore_activity_struct
         $this->apply_activity_instance($newitemid);
     }
 
+    /**
+     * Restores activity files after the record is created.
+     */
     protected function after_execute() {
         // Add listgrades related files, no need to match by itemname (just internally handled context).
         $this->add_related_files('mod_listgrades', 'intro', null);

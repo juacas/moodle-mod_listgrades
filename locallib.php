@@ -84,8 +84,11 @@ function listgrades_expand_course_template(string $template, stdClass $course): 
  * @param string|null $defaultmode site-wide default when both modes are allowed
  * @return string resolved display mode
  */
-function listgrades_resolve_display_mode(?string $activitymode, ?string $allowedmodes,
-        ?string $defaultmode = null): string {
+function listgrades_resolve_display_mode(
+    ?string $activitymode,
+    ?string $allowedmodes,
+    ?string $defaultmode = null
+): string {
     if ($allowedmodes === LISTGRADES_DISPLAY_LIST) {
         return LISTGRADES_DISPLAY_LIST;
     }
@@ -103,16 +106,19 @@ function listgrades_resolve_display_mode(?string $activitymode, ?string $allowed
     return LISTGRADES_DISPLAY_INDIVIDUAL;
 }
 
+/**
+ * Grader report adapted for grade publication.
+ */
 class grade_report_listing extends grade_report_grader {
     /**
      * Constructor to override the calculation of grade_tree (avoid removing collapsed categories).
      */
-    public function __construct($courseid, $gpr, $context, $page=null, $sortitemid='lastname') {
+    public function __construct($courseid, $gpr, $context, $page = null, $sortitemid = 'lastname') {
         global $CFG;
         parent::__construct($courseid, $gpr, $context, $page);
 
         // Don't collapse categories.
-        $this->collapsed =  ['aggregatesonly' => [], 'gradesonly' => []];
+        $this->collapsed = ['aggregatesonly' => [], 'gradesonly' => []];
 
         if (empty($CFG->enableoutcomes)) {
             $nooutcomes = false;
@@ -120,22 +126,28 @@ class grade_report_listing extends grade_report_grader {
             $nooutcomes = get_user_preferences('grade_report_shownooutcomes');
         }
 
-        // if user report preference set or site report setting set use it, otherwise use course or site setting
+        // Use the user report preference first, then the course or site setting.
         $switch = $this->get_pref('aggregationposition');
         if ($switch == '') {
             $switch = grade_get_setting($this->courseid, 'aggregationposition', $CFG->grade_aggregationposition);
         }
-        // Grab the grade_tree for this course
+        // Grab the grade tree for this course.
         $this->gtree = new grade_tree($this->courseid, true, $switch, $this->collapsed, $nooutcomes);
-        $this->sortitemid = $sortitemid;    
+        $this->sortitemid = $sortitemid;
     }
-    
+
     /**
      * Gets the gradetree object.
      */
     public function get_gradetree() {
         return $this->gtree;
     }
+
+    /**
+     * Returns display names for grade items.
+     *
+     * @return array
+     */
     public function get_item_names() {
         $items = [];
         // Get grade category names.
@@ -151,15 +163,27 @@ class grade_report_listing extends grade_report_grader {
         }
         return $items;
     }
+
+    /**
+     * Returns category names keyed by category id.
+     *
+     * @return array
+     */
     public function get_category_names() {
         $categories = [];
-        array_walk_recursive($this->gtree->top_element, function($item, $key) use (&$categories) {
+        array_walk_recursive($this->gtree->top_element, function ($item, $key) use (&$categories) {
             if ($item instanceof grade_category) {
                 $categories[$item->id] = $item->get_name();
             }
         });
         return $categories;
     }
+
+    /**
+     * Returns gradeable items from the report tree.
+     *
+     * @return array
+     */
     public function get_gradeitems() {
         $items = $this->gtree->get_items();
         $allgradeitems = array_filter($items, function ($item) {
@@ -167,12 +191,30 @@ class grade_report_listing extends grade_report_grader {
         });
         return $allgradeitems;
     }
+
+    /**
+     * Returns the loaded grades.
+     *
+     * @return array
+     */
     public function get_grades() {
         return $this->grades;
     }
+
+    /**
+     * Returns the loaded users.
+     *
+     * @return array
+     */
     public function get_users() {
         return $this->users;
     }
+
+    /**
+     * Disables pagination for publication output.
+     *
+     * @return int
+     */
     public function get_students_per_page(): int {
         return PHP_INT_MAX;
     }
@@ -279,8 +321,14 @@ function listgrades_format_grade_with_reference(?float $finalgrade, grade_item $
  * @param stdClass $user current user
  * @return string
  */
-function listgrades_render_individual_table(array $selecteditems, array $gradeitems, array $itemnames,
-        ?array $usergrades, context $context, stdClass $user): string {
+function listgrades_render_individual_table(
+    array $selecteditems,
+    array $gradeitems,
+    array $itemnames,
+    ?array $usergrades,
+    context $context,
+    stdClass $user
+): string {
     $showfeedback = [];
     foreach ($selecteditems as $itemid) {
         if ($itemid < 0) {
@@ -382,8 +430,14 @@ function listgrades_random_preview_grade(array $values, int $decimals): ?float {
  * @param bool $illustrative whether this is an illustrative teacher preview
  * @return string
  */
-function listgrades_render_user_marker(grade_item $item, float $usergrade, stdClass $user, int $courseid,
-        float $position, bool $illustrative): string {
+function listgrades_render_user_marker(
+    grade_item $item,
+    float $usergrade,
+    stdClass $user,
+    int $courseid,
+    float $position,
+    bool $illustrative
+): string {
     global $OUTPUT;
 
     $picture = $OUTPUT->user_picture($user, [
@@ -424,8 +478,14 @@ function listgrades_render_chart_axis(string $minimum, string $maximum): string 
  * @param bool $illustrative whether the marker is an illustrative teacher preview
  * @return string
  */
-function listgrades_render_box_plot(grade_item $item, array $values, ?float $usergrade, stdClass $user,
-        int $courseid, bool $illustrative = false): string {
+function listgrades_render_box_plot(
+    grade_item $item,
+    array $values,
+    ?float $usergrade,
+    stdClass $user,
+    int $courseid,
+    bool $illustrative = false
+): string {
     if (!$values) {
         return '';
     }
@@ -495,8 +555,10 @@ function listgrades_render_box_plot(grade_item $item, array $values, ?float $use
         'aria-label' => get_string('boxplotsummary', 'listgrades', $summary),
     ]);
     $output .= $axis;
-    $output .= html_writer::div(get_string('boxplotsummary', 'listgrades', $summary),
-        'small text-muted listgrades-stat-summary');
+    $output .= html_writer::div(
+        get_string('boxplotsummary', 'listgrades', $summary),
+        'small text-muted listgrades-stat-summary'
+    );
     return html_writer::div($output, 'listgrades-stat-chart');
 }
 
@@ -513,8 +575,12 @@ function listgrades_render_box_plot(grade_item $item, array $values, ?float $use
  * @param float|null $domainmaximum configured domain maximum
  * @return array list of bins containing lower, upper, count and percentage
  */
-function listgrades_build_histogram(array $values, ?float $gradepass = null, ?float $domainminimum = null,
-        ?float $domainmaximum = null): array {
+function listgrades_build_histogram(
+    array $values,
+    ?float $gradepass = null,
+    ?float $domainminimum = null,
+    ?float $domainmaximum = null
+): array {
     if (!$values) {
         return [];
     }
@@ -552,9 +618,11 @@ function listgrades_build_histogram(array $values, ?float $gradepass = null, ?fl
             for ($candidate = 5; $candidate <= 10; $candidate++) {
                 $nearestboundary = round($passposition * $candidate) / $candidate;
                 $distance = abs($passposition - $nearestboundary);
-                if ($distance < $bestdistance ||
+                if (
+                    $distance < $bestdistance ||
                         ($distance === $bestdistance &&
-                            abs($candidate - $suggestedbincount) < abs($bincount - $suggestedbincount))) {
+                            abs($candidate - $suggestedbincount) < abs($bincount - $suggestedbincount))
+                ) {
                     $bestdistance = $distance;
                     $bincount = $candidate;
                 }
@@ -601,8 +669,14 @@ function listgrades_build_histogram(array $values, ?float $gradepass = null, ?fl
  * @param bool $illustrative whether this is an illustrative teacher preview
  * @return string
  */
-function listgrades_render_histogram(grade_item $item, array $values, ?float $usergrade, stdClass $user,
-        int $courseid, bool $illustrative = false): string {
+function listgrades_render_histogram(
+    grade_item $item,
+    array $values,
+    ?float $usergrade,
+    stdClass $user,
+    int $courseid,
+    bool $illustrative = false
+): string {
     $gradepass = empty($item->gradepass) ? null : (float) $item->gradepass;
     $bins = listgrades_build_histogram(
         $values,
@@ -673,8 +747,14 @@ function listgrades_render_histogram(grade_item $item, array $values, ?float $us
  * @param bool $illustrative whether this is an illustrative teacher preview
  * @return string
  */
-function listgrades_render_scale_chart(grade_item $item, array $values, ?float $usergrade, stdClass $user,
-        int $courseid, bool $illustrative = false): string {
+function listgrades_render_scale_chart(
+    grade_item $item,
+    array $values,
+    ?float $usergrade,
+    stdClass $user,
+    int $courseid,
+    bool $illustrative = false
+): string {
     $scale = $item->load_scale();
     if (!$scale || !$values) {
         return '';
@@ -751,8 +831,16 @@ function listgrades_render_scale_chart(grade_item $item, array $values, ?float $
  * @param bool $previewmissinggrades show an illustrative marker for an ungraded teacher
  * @return string
  */
-function listgrades_render_statistics(array $selecteditems, array $gradeitems, array $itemnames, array $grades,
-        array $statuserids, stdClass $user, int $courseid, bool $previewmissinggrades = false): string {
+function listgrades_render_statistics(
+    array $selecteditems,
+    array $gradeitems,
+    array $itemnames,
+    array $grades,
+    array $statuserids,
+    stdClass $user,
+    int $courseid,
+    bool $previewmissinggrades = false
+): string {
     global $OUTPUT;
 
     $charts = '';
@@ -817,10 +905,13 @@ function listgrades_render_statistics(array $selecteditems, array $gradeitems, a
     }
     return html_writer::tag('h3', get_string('statistics', 'listgrades')) . $charts;
 }
-// Mask the field of the user using the mask code:
-// *: Show the digit.
-// X: Hide the digit with a X.
-// -: Omit the character.
+/**
+ * Masks a user field using the configured mask.
+ *
+ * @param string $userfield value to mask
+ * @param string $mask mask definition
+ * @return string
+ */
 function listgrades_mask($userfield, $mask) {
     $maskeduserfield = '';
     $i = 0;
@@ -838,27 +929,27 @@ function listgrades_mask($userfield, $mask) {
     return $maskeduserfield;
 }
 /** Mask identifiers according to AEPD rules.
- * - Dado un DNI con formato 12345678X, se publicarán los dígitos que en el 
- * formato que ocupen las posiciones cuarta, quinta, sexta y séptima. En el 
+ * - Dado un DNI con formato 12345678X, se publicarán los dígitos que en el
+ * formato que ocupen las posiciones cuarta, quinta, sexta y séptima. En el
  * ejemplo: ***4567**.
- * • Dado un NIE con formato L1234567X, se publicarán los dígitos que en el 
- * formato ocupen las posiciones, evitando el primer carácter alfabéticos, 
+ * • Dado un NIE con formato L1234567X, se publicarán los dígitos que en el
+ * formato ocupen las posiciones, evitando el primer carácter alfabéticos,
  * cuarta, quinta, sexta y séptima. En el ejemplo: ****4567*.
- * • Dado un pasaporte con formato ABC123456, al tener sólo seis cifras, se 
- * publicarán los dígitos que en el formato ocupen las posiciones, evitando los 
+ * • Dado un pasaporte con formato ABC123456, al tener sólo seis cifras, se
+ * publicarán los dígitos que en el formato ocupen las posiciones, evitando los
  * tres caracteres alfabéticos, tercera, cuarta, quinta y sexta. En el ejemplo: *****3456.
- * • Dado otro tipo de identificación, siempre que esa identificación contenga al 
- * menos 7 dígitos numéricos, se numerarán dichos dígitos de izquierda a 
- * derecha, evitando todos los caracteres alfabéticos, y se seguirá el 
- * procedimiento de publicar aquellos caracteres numéricos que ocupen las 
- * posiciones cuarta, quinta, sexta y séptima. Por ejemplo, en el caso de una 
+ * • Dado otro tipo de identificación, siempre que esa identificación contenga al
+ * menos 7 dígitos numéricos, se numerarán dichos dígitos de izquierda a
+ * derecha, evitando todos los caracteres alfabéticos, y se seguirá el
+ * procedimiento de publicar aquellos caracteres numéricos que ocupen las
+ * posiciones cuarta, quinta, sexta y séptima. Por ejemplo, en el caso de una
  * identificación como: XY12345678AB, la publicación sería: *****4567***
  * Si ese tipo de identificación es distinto de un pasaporte y tiene menos de 7
- * dígitos numéricos, se numerarán todos los caracteres, alfabéticos incluidos, 
- * con el mismo procedimiento anterior y se seleccionarán aquellos que ocupen 
- * las cuatro últimas posiciones. Por ejemplo, en el caso de una identificación 
+ * dígitos numéricos, se numerarán todos los caracteres, alfabéticos incluidos,
+ * con el mismo procedimiento anterior y se seleccionarán aquellos que ocupen
+ * las cuatro últimas posiciones. Por ejemplo, en el caso de una identificación
  * como: ABCD123XY, la publicación sería: *****23XY
- * 
+ *
  * DNI format allows an optional, initial "E" character (local UVa requirement).
  * @param string $userfield
  */
@@ -869,28 +960,28 @@ function listgrades_mask_identifier_aepd($userfield) {
     $matches = [];
 
     if (preg_match('/^E?([0-9]{8}[A-Z])$/', $userfield)) {
-        // DNI
+        // DNI.
         // Remove first character if it is an E.
         if ($userfield[0] == 'E') {
             $userfield = substr($userfield, 1);
         }
         $maskeduserfield = '***' . substr($userfield, 3, 4) . '**';
     } else if (preg_match('/^[XYZ][0-9]{7}[A-Z]$/', $userfield)) {
-        // NIE
+        // NIE.
         $maskeduserfield = '****' . substr($userfield, 4, 4) . '*';
     } else if (preg_match('/^[A-Z]{3}[0-9]{6}$/', $userfield)) {
-        // Pasaporte
+        // Passport.
         $maskeduserfield = '*****' . substr($userfield, 5, 4);
-    } else if (preg_match('/[0-9]{7,}/', $userfield, $matches, PREG_OFFSET_CAPTURE)){
+    } else if (preg_match('/[0-9]{7,}/', $userfield, $matches, PREG_OFFSET_CAPTURE)) {
         // Otro tipo de identificación.
         $offset = $matches[0][1];
         $numbers = $matches[0][0];
         $length = strlen($numbers);
         $maskeduserfield = listgrades_asterisks($offset + 3)
                             . substr($numbers, 3, 4)
-                            . listgrades_asterisks(strlen($userfield) - $offset -3 - 4);
+                            . listgrades_asterisks(strlen($userfield) - $offset - 3 - 4);
     } else {
-        // Otro tipo de identificación
+        // Otro tipo de identificación.
         $maskeduserfield = listgrades_asterisks(strlen($userfield) - 4) . substr($userfield, -4);
     }
     return $maskeduserfield;
@@ -917,15 +1008,15 @@ function listgrades_asterisks($n) {
  */
 function listgrades_get_gradeitems_for_backup($itemids, $items = null) {
     global $DB;
-    $itemsidsquery = array_map( fn($itemid) => $itemid < 0 ? -$itemid : $itemid, $itemids);
+    $itemsidsquery = array_map(fn($itemid) => $itemid < 0 ? -$itemid : $itemid, $itemids);
     if ($items == null) {
         // Query db for grade items.
         $items = $DB->get_records_list('grade_items', 'id', $itemsidsquery);
     }
     $gradeitems = [];
     foreach ($itemids as $itemid) {
-        if($itemid < 0) {
-            $item = $items[ -$itemid];
+        if ($itemid < 0) {
+            $item = $items[-$itemid];
             $feedbackprefix = '__FEEDBACK__';
         } else {
             $item = $items[$itemid];
@@ -939,16 +1030,28 @@ function listgrades_get_gradeitems_for_backup($itemids, $items = null) {
     }
     return $gradeitems;
 }
+// phpcs:disable PSR1.Classes.ClassDeclaration.MultipleClasses
 /**
- * File browsing support class
+ * File browsing support class.
  */
 class listgrades_content_file_info extends file_info_stored {
+    /**
+     * Returns information about the parent file.
+     *
+     * @return file_info|null
+     */
     public function get_parent() {
         if ($this->lf->get_filepath() === '/' && $this->lf->get_filename() === '.') {
             return $this->browser->get_file_info($this->context);
         }
         return parent::get_parent();
     }
+
+    /**
+     * Returns the visible file name.
+     *
+     * @return string
+     */
     public function get_visible_name() {
         if ($this->lf->get_filepath() === '/' && $this->lf->get_filename() === '.') {
             return $this->topvisiblename;
@@ -956,7 +1059,14 @@ class listgrades_content_file_info extends file_info_stored {
         return parent::get_visible_name();
     }
 }
+// phpcs:enable PSR1.Classes.ClassDeclaration.MultipleClasses
 
+/**
+ * Returns editor options used by the activity form.
+ *
+ * @param context $context module context
+ * @return array
+ */
 function listgrades_get_editor_options($context) {
     global $CFG;
     return ['subdirs' => 1, 'maxbytes' => $CFG->maxbytes, 'maxfiles' => -1,
@@ -1029,8 +1139,8 @@ function listgrades_update_calendar($instance) {
         $event->eventtype = $eventtype;
         $event->timestart = $instance->closedate;
         $event->timesort = $instance->closedate;
-        $event->id = $DB->get_field('event', 'id', array('modulename' => 'listgrades',
-            'instance' => $instance->id, 'eventtype' => $event->eventtype));
+        $event->id = $DB->get_field('event', 'id', ['modulename' => 'listgrades',
+            'instance' => $instance->id, 'eventtype' => $event->eventtype]);
 
         // Now process the event.
         if ($event->id) {

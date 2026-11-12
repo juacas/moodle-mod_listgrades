@@ -15,13 +15,13 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
+ * Backup structure definitions for the List grades activity.
+ *
  * @package   mod_listgrades
  * @category  backup
  * @copyright 2010 onwards Eloy Lafuente (stronk7) {@link http://stronk7.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
-defined('MOODLE_INTERNAL') || die;
 
 /**
  * Define all the backup steps that will be used by the backup_listgrades_activity_task.
@@ -31,17 +31,28 @@ defined('MOODLE_INTERNAL') || die;
  * Define the complete listgrades structure for backup, with file and id annotations.
  */
 class backup_listgrades_activity_structure_step extends backup_activity_structure_step {
-
+    /**
+     * Defines the activity backup structure.
+     *
+     * @return backup_nested_element
+     */
     protected function define_structure() {
 
         // To know if we are including userinfo.
         $userinfo = $this->get_setting_value('userinfo');
 
         // Define each element separated.
-        $listgrades = new backup_nested_element('listgrades',
+        $listgrades = new backup_nested_element(
+            'listgrades',
             ['id'],
             ['name', 'intro', 'introformat', 'footer', 'footerformat',
-            'items', 'displaymode', 'showstatistics', 'opendate', 'closedate', 'timemodified']);
+            'items',
+            'displaymode',
+            'showstatistics',
+            'opendate',
+            'closedate',
+            'timemodified']
+        );
 
         // Build the tree.
         // (love this).
@@ -59,5 +70,4 @@ class backup_listgrades_activity_structure_step extends backup_activity_structur
         // Return the root element (listgrades), wrapped into standard activity structure.
         return $this->prepare_activity_structure($listgrades);
     }
-
 }

@@ -25,9 +25,6 @@
  */
 namespace mod_listgrades;
 
-defined('MOODLE_INTERNAL') || die();
-
-
 /**
  * Unit tests for mod_listgrades lib
  *
@@ -37,8 +34,8 @@ defined('MOODLE_INTERNAL') || die();
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @since      Moodle 3.0
  */
-class lib_test extends \advanced_testcase {
-
+#[\PHPUnit\Framework\Attributes\CoversNothing]
+final class lib_test extends \advanced_testcase {
     /**
      * Prepares things before this test case is initialised
      * @return void
@@ -46,6 +43,7 @@ class lib_test extends \advanced_testcase {
     public static function setUpBeforeClass(): void {
         global $CFG;
         require_once($CFG->dirroot . '/mod/listgrades/lib.php');
+        parent::setUpBeforeClass();
     }
 
     /**
@@ -239,16 +237,19 @@ class lib_test extends \advanced_testcase {
      * Test listgrades_view
      * @return void
      */
-    public function test_listgrades_view() {
+    public function test_listgrades_view(): void {
         global $CFG;
 
         $CFG->enablecompletion = 1;
         $this->resetAfterTest();
 
         // Setup test data.
-        $course = $this->getDataGenerator()->create_course(array('enablecompletion' => 1));
-        $listgrades = $this->getDataGenerator()->create_module('listgrades', array('course' => $course->id),
-                                                            array('completion' => 2, 'completionview' => 1));
+        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        $listgrades = $this->getDataGenerator()->create_module(
+            'listgrades',
+            ['course' => $course->id],
+            ['completion' => 2, 'completionview' => 1]
+        );
         $context = \context_module::instance($listgrades->cmid);
         $cm = get_coursemodule_from_instance('listgrades', $listgrades->id);
 
@@ -266,7 +267,7 @@ class lib_test extends \advanced_testcase {
         // Checking that the event contains the expected values.
         $this->assertInstanceOf('\mod_listgrades\event\course_module_viewed', $event);
         $this->assertEquals($context, $event->get_context());
-        $moodleurl = new \moodle_url('/mod/listgrades/view.php', array('id' => $cm->id));
+        $moodleurl = new \moodle_url('/mod/listgrades/view.php', ['id' => $cm->id]);
         $this->assertEquals($moodleurl, $event->get_url());
         $this->assertEventContextNotUsed($event);
         $this->assertNotEmpty($event->get_name());
@@ -277,17 +278,20 @@ class lib_test extends \advanced_testcase {
         $this->assertEquals(1, $completiondata->completionstate);
     }
 
-    public function test_listgrades_core_calendar_provide_event_action() {
+    public function test_listgrades_core_calendar_provide_event_action(): void {
         $this->resetAfterTest();
         $this->setAdminUser();
 
         // Create the activity.
         $course = $this->getDataGenerator()->create_course();
-        $listgrades = $this->getDataGenerator()->create_module('listgrades', array('course' => $course->id));
+        $listgrades = $this->getDataGenerator()->create_module('listgrades', ['course' => $course->id]);
 
         // Create a calendar event.
-        $event = $this->create_action_event($course->id, $listgrades->id,
-            \core_completion\api::COMPLETION_EVENT_TYPE_DATE_COMPLETION_EXPECTED);
+        $event = $this->create_action_event(
+            $course->id,
+            $listgrades->id,
+            \core_completion\api::COMPLETION_EVENT_TYPE_DATE_COMPLETION_EXPECTED
+        );
 
         // Create an action factory.
         $factory = new \core_calendar\action_factory();
@@ -303,7 +307,7 @@ class lib_test extends \advanced_testcase {
         $this->assertTrue($actionevent->is_actionable());
     }
 
-    public function test_listgrades_core_calendar_provide_event_action_already_completed() {
+    public function test_listgrades_core_calendar_provide_event_action_already_completed(): void {
         global $CFG;
 
         $this->resetAfterTest();
@@ -312,16 +316,22 @@ class lib_test extends \advanced_testcase {
         $CFG->enablecompletion = 1;
 
         // Create the activity.
-        $course = $this->getDataGenerator()->create_course(array('enablecompletion' => 1));
-        $listgrades = $this->getDataGenerator()->create_module('listgrades', array('course' => $course->id),
-            array('completion' => 2, 'completionview' => 1, 'completionexpected' => time() + DAYSECS));
+        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        $listgrades = $this->getDataGenerator()->create_module(
+            'listgrades',
+            ['course' => $course->id],
+            ['completion' => 2, 'completionview' => 1, 'completionexpected' => time() + DAYSECS]
+        );
 
         // Get some additional data.
         $cm = get_coursemodule_from_instance('listgrades', $listgrades->id);
 
         // Create a calendar event.
-        $event = $this->create_action_event($course->id, $listgrades->id,
-            \core_completion\api::COMPLETION_EVENT_TYPE_DATE_COMPLETION_EXPECTED);
+        $event = $this->create_action_event(
+            $course->id,
+            $listgrades->id,
+            \core_completion\api::COMPLETION_EVENT_TYPE_DATE_COMPLETION_EXPECTED
+        );
 
         // Mark the activity as completed.
         $completion = new \completion_info($course);
@@ -340,7 +350,7 @@ class lib_test extends \advanced_testcase {
     /**
      * Test mod_listgrades_core_calendar_provide_event_action with user override
      */
-    public function test_listgrades_core_calendar_provide_event_action_user_override() {
+    public function test_listgrades_core_calendar_provide_event_action_user_override(): void {
         global $CFG, $USER;
 
         $this->resetAfterTest();
@@ -349,16 +359,22 @@ class lib_test extends \advanced_testcase {
         $CFG->enablecompletion = 1;
 
         // Create the activity.
-        $course = $this->getDataGenerator()->create_course(array('enablecompletion' => 1));
-        $listgrades = $this->getDataGenerator()->create_module('listgrades', array('course' => $course->id),
-            array('completion' => 2, 'completionview' => 1, 'completionexpected' => time() + DAYSECS));
+        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        $listgrades = $this->getDataGenerator()->create_module(
+            'listgrades',
+            ['course' => $course->id],
+            ['completion' => 2, 'completionview' => 1, 'completionexpected' => time() + DAYSECS]
+        );
 
         // Get some additional data.
         $cm = get_coursemodule_from_instance('listgrades', $listgrades->id);
 
         // Create a calendar event.
-        $event = $this->create_action_event($course->id, $listgrades->id,
-            \core_completion\api::COMPLETION_EVENT_TYPE_DATE_COMPLETION_EXPECTED);
+        $event = $this->create_action_event(
+            $course->id,
+            $listgrades->id,
+            \core_completion\api::COMPLETION_EVENT_TYPE_DATE_COMPLETION_EXPECTED
+        );
 
         // Mark the activity as completed.
         $completion = new \completion_info($course);

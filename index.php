@@ -42,8 +42,8 @@ $strname         = get_string('name');
 $strintro        = get_string('moduleintro');
 $strlastmodified = get_string('lastmodified');
 
-$PAGE->set_url('/mod/listgrades/index.php', array('id' => $course->id));
-$PAGE->set_title($course->shortname.': '.$strlistgrades);
+$PAGE->set_url('/mod/listgrades/index.php', ['id' => $course->id]);
+$PAGE->set_title($course->shortname . ': ' . $strlistgrades);
 $PAGE->set_heading($course->fullname);
 $PAGE->navbar->add($strlistgrades);
 echo $OUTPUT->header();
@@ -59,7 +59,7 @@ $table = new html_table();
 $table->attributes['class'] = 'generaltable mod_index';
 
 if ($usesections) {
-    $strsectionname = get_string('sectionname', 'format_'.$course->format);
+    $strsectionname = get_string('sectionname', 'format_' . $course->format);
     $table->head  = [$strsectionname, $strname, $strintro];
     $table->align = ['center', 'left', 'left'];
 } else {
@@ -83,15 +83,15 @@ foreach ($listgrades as $listgrades) {
             $currentsection = $listgrades->section;
         }
     } else {
-        $printsection = '<span class="smallinfo">'.userdate($listgrades->timemodified)."</span>";
+        $printsection = '<span class="smallinfo">' . userdate($listgrades->timemodified) . "</span>";
     }
 
     $class = $listgrades->visible ? '' : 'class="dimmed"'; // Hidden modules are dimmed.
 
     $table->data[] = [
         $printsection,
-        "<a $class href=\"view.php?id=$cm->id\">".format_string($listgrades->name)."</a>",
-        format_module_intro('listgrades', $listgrades, $cm->id)
+        "<a $class href=\"view.php?id=$cm->id\">" . format_string($listgrades->name) . "</a>",
+        format_module_intro('listgrades', $listgrades, $cm->id),
         ];
 }
 

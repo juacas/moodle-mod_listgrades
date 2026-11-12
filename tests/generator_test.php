@@ -20,12 +20,15 @@ namespace mod_listgrades;
  * PHPUnit data generator testcase
  *
  * @package    mod_listgrades
- * @category   phpunit
  * @copyright  2012 Petr Skoda {@link http://skodak.org}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class generator_test extends \advanced_testcase {
-    public function test_generator() {
+#[\PHPUnit\Framework\Attributes\CoversNothing]
+final class generator_test extends \advanced_testcase {
+    /**
+     * Tests the activity generator defaults.
+     */
+    public function test_generator(): void {
         global $DB, $SITE;
 
         $this->resetAfterTest(true);
