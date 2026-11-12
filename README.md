@@ -2,7 +2,7 @@
 
 ## Overview
 
-The **Moodle Privacy-Friendly Grade Publishing Plugin** is a powerful tool designed to enhance transparency in educational institutions while preserving student privacy. This plugin empowers teachers to publish grades for specific assignments, fostering a collaborative and supportive learning environment. It allows instructors to selectively share grades while masking personal IDs, ensuring compliance with privacy regulations.
+The **Moodle Privacy-Friendly Grade Publishing Plugin** allows teachers to publish selected grade items either as a privacy-aware class listing or as a personalised report for the current user. Institutions can control which publication formats are available, while each activity can optionally include visual statistics about the published grades.
 
 ## Features
 
@@ -10,17 +10,35 @@ The **Moodle Privacy-Friendly Grade Publishing Plugin** is a powerful tool desig
 
 - **Granular Control:** Teachers can choose which grades to publish, offering fine-grained control over the information shared with students.
 
-- **Individual or Group Publishing:** Decide whether to give access to the grades to all students or by groups, providing flexibility based on course dynamics.
+- **Group Support:** Grade distributions and listings respect the activity group selection.
 
-### 2. Privacy Masking
+### 2. Publication Modes
 
-- **Automatic ID Masking:** The plugin automatically masks personal IDs, hidding some digits to safeguard student privacy.
+- **Listing:** Displays the traditional table containing the selected grade items for the course or group. User names and identifiers can be hidden, conditionally displayed, or masked according to the site privacy settings.
+
+- **Individual:** Displays only the current user's grades in a centred table. Each row contains the grade item name, grade and, when selected, feedback. A personalised sentence showing the user's full name appears before the table and the publication date appears below it.
+
+- **Site Policy:** Administrators can allow Listing only, Individual only, or both formats. When both are enabled, administrators can select the default format for new activities. Listing-specific privacy settings are hidden when only Individual publishing is allowed.
+
+### 3. Optional Grade Statistics
+
+Statistics can be enabled independently of the publication mode and therefore displayed in both Listing and Individual views.
+
+- **Numeric Grades:** Each item includes a boxplot and a histogram grouped in a shaded panel. The boxplot represents the observed distribution. The histogram uses the configured grade-item range, contains no more than 10 bins and attempts to place a bin boundary close to the configured passing grade.
+
+- **Text Scales:** Scale items use a horizontal stacked distribution with totals and percentages for each scale value.
+
+- **Current User Marker:** The user's position is highlighted in the boxplot, histogram and scale distribution with a circular marker containing their profile picture. When a teacher without a grade previews the activity, an illustrative random marker is generated without storing or changing any grade.
+
+### 4. Privacy Masking
+
+- **Automatic ID Masking:** The plugin automatically masks personal IDs, hiding some digits to safeguard student privacy.
 
 - **Configurable Masking Options:** Customize the masking process based on institutional policies, ensuring compliance with privacy regulations.
 
-### 3. Transparency and Collaboration
+### 5. Transparency and Collaboration
 
-- **Viewing Options:** Students can view the grades of their peers, promoting transparency and collaboration within the learning community.
+- **Viewing Options:** Listing mode supports transparent publication of peer grades, while Individual mode keeps each student's report private.
 
 - **User-Friendly Interface:** A simple and intuitive interface allows both teachers and students to easily navigate and access the published grades.
 
@@ -33,16 +51,21 @@ The **Moodle Privacy-Friendly Grade Publishing Plugin** is a powerful tool desig
 
 ## Usage
 
-1. Create an instance of the activity
-2. Select the grade items that you will to publish.
-3. Select the time window of the publication.
-4. Set the header and footer texts for decorating the listing.
-4. Select group mode.
-3. The grades will be published according to the privacy policy of your institution (contact your admin for details).
+1. Create an instance of the activity.
+2. Select the grade items and optional feedback fields to publish.
+3. Choose Listing or Individual format, subject to the formats enabled by the administrator.
+4. Enable or disable grade statistics.
+5. Select the publication time window.
+6. Set the header, footer and group mode.
+7. The grades are published according to the privacy policy configured by the institution.
 
 ## Configuration
 
 - Access the plugin settings in the Moodle administration panel.
+
+- Choose whether Listing, Individual, or both publication formats are allowed.
+
+- When both formats are allowed, choose the default format for new activities.
 
 - Customize privacy masking options, such as ID replacement patterns and masking algorithms.
 
@@ -78,3 +101,6 @@ Change log
 - v1.0.8 Fix bug #8. Error when deleting course.
 - v1.0.9 Fix bug #9. Error when restoring a course with listgrades activities.
 - v1.0.10 Fix bug #10. Error when restoring a course with listgrades activities in Moodle 4.5.
+- v1.1.1 Add Individual publication, optional grade statistics, user markers and site-wide publication format controls.
+- v1.1.2 Add course and branding placeholders to the default introduction and footer templates.
+- v1.1.3 Simplify template placeholders to the `{identifier}` syntax.

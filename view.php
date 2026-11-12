@@ -124,117 +124,153 @@ if ($isopen || has_capability('moodle/course:manageactivities', $context)) {
     $grades = $grader->get_grades();
     // Get users to be graded.
     $users = $grader->get_users();
-    // Print a table with the grades.
-    // Create table object.
-    $table = new html_table();
-    $table->head = $headers;
+    $displaymode = listgrades_resolve_display_mode(
+        $listgrades->displaymode ?? null,
+        $config->alloweddisplaymodes ?? LISTGRADES_ALLOWED_BOTH,
+        $config->defaultdisplaymode ?? LISTGRADES_DISPLAY_INDIVIDUAL
+    );
+    $currentuser = $DB->get_record('user', ['id' => $USER->id], '*', MUST_EXIST);
+    if ($displaymode !== LISTGRADES_DISPLAY_LIST) {
+        echo listgrades_render_individual_table(
+            $items,
+            $gradeitems,
+            $itemnames,
+            $grades[$USER->id] ?? null,
+            $context,
+            $currentuser
+        );
+    } else {
+        // Print a table with the grades.
+        // Create table object.
+        $table = new html_table();
+        $table->head = $headers;
 
-    $table->data = [];
-    // Get if the userfield is a custom field.
-    $userfield = $config->userfield;
-    $customfields = profile_get_custom_fields();
-    $iscustomfield = false;
-    foreach ($customfields as $field) {
-        if ($userfield == $field->shortname) {
-            $iscustomfield = true;
-            $fieldid = $field->id;
-            break;
-        }
-    }
-    // Load full user records.
-    $users = $DB->get_records_list('user', 'id', array_keys($users));
-
-    // Get users with userfield.
-    if ($iscustomfield) {
-        // Get custom field values.
-        $ids = array_keys($users);
-        [$sql_in, $params] = $DB->get_in_or_equal($ids);
-        // To Lower case.
-        $userfield = strtolower($userfield);
-        // Join the user_info_data table with the user table on userid and fieldid.
-        $sql = "SELECT d.userid, d.data as $userfield
-                 FROM {user_info_data} d
-                 WHERE d.fieldid = ?
-                   AND d.userid $sql_in
-                 ORDER BY d.data";
-        $paramssql = [$fieldid];
-        $paramssql = array_merge($paramssql, $params);
-        $customfields = $DB->get_records_sql($sql, $paramssql);
-        // Reset custom field.
-        foreach ($ids as $userid) {
-            $users[$userid]->$userfield = '';
-        }
-        // Add custom field to users.
-        foreach ($customfields as $userid => $customfield) {
-            $users[$userid]->$userfield = $customfield->$userfield;
-        }  
-    }
-    
-    $graderurl = new moodle_url('/grade/report/user/index.php', ['id' => $course->id]);
-    $group = groups_get_members($groupid, 'u.id', 'u.id');
-    $namecollisions = [];
-    // Compute full names.
-    foreach ($users as $user) {
-        $user->fullname = "{$user->lastname}, {$user->firstname}";
-    }
-    // if showuserfield is onlyifnamecollide, get the users that have the same username.
-    if ($config->showuserfield == 'onlyifnamecollide') {
-        // Get the list of users that have the same fullname.
-        $namecollisions = array_keys(array_count_values(array_column($users, 'fullname')), 2);
-    }
-    // Iterate over the users.
-    foreach ($users as $user) {
-        if ($groupid != null && !array_key_exists($user->id, $group)) {
-            continue;
-        }
-        $row = [];
-        // Get the grade of the student.
-        $grade = $grades[$user->id];
-        $id = $user->$userfield;
-        if ($id == null) {
-            debugging("User $user->id does not have a $userfield");
-        }
-        if ($config->aepdmethod) {
-            $maskeduserfield = listgrades_mask_identifier_aepd($id);
-        } else {
-            $maskeduserfield = listgrades_mask($id, $mask);
-        }
-        $graderurl->param('userid', $user->id);
-        // Print user fullname.
-        if ($config->showusername) {
-            $nametoshow = $user->fullname;
-            if ($config->showuserfield == 'onlyifnamecollide' && in_array($user->fullname, $namecollisions)) {
-                $nametoshow .= " ($maskeduserfield)";
+        $table->data = [];
+        // Get if the userfield is a custom field.
+        $userfield = $config->userfield;
+        $customfields = profile_get_custom_fields();
+        $iscustomfield = false;
+        foreach ($customfields as $field) {
+            if ($userfield == $field->shortname) {
+                $iscustomfield = true;
+                $fieldid = $field->id;
+                break;
             }
-            $row[] = $nametoshow;
         }
-        if ($config->showuserfield == 'always') {
-            $row[] = $maskeduserfield;
+        // Load full user records.
+        $users = $DB->get_records_list('user', 'id', array_keys($users));
+
+        // Get users with userfield.
+        if ($iscustomfield) {
+            // Get custom field values.
+            $ids = array_keys($users);
+            [$sql_in, $params] = $DB->get_in_or_equal($ids);
+            // To Lower case.
+            $userfield = strtolower($userfield);
+            // Join the user_info_data table with the user table on userid and fieldid.
+            $sql = "SELECT d.userid, d.data as $userfield
+                     FROM {user_info_data} d
+                     WHERE d.fieldid = ?
+                       AND d.userid $sql_in
+                     ORDER BY d.data";
+            $paramssql = [$fieldid];
+            $paramssql = array_merge($paramssql, $params);
+            $customfields = $DB->get_records_sql($sql, $paramssql);
+            // Reset custom field.
+            foreach ($ids as $userid) {
+                $users[$userid]->$userfield = '';
+            }
+            // Add custom field to users.
+            foreach ($customfields as $userid => $customfield) {
+                $users[$userid]->$userfield = $customfield->$userfield;
+            }
         }
-        // Collect the gradeitems.
-        foreach ($listeditems as $itemid => $item) {
-            if ($itemid < 0) {
-                $gradevalue = $grade[$item->id];
-                $gradestr = $gradevalue->feedback ? $gradevalue->feedback : '--';
+
+        $graderurl = new moodle_url('/grade/report/user/index.php', ['id' => $course->id]);
+        $group = $groupid === null ? [] : groups_get_members($groupid, 'u.id', 'u.id');
+        $namecollisions = [];
+        // Compute full names.
+        foreach ($users as $user) {
+            $user->fullname = "{$user->lastname}, {$user->firstname}";
+        }
+        // if showuserfield is onlyifnamecollide, get the users that have the same username.
+        if ($config->showuserfield == 'onlyifnamecollide') {
+            // Get the list of users that have the same fullname.
+            $namecollisions = array_keys(array_count_values(array_column($users, 'fullname')), 2);
+        }
+        // Iterate over the users.
+        foreach ($users as $user) {
+            if ($groupid != null && !array_key_exists($user->id, $group)) {
+                continue;
+            }
+            $row = [];
+            // Get the grade of the student.
+            $grade = $grades[$user->id];
+            $id = $user->$userfield;
+            if ($id == null) {
+                debugging("User $user->id does not have a $userfield");
+            }
+            if ($config->aepdmethod) {
+                $maskeduserfield = listgrades_mask_identifier_aepd($id);
             } else {
-                $gradevalue = $grade[$item->id];
-                $gradestr = $gradevalue->finalgrade ? format_float($gradevalue->finalgrade, $gradevalue->grade_item->get_decimals()) : '--';
+                $maskeduserfield = listgrades_mask($id, $mask);
             }
-            if ($USER->id == $user->id) {
-                $row[] = html_writer::link($graderurl, $gradestr);
-            } else {
-                $row[] = $gradestr;
+            $graderurl->param('userid', $user->id);
+            // Print user fullname.
+            if ($config->showusername) {
+                $nametoshow = $user->fullname;
+                if ($config->showuserfield == 'onlyifnamecollide' && in_array($user->fullname, $namecollisions)) {
+                    $nametoshow .= " ($maskeduserfield)";
+                }
+                $row[] = $nametoshow;
             }
+            if ($config->showuserfield == 'always') {
+                $row[] = $maskeduserfield;
+            }
+            // Collect the gradeitems.
+            foreach ($listeditems as $itemid => $item) {
+                if ($itemid < 0) {
+                    $gradevalue = $grade[$item->id];
+                    $gradestr = $gradevalue->feedback ? $gradevalue->feedback : '--';
+                } else {
+                    $gradevalue = $grade[$item->id];
+                    $gradestr = $gradevalue->finalgrade !== null
+                        ? format_float($gradevalue->finalgrade, $gradevalue->grade_item->get_decimals()) : '--';
+                }
+                if ($USER->id == $user->id) {
+                    $row[] = html_writer::link($graderurl, $gradestr);
+                } else {
+                    $row[] = $gradestr;
+                }
+            }
+
+            // Add the userfield and the grades to the table.
+            $table->data[] = $row;
         }
+        // Sort the table by first column.
+        array_multisort($table->data);
 
-        // Add the userfield and the grades to the table.
-        $table->data[] = $row;
+        // Print the table.
+        echo html_writer::table($table);
     }
-    // Sort the table by first column.
-    array_multisort($table->data);
 
-    // Print the table.
-    echo html_writer::table($table);
+    if (!empty($listgrades->showstatistics)) {
+        $statuserids = array_keys($users);
+        if ($groupid !== null) {
+            $groupmembers = groups_get_members($groupid, 'u.id', 'u.id');
+            $statuserids = array_values(array_intersect($statuserids, array_keys($groupmembers)));
+        }
+        echo listgrades_render_statistics(
+            $items,
+            $gradeitems,
+            $itemnames,
+            $grades,
+            $statuserids,
+            $currentuser,
+            $course->id,
+            has_capability('moodle/course:manageactivities', $context)
+        );
+    }
 
     $signature = file_rewrite_pluginfile_urls($listgrades->footer, 'pluginfile.php', $context->id, 'mod_listgrades', 'footer', 0);
     $formatoptions = new stdClass;

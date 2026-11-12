@@ -1,0 +1,216 @@
+.path-mod-listgrades .listgrades-individual-table {
+    width: auto;
+    max-width: 100%;
+    margin-right: auto;
+    margin-bottom: 2rem;
+    margin-left: auto;
+}
+
+.path-mod-listgrades .listgrades-individual-intro {
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.path-mod-listgrades .listgrades-individual-date {
+    margin-top: -1rem;
+    margin-bottom: 2rem;
+}
+
+.path-mod-listgrades .listgrades-stat-chart {
+    margin: 1.25rem 0;
+}
+
+.path-mod-listgrades .listgrades-stat-item {
+    margin: 1.5rem 0;
+    padding: 1.25rem;
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: .5rem;
+    background: var(--bs-gray-100, #f8f9fa);
+    box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
+}
+
+.path-mod-listgrades .listgrades-stat-item > h4 {
+    margin-bottom: 1rem;
+}
+
+.path-mod-listgrades .listgrades-boxplot {
+    position: relative;
+    height: 5.5rem;
+    margin: 0 1.25rem;
+    border-bottom: 1px solid var(--bs-border-color, #8f959e);
+}
+
+.path-mod-listgrades .listgrades-boxplot-whisker,
+.path-mod-listgrades .listgrades-boxplot-cap,
+.path-mod-listgrades .listgrades-boxplot-box,
+.path-mod-listgrades .listgrades-boxplot-median {
+    position: absolute;
+    top: 2.5rem;
+}
+
+.path-mod-listgrades .listgrades-boxplot-whisker {
+    height: 2px;
+    background: var(--bs-gray-700, #495057);
+}
+
+.path-mod-listgrades .listgrades-boxplot-cap,
+.path-mod-listgrades .listgrades-boxplot-median {
+    width: 2px;
+    height: 2.25rem;
+    transform: translate(-1px, -1.0625rem);
+    background: var(--bs-gray-800, #343a40);
+}
+
+.path-mod-listgrades .listgrades-boxplot-box {
+    min-width: 2px;
+    height: 2.75rem;
+    transform: translateY(-1.3125rem);
+    border: 2px solid var(--bs-primary, #0f6cbf);
+    background: rgba(15, 108, 191, .18);
+    background: color-mix(in srgb, var(--bs-primary, #0f6cbf) 18%, transparent);
+}
+
+.path-mod-listgrades .listgrades-boxplot-median {
+    height: 2.75rem;
+    transform: translate(-1px, -1.3125rem);
+    background: var(--bs-primary, #0f6cbf);
+}
+
+.path-mod-listgrades .listgrades-user-marker {
+    position: absolute;
+    z-index: 2;
+    top: .75rem;
+    width: 2.1875rem;
+    height: 2.1875rem;
+    transform: translateX(-50%);
+    border: 3px solid var(--bs-danger, #ca3120);
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .35);
+    overflow: hidden;
+}
+
+.path-mod-listgrades .listgrades-user-marker img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.path-mod-listgrades .listgrades-axis-min,
+.path-mod-listgrades .listgrades-axis-max {
+    position: absolute;
+    bottom: -1.5rem;
+    font-size: .75rem;
+    color: var(--bs-secondary-color, #5c6670);
+}
+
+.path-mod-listgrades .listgrades-axis-min {
+    left: 0;
+}
+
+.path-mod-listgrades .listgrades-axis-max {
+    right: 0;
+}
+
+.path-mod-listgrades .listgrades-stat-summary {
+    margin-top: 1.75rem;
+    text-align: center;
+}
+
+.path-mod-listgrades .listgrades-scale-bar {
+    display: flex;
+    min-height: 3rem;
+    border-radius: .25rem;
+    overflow: hidden;
+    background: var(--bs-gray-200, #e9ecef);
+}
+
+.path-mod-listgrades .listgrades-scale-plot {
+    position: relative;
+    padding: 1rem 0;
+}
+
+.path-mod-listgrades .listgrades-scale-plot .listgrades-user-marker {
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.path-mod-listgrades .listgrades-scale-segment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    padding: .5rem .25rem;
+    color: #fff;
+    font-size: .8rem;
+    font-weight: 600;
+    overflow: hidden;
+}
+
+.path-mod-listgrades .listgrades-scale-segment:nth-child(6n+1) { background: #0f6cbf; }
+.path-mod-listgrades .listgrades-scale-segment:nth-child(6n+2) { background: #5c3d99; }
+.path-mod-listgrades .listgrades-scale-segment:nth-child(6n+3) { background: #087f5b; }
+.path-mod-listgrades .listgrades-scale-segment:nth-child(6n+4) { background: #b35c00; }
+.path-mod-listgrades .listgrades-scale-segment:nth-child(6n+5) { background: #b02a37; }
+.path-mod-listgrades .listgrades-scale-segment:nth-child(6n) { background: #495057; }
+
+.path-mod-listgrades .listgrades-scale-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem 1.25rem;
+    margin-top: .75rem;
+}
+
+.path-mod-listgrades .listgrades-scale-legend-item {
+    font-size: .875rem;
+}
+
+.path-mod-listgrades .listgrades-histogram {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    gap: .0625rem;
+    min-height: 15rem;
+    padding: 1.5rem .5rem 0;
+    border-bottom: 1px solid var(--bs-border-color, #8f959e);
+    overflow-x: auto;
+}
+
+.path-mod-listgrades .listgrades-histogram .listgrades-user-marker {
+    top: auto;
+    bottom: 2.1rem;
+}
+
+.path-mod-listgrades .listgrades-histogram-bin {
+    display: grid;
+    grid-template-rows: 1.5rem minmax(8rem, 1fr) 2.75rem;
+    align-items: end;
+    flex: 1 0 3.5rem;
+    height: 13.5rem;
+    text-align: center;
+}
+
+.path-mod-listgrades .listgrades-histogram-count {
+    align-self: center;
+    font-size: .8rem;
+    font-weight: 600;
+}
+
+.path-mod-listgrades .listgrades-histogram-column {
+    display: block;
+    width: min(80%, 4rem);
+    min-height: 1px;
+    margin: 0 auto;
+    background: var(--bs-primary, #0f6cbf);
+    border-radius: .2rem .2rem 0 0;
+}
+
+.path-mod-listgrades .listgrades-histogram-label {
+    align-self: start;
+    padding-top: .35rem;
+    font-size: .72rem;
+    line-height: 1.1;
+    overflow-wrap: anywhere;
+}

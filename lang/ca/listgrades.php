@@ -38,10 +38,10 @@ $string['defaultfootertext'] = '<hr>
  <p>Hora:</p>
  <p>Lloc:</p>
  <hr>
- <p><img class="img-fluid align-bottom" style="margin: 10px; float: left;" role="presentation" src="http://moodle3.local/moodle40/pluginfile.php/1/theme_moove/logo/1704277217/UVA_cuadro_rojo.jpg" alt="" width="64" height="64" align="left">Aquesta publicació té una finalitat informativa en l\'exercici de missions d\'interès públic previstes a la Llei orgànica del sistema universitari. El seu ús per part de l\'estudiant per a altres finalitats i, en particular, la seva alteració, manipulació i distribució indeguda a les xarxes socials o a altres mitjans públics pot generar responsabilitat jurídica.</p>';
+ <p><img class="img-fluid align-bottom" style="margin: 10px; float: left;" role="presentation" src="{logourl}" alt="" width="64" height="64" align="left">Aquesta publicació té una finalitat informativa en l\'exercici de missions d\'interès públic previstes a la Llei orgànica del sistema universitari. El seu ús per part de l\'estudiant per a altres finalitats i, en particular, la seva alteració, manipulació i distribució indeguda a les xarxes socials o a altres mitjans públics pot generar responsabilitat jurídica.</p>';
 $string['defaultintro'] = 'Text predeterminat d\'introducció';
 $string['defaultintro_help'] = 'Text predeterminat d\'introducció que apareixerà a la llista.';
-$string['defaultintrotext'] = '<table border="0" width="100%"><tbody><tr><td><h3><img role="presentation" src="{$a->logourl}" alt="" width="121" height="78"></h3></td>
+$string['defaultintrotext'] = '<table border="0" width="100%"><tbody><tr><td><h3><img role="presentation" src="{logourl}" alt="" width="121" height="78"></h3></td>
  <td><h3>LLISTA DE QUALIFICACIONS PROVISIONALS</h3><p>Convocatòria: ORDINÀRIA</p></td>
  </tr></tbody></table>';
 $string['footer'] = 'Secció del peu de pàgina<br>No modificar aquest contingut. Una vegada desat només es visualitzarà en un idioma.';

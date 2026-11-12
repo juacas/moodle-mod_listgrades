@@ -48,7 +48,21 @@ class mod_listgrades_generator extends testing_module_generator {
         if (!isset($record->footerformat)) {
             $record->footerformat = FORMAT_MOODLE;
         }
-        $record->items = 'a:1:{i:322;s:10:"__COURSE__";}';
+        if (!isset($record->opendate)) {
+            $record->opendate = 0;
+        }
+        if (!isset($record->closedate)) {
+            $record->closedate = 0;
+        }
+        if (!isset($record->displaymode)) {
+            $record->displaymode = LISTGRADES_DISPLAY_INDIVIDUAL;
+        }
+        if (!isset($record->showstatistics)) {
+            $record->showstatistics = 1;
+        }
+        if (!isset($record->items)) {
+            $record->items = [grade_item::fetch_course_item($record->course)->id];
+        }
 
         $instance  = parent::create_instance($record, (array)$options);
 
