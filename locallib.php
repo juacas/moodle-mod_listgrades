@@ -220,6 +220,55 @@ function listgrades_percentile(array $values, float $percentile): ?float {
 }
 
 /**
+ * Format a numeric grade using gradebook decimals, omitting a zero-only decimal part.
+ *
+ * @param float $value grade value
+ * @param grade_item $item grade item
+ * @return string
+ */
+function listgrades_format_numeric_grade_value(float $value, grade_item $item): string {
+    $decimals = $item->get_decimals();
+    $roundedvalue = round($value, $decimals);
+    if ($roundedvalue == round($roundedvalue)) {
+        return format_float($roundedvalue, 0);
+    }
+    return grade_format_gradevalue($value, $item, true, GRADE_DISPLAY_TYPE_REAL);
+}
+
+/**
+ * Format an individual grade together with its maximum or textual scale reference.
+ *
+ * @param float|null $finalgrade final grade, or null when it has not been assigned
+ * @param grade_item $item grade item
+ * @return string
+ */
+function listgrades_format_grade_with_reference(?float $finalgrade, grade_item $item): string {
+    $formattedgrade = grade_format_gradevalue($finalgrade, $item, true, GRADE_DISPLAY_TYPE_REAL);
+    if ($item->gradetype == GRADE_TYPE_SCALE) {
+        $scale = $item->load_scale();
+        if (!$scale || !$scale->scale_items) {
+            return $formattedgrade;
+        }
+        $scaleitems = array_map('format_string', $scale->scale_items);
+        return get_string('scalegradewithreference', 'listgrades', (object) [
+            'grade' => $formattedgrade,
+            'scale' => implode('; ', $scaleitems),
+        ]);
+    }
+    if ($item->gradetype == GRADE_TYPE_VALUE) {
+        if ($finalgrade !== null) {
+            $formattedgrade = listgrades_format_numeric_grade_value($finalgrade, $item);
+        }
+        $maximum = listgrades_format_numeric_grade_value((float) $item->grademax, $item);
+        return get_string('numericgradewithmaximum', 'listgrades', (object) [
+            'grade' => $formattedgrade,
+            'maximum' => $maximum,
+        ]);
+    }
+    return $formattedgrade;
+}
+
+/**
  * Render the current user's selected grades.
  *
  * @param array $selecteditems selected ids, with negative ids representing feedback
@@ -255,9 +304,10 @@ function listgrades_render_individual_table(array $selecteditems, array $gradeit
         $item = $gradeitems[$itemid];
         $grade = $usergrades[$itemid] ?? null;
         $finalgrade = $grade ? $grade->finalgrade : null;
-        $row = [format_string($itemnames[$itemid]), grade_format_gradevalue(
-            $finalgrade === null ? null : (float) $finalgrade, $item, true, GRADE_DISPLAY_TYPE_REAL
-        )];
+        $row = [
+            format_string($itemnames[$itemid]),
+            listgrades_format_grade_with_reference($finalgrade === null ? null : (float) $finalgrade, $item),
+        ];
 
         if ($showfeedback) {
             if (!empty($showfeedback[$itemid]) && $grade && $grade->feedback !== null && $grade->feedback !== '') {
@@ -351,6 +401,19 @@ function listgrades_render_user_marker(grade_item $item, float $usergrade, stdCl
 }
 
 /**
+ * Render the complete horizontal domain of a statistical chart.
+ *
+ * @param string $minimum formatted lower boundary
+ * @param string $maximum formatted upper boundary
+ * @return string
+ */
+function listgrades_render_chart_axis(string $minimum, string $maximum): string {
+    $labels = html_writer::span($minimum, 'listgrades-chart-axis-min');
+    $labels .= html_writer::span($maximum, 'listgrades-chart-axis-max');
+    return html_writer::div($labels, 'listgrades-chart-axis', ['aria-hidden' => 'true']);
+}
+
+/**
  * Render a numeric grade item as a box plot.
  *
  * @param grade_item $item grade item
@@ -374,14 +437,16 @@ function listgrades_render_box_plot(grade_item $item, array $values, ?float $use
         'q3' => listgrades_percentile($values, .75),
         'max' => (float) end($values),
     ];
-    // Use the observed range. Configured course totals can retain a very large historical
-    // maximum which makes the actual distribution unreadable (for example, 0-2083 when
-    // the highest published grade is 182).
-    $rangemin = $stats->min;
-    $rangemax = $stats->max;
-    if ($usergrade !== null) {
-        $rangemin = min($rangemin, $usergrade);
-        $rangemax = max($rangemax, $usergrade);
+    // Use the complete configured range of the grade item as the horizontal domain.
+    $rangemin = (float) $item->grademin;
+    $rangemax = (float) $item->grademax;
+    if (!is_finite($rangemin) || !is_finite($rangemax) || $rangemax <= $rangemin) {
+        $rangemin = $stats->min;
+        $rangemax = $stats->max;
+        if ($usergrade !== null) {
+            $rangemin = min($rangemin, $usergrade);
+            $rangemax = max($rangemax, $usergrade);
+        }
     }
     if ($rangemin === $rangemax) {
         $padding = max(1, abs($rangemin) * .1);
@@ -420,13 +485,16 @@ function listgrades_render_box_plot(grade_item $item, array $values, ?float $use
     foreach (['min', 'q1', 'median', 'q3', 'max'] as $stat) {
         $summary->$stat = format_float($stats->$stat, $decimals);
     }
-    $axis = html_writer::span(format_float($rangemin, $decimals), 'listgrades-axis-min');
-    $axis .= html_writer::span(format_float($rangemax, $decimals), 'listgrades-axis-max');
+    $axis = listgrades_render_chart_axis(
+        format_float($rangemin, $decimals),
+        format_float($rangemax, $decimals)
+    );
 
-    $output = html_writer::div($plot . $axis, 'listgrades-boxplot', [
+    $output = html_writer::div($plot, 'listgrades-boxplot', [
         'role' => 'img',
         'aria-label' => get_string('boxplotsummary', 'listgrades', $summary),
     ]);
+    $output .= $axis;
     $output .= html_writer::div(get_string('boxplotsummary', 'listgrades', $summary),
         'small text-muted listgrades-stat-summary');
     return html_writer::div($output, 'listgrades-stat-chart');
@@ -587,6 +655,10 @@ function listgrades_render_histogram(grade_item $item, array $values, ?float $us
         'role' => 'img',
         'aria-label' => implode('; ', $summary),
     ]);
+    $output .= listgrades_render_chart_axis(
+        format_float((float) $item->grademin, $decimals),
+        format_float((float) $item->grademax, $decimals)
+    );
     return html_writer::div($output, 'listgrades-stat-chart listgrades-histogram-chart');
 }
 
@@ -658,6 +730,10 @@ function listgrades_render_scale_chart(grade_item $item, array $values, ?float $
         );
     }
     $output = html_writer::div($scalebar, 'listgrades-scale-plot');
+    $output .= listgrades_render_chart_axis(
+        format_string($scale->scale_items[array_key_first($scale->scale_items)]),
+        format_string($scale->scale_items[array_key_last($scale->scale_items)])
+    );
     $output .= html_writer::tag('ul', $legend, ['class' => 'list-unstyled listgrades-scale-legend']);
     return html_writer::div($output, 'listgrades-stat-chart');
 }

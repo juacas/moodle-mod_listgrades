@@ -83,6 +83,18 @@ class lib_test extends \advanced_testcase {
     }
 
     /**
+     * Chart axes show both ends of the complete item range.
+     */
+    public function test_render_chart_axis(): void {
+        $axis = listgrades_render_chart_axis('0.00', '100.00');
+
+        $this->assertStringContainsString('listgrades-chart-axis-min', $axis);
+        $this->assertStringContainsString('listgrades-chart-axis-max', $axis);
+        $this->assertStringContainsString('0.00', $axis);
+        $this->assertStringContainsString('100.00', $axis);
+    }
+
+    /**
      * Site policy restricts or defaults the activity display mode.
      */
     public function test_resolve_display_mode(): void {
@@ -154,6 +166,42 @@ class lib_test extends \advanced_testcase {
         $this->assertGreaterThanOrEqual(10, $grade);
         $this->assertLessThanOrEqual(20, $grade);
         $this->assertEquals(round($grade, 2), $grade);
+    }
+
+    /**
+     * Individual grades include their numeric maximum or all textual scale options.
+     */
+    public function test_format_grade_with_reference(): void {
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        grade_set_setting($course->id, 'decimalpoints', 1);
+
+        $numericitem = new \grade_item();
+        $numericitem->courseid = $course->id;
+        $numericitem->itemtype = 'manual';
+        $numericitem->itemname = 'Numeric item';
+        $numericitem->gradetype = GRADE_TYPE_VALUE;
+        $numericitem->grademin = 0;
+        $numericitem->grademax = 100;
+        $numericitem->insert();
+        $numericgrade = listgrades_format_grade_with_reference(72.5, $numericitem);
+        $this->assertStringContainsString('72.5/100', $numericgrade);
+        $this->assertStringContainsString('72/100', listgrades_format_grade_with_reference(72.04, $numericitem));
+
+        $scale = $this->getDataGenerator()->create_scale([
+            'courseid' => $course->id,
+            'scale' => 'Beginning,Developing,Achieved',
+        ]);
+        $scaleitem = new \grade_item();
+        $scaleitem->courseid = $course->id;
+        $scaleitem->itemtype = 'manual';
+        $scaleitem->itemname = 'Scale item';
+        $scaleitem->gradetype = GRADE_TYPE_SCALE;
+        $scaleitem->scaleid = $scale->id;
+        $scaleitem->insert();
+        $scalegrade = listgrades_format_grade_with_reference(2, $scaleitem);
+        $this->assertStringContainsString('Developing', $scalegrade);
+        $this->assertStringContainsString('(Beginning; Developing; Achieved)', $scalegrade);
     }
 
     /**

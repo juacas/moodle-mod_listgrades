@@ -18,6 +18,10 @@
 
 .path-mod-listgrades .listgrades-stat-chart {
     margin: 1.25rem 0;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--bs-border-color, #ced4da);
+    border-radius: .375rem;
+    background: var(--bs-body-bg, #fff);
 }
 
 .path-mod-listgrades .listgrades-stat-item {
@@ -35,9 +39,8 @@
 
 .path-mod-listgrades .listgrades-boxplot {
     position: relative;
-    height: 5.5rem;
-    margin: 0 1.25rem;
-    border-bottom: 1px solid var(--bs-border-color, #8f959e);
+    height: 4.5rem;
+    margin: 0 .25rem;
 }
 
 .path-mod-listgrades .listgrades-boxplot-whisker,
@@ -98,24 +101,38 @@
     object-fit: cover;
 }
 
-.path-mod-listgrades .listgrades-axis-min,
-.path-mod-listgrades .listgrades-axis-max {
-    position: absolute;
-    bottom: -1.5rem;
+.path-mod-listgrades .listgrades-chart-axis {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    min-height: 1.75rem;
+    margin: 0 .25rem;
+    padding-top: .45rem;
+    border-top: 1px solid var(--bs-gray-600, #6c757d);
     font-size: .75rem;
     color: var(--bs-secondary-color, #5c6670);
 }
 
-.path-mod-listgrades .listgrades-axis-min {
+.path-mod-listgrades .listgrades-chart-axis-min::before,
+.path-mod-listgrades .listgrades-chart-axis-max::before {
+    position: absolute;
+    top: -.3rem;
+    width: 1px;
+    height: .3rem;
+    background: var(--bs-gray-600, #6c757d);
+    content: "";
+}
+
+.path-mod-listgrades .listgrades-chart-axis-min::before {
     left: 0;
 }
 
-.path-mod-listgrades .listgrades-axis-max {
+.path-mod-listgrades .listgrades-chart-axis-max::before {
     right: 0;
 }
 
 .path-mod-listgrades .listgrades-stat-summary {
-    margin-top: 1.75rem;
+    margin-top: .5rem;
     text-align: center;
 }
 
@@ -174,7 +191,6 @@
     gap: .0625rem;
     min-height: 15rem;
     padding: 1.5rem .5rem 0;
-    border-bottom: 1px solid var(--bs-border-color, #8f959e);
     overflow-x: auto;
 }
 

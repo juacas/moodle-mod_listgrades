@@ -28,6 +28,7 @@ require_once($CFG->dirroot.'/mod/listgrades/locallib.php');
 require_once($CFG->libdir.'/completionlib.php');
 
 $id = optional_param('id', 0, PARAM_INT); // Course Module ID.
+$requesteduserid = optional_param('userid', 0, PARAM_INT);
 
 
 if (!$cm = get_coursemodule_from_id('listgrades', $id)) {
@@ -73,14 +74,8 @@ if (!$isopen) {
     echo $OUTPUT->box_end();
 }
 if ($isopen || has_capability('moodle/course:manageactivities', $context)) {
-    // Grdoup mode.
-    groups_print_activity_menu($cm, $PAGE->url);
+    // Group mode.
     $groupid = groups_get_activity_group($cm, true) ?: null;
-
-    // Print intro text.
-    echo $OUTPUT->box_start('generalbox center clearfix');
-    echo format_module_intro('listgrades', $listgrades, $cm->id);
-    echo $OUTPUT->box_end();
 
     // Use grader report to get the grades of the students.
     $grader = new grade_report_listing($course->id, null, $context);
@@ -124,18 +119,59 @@ if ($isopen || has_capability('moodle/course:manageactivities', $context)) {
     $grades = $grader->get_grades();
     // Get users to be graded.
     $users = $grader->get_users();
+    $canviewallgrades = has_capability('moodle/grade:viewall', context_course::instance($course->id));
+    $selecteduserid = $USER->id;
+    if ($canviewallgrades && $requesteduserid && array_key_exists($requesteduserid, $users)) {
+        $selecteduserid = $requesteduserid;
+    }
+
+    // Display the group and searchable student selectors together. The student selector is the
+    // same component used by the Moodle user grade report.
+    $viewurl = new moodle_url('/mod/listgrades/view.php', ['id' => $cm->id]);
+    if ($selecteduserid !== $USER->id) {
+        $viewurl->param('userid', $selecteduserid);
+    }
+    $selectors = [];
+    $groupselector = groups_print_activity_menu($cm, $viewurl, true);
+    if ($groupselector !== '') {
+        $selectors[] = $groupselector;
+    }
+    if ($canviewallgrades) {
+        $baseurl = new moodle_url('/mod/listgrades/view.php', ['id' => $cm->id]);
+        if ($groupid !== null) {
+            $baseurl->param('group', $groupid);
+        }
+        $PAGE->requires->js_call_amd('gradereport_user/user', 'init', [$baseurl->out(false)]);
+        $userselector = new \core_course\output\actionbar\user_selector(
+            course: $course,
+            resetlink: new moodle_url($baseurl),
+            userid: $selecteduserid !== $USER->id ? $selecteduserid : null,
+            groupid: $groupid
+        );
+        $courserenderer = $PAGE->get_renderer('core', 'course');
+        $selectors[] = $courserenderer->render($userselector);
+    }
+    if ($selectors) {
+        echo html_writer::div(implode('', $selectors), 'd-flex flex-wrap align-items-end gap-3 mb-3');
+    }
+
+    // Print intro text.
+    echo $OUTPUT->box_start('generalbox center clearfix');
+    echo format_module_intro('listgrades', $listgrades, $cm->id);
+    echo $OUTPUT->box_end();
+
     $displaymode = listgrades_resolve_display_mode(
         $listgrades->displaymode ?? null,
         $config->alloweddisplaymodes ?? LISTGRADES_ALLOWED_BOTH,
         $config->defaultdisplaymode ?? LISTGRADES_DISPLAY_INDIVIDUAL
     );
-    $currentuser = $DB->get_record('user', ['id' => $USER->id], '*', MUST_EXIST);
+    $currentuser = $DB->get_record('user', ['id' => $selecteduserid], '*', MUST_EXIST);
     if ($displaymode !== LISTGRADES_DISPLAY_LIST) {
         echo listgrades_render_individual_table(
             $items,
             $gradeitems,
             $itemnames,
-            $grades[$USER->id] ?? null,
+            $grades[$selecteduserid] ?? null,
             $context,
             $currentuser
         );
