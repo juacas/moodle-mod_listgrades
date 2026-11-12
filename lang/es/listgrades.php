@@ -30,19 +30,19 @@
  $string['closedate_help'] = 'La fecha y hora en que se cerrará la lista.';
 
  $string['defaultfooter'] = 'Texto predeterminado del pie de página';
- $string['defaultfooter_help'] = 'Texto predeterminado del pie de página que se mostrará al final del listado.';
+ $string['defaultfooter_help'] = 'Texto predeterminado del pie de página que se mostrará al final del listado. Marcadores disponibles: <code>{logourl}</code>, <code>{logocompacturl}</code>, <code>{coursefullname}</code>, <code>{courseshortname}</code>, <code>{courseidnumber}</code>, <code>{courseurl}</code>, <code>{courseimage}</code> y <code>{coursesummary}</code>.';
  $string['defaultfootertext'] = '<hr>
  <p>Revisión de las calificaciones:</p>
  <p>Fecha:</p>
  <p>Hora:</p>
  <p>Lugar:</p>
  <hr>
- <p><img class="img-fluid align-bottom" style="margin: 10px; float: left;" role="presentation" src="http://moodle3.local/moodle40/pluginfile.php/1/theme_moove/logo/1704277217/UVA_cuadro_rojo.jpg" alt="" width="64" height="64" align="left">Esta publicación se realiza con fines informativos en ejercicio de misiones de interés público previstas en la Ley Orgánica del Sistema Universitario. Su uso por el estudiante para otros fines, y en particular su alteración, manipulación o distribución indebida en redes sociales u otros medios públicos puede generar responsabilidad jurídica.</p>';
+ <p><img class="img-fluid align-bottom" style="margin: 10px; float: left;" role="presentation" src="{logourl}" alt="" width="64" height="64" align="left">Esta publicación se realiza con fines informativos en ejercicio de misiones de interés público previstas en la Ley Orgánica del Sistema Universitario. Su uso por el estudiante para otros fines, y en particular su alteración, manipulación o distribución indebida en redes sociales u otros medios públicos puede generar responsabilidad jurídica.</p>';
  $string['defaultintro'] = 'Texto predeterminado de introducción';
- $string['defaultintrotext'] = '<table border="0" width="100%"><tbody><tr><td><h3><img role="presentation" src="{$a->logourl}" alt="" width="121" height="78"></h3></td>
+ $string['defaultintrotext'] = '<table border="0" width="100%"><tbody><tr><td><h3><img role="presentation" src="{logourl}" alt="" width="121" height="78"></h3></td>
  <td><h3>LISTADO DE CALIFICACIONES PROVISIONALES</h3><p>Convocatoria: ORDINARIA</p></td>
  </tr></tbody></table>';
- $string['defaultintro_help'] = 'Texto predeterminado de introducción que se mostrará en la lista.';
+ $string['defaultintro_help'] = 'Texto predeterminado de introducción que se mostrará en la lista. Marcadores disponibles: <code>{logourl}</code>, <code>{logocompacturl}</code>, <code>{coursefullname}</code>, <code>{courseshortname}</code>, <code>{courseidnumber}</code>, <code>{courseurl}</code>, <code>{courseimage}</code> y <code>{coursesummary}</code>.';
  $string['defaultdisplaymode'] = 'Listados de notas por defecto';
  $string['defaultdisplaymode_help'] = 'Formato de página seleccionado por defecto cuando se permiten ambos formatos.';
  $string['displaymode'] = 'Formato de la página';

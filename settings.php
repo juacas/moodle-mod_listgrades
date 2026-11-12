@@ -101,19 +101,12 @@ if ($ADMIN->fulltree) {
     $settings->hide_if('listgrades/userfieldmask', 'listgrades/alloweddisplaymodes', 'eq',
         LISTGRADES_DISPLAY_INDIVIDUAL);
 
-    // Get site logos.
-    $a = new stdClass();
-    $logo = $OUTPUT->get_logo_url();
-    $a->logourl = $logo == false ? '' : $logo->out();
-    $logo = $OUTPUT->get_compact_logo_url();
-    $a->logocompacturl = $logo == false ? '' : $logo->out();
-
-    // Default texts.
-    // TODO: Intro does not accept default value! Disabled until a workaround is found.
+    // Keep placeholders untouched here. They are expanded with course data only
+    // when the defaults are loaded into a new activity form.
     $settings->add(new admin_setting_confightmleditor('listgrades/defaultintro',
-       get_string('defaultintro', 'listgrades'), get_string('defaultintro_help', 'listgrades', $a),
-       get_string('defaultintrotext', 'listgrades', $a), PARAM_RAW));
+       get_string('defaultintro', 'listgrades'), get_string('defaultintro_help', 'listgrades'),
+       get_string('defaultintrotext', 'listgrades'), PARAM_RAW));
     $settings->add(new admin_setting_confightmleditor('listgrades/defaultfooter',
         get_string('defaultfooter', 'listgrades'), get_string('defaultfooter_help', 'listgrades'),
-        get_string('defaultfootertext', 'listgrades', $a), PARAM_RAW));
+        get_string('defaultfootertext', 'listgrades'), PARAM_RAW));
 }

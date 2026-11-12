@@ -107,6 +107,43 @@ class lib_test extends \advanced_testcase {
     }
 
     /**
+     * Default content templates expand course data and preserve unknown placeholders.
+     */
+    public function test_expand_course_template(): void {
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course([
+            'fullname' => 'Template full name',
+            'shortname' => 'Template short name',
+            'idnumber' => 'COURSE-42',
+            'summary' => '<p>Template summary</p>',
+            'summaryformat' => FORMAT_HTML,
+        ]);
+        $template = implode('|', [
+            '{logourl}',
+            '{logocompacturl}',
+            '{coursefullname}',
+            '{courseshortname}',
+            '{courseidnumber}',
+            '{courseurl}',
+            '{courseimage}',
+            '{coursesummary}',
+            '{unknown}',
+        ]);
+
+        $expanded = listgrades_expand_course_template($template, $course);
+
+        $this->assertStringNotContainsString('{logourl}', $expanded);
+        $this->assertStringNotContainsString('{logocompacturl}', $expanded);
+        $this->assertStringContainsString('Template full name', $expanded);
+        $this->assertStringContainsString('Template short name', $expanded);
+        $this->assertStringContainsString('COURSE-42', $expanded);
+        $this->assertStringContainsString('/course/view.php?id=' . $course->id, $expanded);
+        $this->assertStringContainsString('/course/generated/course.svg', $expanded);
+        $this->assertStringContainsString('Template summary', $expanded);
+        $this->assertStringContainsString('{unknown}', $expanded);
+    }
+
+    /**
      * Preview grades stay within the observed range and preserve fixed values.
      */
     public function test_random_preview_grade(): void {

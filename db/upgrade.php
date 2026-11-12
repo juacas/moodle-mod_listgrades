@@ -85,5 +85,34 @@ function xmldb_listgrades_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026111001, 'listgrades');
     }
 
+    if ($oldversion < 2026111201) {
+        // Convert legacy template placeholders, including the form encoded by
+        // HTML editors, to the simplified {identifier} syntax.
+        foreach (['defaultintro', 'defaultfooter'] as $configname) {
+            $template = get_config('listgrades', $configname);
+            if ($template === false) {
+                continue;
+            }
+            $converted = preg_replace_callback(
+                '/\{\$a-(?:>|&gt;|&amp;gt;)([A-Za-z][A-Za-z0-9_]*)\}/',
+                static fn(array $matches): string => '{' . $matches[1] . '}',
+                $template
+            );
+            $converted = strtr($converted, [
+                '{urllogo}' => '{logourl}',
+                '{urlcompactlogo}' => '{logocompacturl}',
+                '{CourseIDnumber}' => '{courseidnumber}',
+                '{urlCourse}' => '{courseurl}',
+                '{image}' => '{courseimage}',
+                '{Coursesummary}' => '{coursesummary}',
+            ]);
+            if ($converted !== $template) {
+                set_config($configname, $converted, 'listgrades');
+            }
+        }
+
+        upgrade_mod_savepoint(true, 2026111201, 'listgrades');
+    }
+
     return true;
 }

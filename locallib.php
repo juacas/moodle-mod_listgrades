@@ -34,6 +34,49 @@ define('LISTGRADES_DISPLAY_INDIVIDUAL', 'individual');
 define('LISTGRADES_ALLOWED_BOTH', 'both');
 
 /**
+ * Expand the placeholders available in the default intro and footer templates.
+ *
+ * Unknown placeholders are intentionally preserved so that templates can be
+ * extended without losing their source when loaded in the activity form.
+ *
+ * @param string $template template configured by the site administrator
+ * @param stdClass $course course record
+ * @return string expanded template
+ */
+function listgrades_expand_course_template(string $template, stdClass $course): string {
+    global $OUTPUT;
+
+    $context = context_course::instance($course->id);
+    $logourl = $OUTPUT->get_logo_url();
+    $logourl = $logourl ? $logourl->out() : '';
+    $compactlogourl = $OUTPUT->get_compact_logo_url();
+    $compactlogourl = $compactlogourl ? $compactlogourl->out() : '';
+    $courseurl = new moodle_url('/course/view.php', ['id' => $course->id]);
+    $courseimage = \core_course\external\course_summary_exporter::get_course_image($course);
+    if (!$courseimage) {
+        $courseimage = $OUTPUT->get_generated_url_for_course($context);
+    }
+    $coursesummary = format_text($course->summary, $course->summaryformat, ['context' => $context]);
+
+    $values = [
+        'logourl' => $logourl,
+        'logocompacturl' => $compactlogourl,
+        'coursefullname' => format_string($course->fullname, true, ['context' => $context]),
+        'courseshortname' => format_string($course->shortname, true, ['context' => $context]),
+        'courseidnumber' => s($course->idnumber),
+        'courseurl' => $courseurl->out(),
+        'courseimage' => $courseimage,
+        'coursesummary' => $coursesummary,
+    ];
+    $replacements = [];
+    foreach ($values as $identifier => $value) {
+        $replacements['{' . $identifier . '}'] = $value;
+    }
+
+    return strtr($template, $replacements);
+}
+
+/**
  * Resolve the activity display mode according to the site-wide policy.
  *
  * @param string|null $activitymode mode stored in the activity

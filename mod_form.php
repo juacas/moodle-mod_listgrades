@@ -36,6 +36,7 @@ class mod_listgrades_mod_form extends moodleform_mod {
         $mform = $this->_form;
 
         $config = get_config('listgrades');
+        $course = $DB->get_record('course', ['id' => $this->current->course], '*', MUST_EXIST);
 
         $mform->addElement('header', 'general', get_string('general', 'form'));
         $mform->addElement('text', 'name', get_string('name'), ['size' => '48']);
@@ -47,16 +48,15 @@ class mod_listgrades_mod_form extends moodleform_mod {
         $mform->addRule('name', null, 'required', null, 'client');
         $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
 
-        $defaultintro = isset($config->defaultintro) ? $config->defaultintro : '';
-        $mform->setDefault('introeditor', ['text' => $defaultintro]); // Doesn't work!
-
         $this->standard_intro_elements();
+        $defaultintro = listgrades_expand_course_template($config->defaultintro ?? '', $course);
+        $mform->setDefault('introeditor', ['text' => $defaultintro, 'format' => FORMAT_HTML]);
 
         $mform->addElement('header', 'signaturesection', get_string('footerheader', 'listgrades'));
         $mform->addElement('editor', 'signature', get_string('footer', 'listgrades'), null,
                             listgrades_get_editor_options($this->context));
-        $defaultfooter = isset($config->defaultfooter) ? $config->defaultfooter : '';
-        $mform->setDefault('signature', ['text' => $defaultfooter]); // Need an array, really Moodle?
+        $defaultfooter = listgrades_expand_course_template($config->defaultfooter ?? '', $course);
+        $mform->setDefault('signature', ['text' => $defaultfooter, 'format' => FORMAT_HTML]);
         $mform->addRule('signature', get_string('required'), 'required', null, 'client');
 
         // Get Grade items from the course and create a multi-select box.
@@ -116,6 +116,8 @@ class mod_listgrades_mod_form extends moodleform_mod {
      * @return void
      **/
     public function data_preprocessing(&$defaultvalues) {
+        global $DB;
+
         if ($this->current->instance) {
             $draftitemid = file_get_submitted_draft_itemid('signature');
             $defaultvalues['signature']['format'] = $defaultvalues['footerformat'];
@@ -128,12 +130,21 @@ class mod_listgrades_mod_form extends moodleform_mod {
             $gradeitems = (array) unserialize($defaultvalues['items']);
             $defaultvalues['items'] = array_keys($gradeitems);
         }
-        // Simulate default intro.
-        if (!empty($defaultvalues['introeditor']) && $defaultvalues['introeditor']['text'] == '') {
+        // Populate both editors for a new activity, expanding the course placeholders
+        // while leaving the globally configured templates untouched.
+        if (!$this->current->instance) {
             $config = get_config('listgrades');
-            $defaultintro = isset($config->defaultintro) ? $config->defaultintro : '';
-            $defaultvalues['introeditor']['text'] = $defaultintro;
+            $course = $DB->get_record('course', ['id' => $this->current->course], '*', MUST_EXIST);
+            $defaultvalues['introeditor']['text'] = listgrades_expand_course_template(
+                $config->defaultintro ?? '',
+                $course
+            );
             $defaultvalues['introeditor']['format'] = FORMAT_HTML;
+            $defaultvalues['signature']['text'] = listgrades_expand_course_template(
+                $config->defaultfooter ?? '',
+                $course
+            );
+            $defaultvalues['signature']['format'] = FORMAT_HTML;
         }
     }
 }

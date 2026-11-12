@@ -31,13 +31,13 @@ $string['closedate_help'] = 'The date and time when the listing will be closed.'
 
 $string['configdisplayoptions'] = 'Select all options that should be available, existing settings are not modified. Hold CTRL key to select multiple fields.';
 $string['defaultfooter'] = 'Default text footer';
-$string['defaultfooter_help'] = 'Default text footer that will be displayed in the listing.';
-$string['defaultfootertext'] = '<p><img class="img-fluid align-bottom" style="margin: 10px;" role="presentation" src="{$a->logocompacturl}" alt="" width="64" height="64" align="left">This publication is made for informational purposes in exercise of missions of public interest provided for in the Organic Law of the University System (LOSU). Its use by the student for other purposes, and in particular its alteration, manipulation or improper distribution in social networks or other public media may generate legal liability.</p>';
-$string['defaultintrotext'] = '<table border="0" width="100%"><tbody><tr><td><h3><img role="presentation" src="{$a->logourl}" alt="" width="121" height="78"></h3></td>
+$string['defaultfooter_help'] = 'Default text footer that will be displayed in the listing. Available placeholders: <code>{logourl}</code>, <code>{logocompacturl}</code>, <code>{coursefullname}</code>, <code>{courseshortname}</code>, <code>{courseidnumber}</code>, <code>{courseurl}</code>, <code>{courseimage}</code> and <code>{coursesummary}</code>.';
+$string['defaultfootertext'] = '<p><img class="img-fluid align-bottom" style="margin: 10px;" role="presentation" src="{logocompacturl}" alt="" width="64" height="64" align="left">This publication is made for informational purposes in exercise of missions of public interest provided for in the Organic Law of the University System (LOSU). Its use by the student for other purposes, and in particular its alteration, manipulation or improper distribution in social networks or other public media may generate legal liability.</p>';
+$string['defaultintrotext'] = '<table border="0" width="100%"><tbody><tr><td><h3><img role="presentation" src="{logourl}" alt="" width="121" height="78"></h3></td>
 <td><h3>GRADE LISTING</h3><p>Call: 1st</p>
 </td></tr></tbody></table>';
 $string['defaultintro'] = 'Default text introduction';
-$string['defaultintro_help'] = 'Default text introduction that will be displayed in the listing.';
+$string['defaultintro_help'] = 'Default text introduction that will be displayed in the listing. Available placeholders: <code>{logourl}</code>, <code>{logocompacturl}</code>, <code>{coursefullname}</code>, <code>{courseshortname}</code>, <code>{courseidnumber}</code>, <code>{courseurl}</code>, <code>{courseimage}</code> and <code>{coursesummary}</code>.';
 $string['defaultdisplaymode'] = 'Default grade list format';
 $string['defaultdisplaymode_help'] = 'Page format selected by default when both formats are allowed.';
 $string['displaymode'] = 'Page format';
