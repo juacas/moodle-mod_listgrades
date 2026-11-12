@@ -14,7 +14,7 @@ Feature: Configure listgrades appearance
 
   @javascript
   Scenario Outline: Hide and display listgrades features
-    Given I am on the "PageName1" "listgrades activity editing" listgrades logged in as admin
+    Given I am on the "PageName1" "listgrades activity editing" page logged in as admin
     And I expand all fieldsets
     And I set the field "<feature>" to "<value>"
     And I press "Save and display"

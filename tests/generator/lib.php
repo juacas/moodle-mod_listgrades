@@ -42,6 +42,7 @@ class mod_listgrades_generator extends testing_module_generator {
     public function create_instance($record = null, array $options = null) {
         global $CFG;
         require_once($CFG->dirroot . '/lib/resourcelib.php');
+        require_once($CFG->dirroot . '/mod/listgrades/locallib.php');
 
         $record = (object)(array)$record;
 
