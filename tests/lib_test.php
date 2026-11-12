@@ -25,6 +25,8 @@
  */
 namespace mod_listgrades;
 
+// PHPUnit 11 attributes are not recognised by older releases of the Moodle coverage sniff.
+// phpcs:disable moodle.PHPUnit.TestCaseCovers.Missing
 /**
  * Unit tests for mod_listgrades lib
  *
@@ -423,3 +425,4 @@ final class lib_test extends \advanced_testcase {
         return \calendar_event::create($event);
     }
 }
+// phpcs:enable moodle.PHPUnit.TestCaseCovers.Missing

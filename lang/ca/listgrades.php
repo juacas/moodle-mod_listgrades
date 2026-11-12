@@ -17,8 +17,7 @@
 /**
  * Strings for component 'listgrades', language 'ca', branch 'MOODLE_20_STABLE'
  *
- * @package    mod
- * @subpackage listgrades
+ * @package    mod_listgrades
  * @copyright  2023 Juan Pablo de Castro <juanpablo.decastro@uva.es>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */

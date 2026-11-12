@@ -16,6 +16,8 @@
 
 namespace mod_listgrades;
 
+// PHPUnit 11 attributes are not recognised by older releases of the Moodle coverage sniff.
+// phpcs:disable moodle.PHPUnit.TestCaseCovers.Missing
 /**
  * PHPUnit data generator testcase
  *
@@ -56,3 +58,4 @@ final class generator_test extends \advanced_testcase {
         $this->assertEquals($page->cmid, $context->instanceid);
     }
 }
+// phpcs:enable moodle.PHPUnit.TestCaseCovers.Missing
