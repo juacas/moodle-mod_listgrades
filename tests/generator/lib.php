@@ -39,7 +39,7 @@ class mod_listgrades_generator extends testing_module_generator {
      * @param array|null $options generator options
      * @return stdClass
      */
-    public function create_instance($record = null, array $options = null) {
+    public function create_instance($record = null, ?array $options = null) {
         global $CFG;
         require_once($CFG->dirroot . '/lib/resourcelib.php');
         require_once($CFG->dirroot . '/mod/listgrades/locallib.php');
