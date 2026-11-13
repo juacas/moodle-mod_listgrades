@@ -12,7 +12,6 @@ Feature: Configure listgrades appearance
       | activity       | name       | intro      | course | idnumber |
       | listgrades     | PageName1  | PageDesc1  | C1     | PAGE1    |
 
-  @javascript
   Scenario Outline: Hide and display listgrades features
     Given I am on the "PageName1" "listgrades activity editing" page logged in as admin
     And I expand all fieldsets
@@ -22,5 +21,5 @@ Feature: Configure listgrades appearance
 
     Examples:
       | feature                          | lookfor        | value | shouldornot |
-      | Display listgrades description   | PageDesc1      | 1     | should      |
-      | Display listgrades description   | PageDesc1      | 0     | should not  |
+      | showdescription                  | PageDesc1      | 1     | should      |
+      | showdescription                  | PageDesc1      | 0     | should not  |

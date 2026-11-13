@@ -47,10 +47,8 @@ listgrades_view($listgrades, $course, $cm, $context);
 
 $PAGE->set_url('/mod/listgrades/view.php', ['id' => $cm->id]);
 
-$options = empty($listgrades->displayoptions) ? [] : (array) unserialize_array($listgrades->displayoptions);
-
 $activityheader = ['hidecompletion' => false];
-if (empty($options['printintro'])) {
+if (empty($cm->showdescription)) {
     $activityheader['description'] = '';
 }
 
@@ -116,7 +114,7 @@ if ($isopen || has_capability('moodle/course:manageactivities', $context)) {
         $headers[] = $headertext;
     }
 
-    $grades = $grader->get_grades();
+    $grades = $grader->get_grades() ?? [];
     // Get users to be graded.
     $users = $grader->get_users();
     $canviewallgrades = has_capability('moodle/grade:viewall', context_course::instance($course->id));
@@ -154,11 +152,6 @@ if ($isopen || has_capability('moodle/course:manageactivities', $context)) {
     if ($selectors) {
         echo html_writer::div(implode('', $selectors), 'd-flex flex-wrap align-items-end gap-3 mb-3');
     }
-
-    // Print intro text.
-    echo $OUTPUT->box_start('generalbox center clearfix');
-    echo format_module_intro('listgrades', $listgrades, $cm->id);
-    echo $OUTPUT->box_end();
 
     $displaymode = listgrades_resolve_display_mode(
         $listgrades->displaymode ?? null,
