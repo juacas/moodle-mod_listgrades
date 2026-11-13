@@ -64,7 +64,6 @@ class restore_listgrades_activity_structure_step extends restore_activity_struct
         $gradeitems = [];
         $dataitems = unserialize($data->items);
         $itemids = array_keys($dataitems);
-        // TODO: Check if the grade items exist in the course.
         $gradetreeroot = new grade_tree($this->get_courseid());
         $candidateitems = $gradetreeroot->get_items();
 

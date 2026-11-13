@@ -10,6 +10,8 @@ The **Moodle Privacy-Friendly Grade Publishing Plugin** allows teachers to publi
 
 - **Granular Control:** Teachers can choose which grades to publish, offering fine-grained control over the information shared with students.
 
+- **Feedback-Only Rows:** Selecting feedback without its corresponding grade displays only the feedback in the individual report and does not include that grade in the statistics.
+
 - **Group Support:** Grade distributions and listings respect the activity group selection.
 
 ### 2. Publication Modes
@@ -29,6 +31,11 @@ Statistics can be enabled independently of the publication mode and therefore di
 - **Text Scales:** Scale items use a horizontal stacked distribution with totals and percentages for each scale value.
 
 - **Current User Marker:** The user's position is highlighted in the boxplot, histogram and scale distribution with a circular marker containing their profile picture. When a teacher without a grade previews the activity, an illustrative random marker is generated without storing or changing any grade.
+
+- **Privacy Conditions:** Administrators can enforce the safeguards summarised in Spanish Royal Decree 855/2026. When enabled, aggregated statistics are hidden for grade items with five or fewer assessed students and whenever every grade is below the configured passing grade. Pass totals and percentages are not exposed for unanimous results, and distributions are hidden when every assessed student belongs to the same grade band.
+
+- **Silent Student View:** Privacy-restricted statistical blocks are omitted without explanation for students. Teachers always retain the charts and see a prominent red warning explaining why the complete block is hidden from students.
+- **Empty Grade Items:** Items without grades are identified for teachers, but their statistical blocks are completely omitted for students.
 
 ### 4. Privacy Masking
 
@@ -68,6 +75,8 @@ Statistics can be enabled independently of the publication mode and therefore di
 - When both formats are allowed, choose the default format for new activities.
 
 - Customize privacy masking options, such as ID replacement patterns and masking algorithms.
+
+- Enable or disable the privacy conditions applied to aggregated grade statistics.
 
 - Define default settings for new instances.
 

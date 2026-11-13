@@ -240,6 +240,25 @@ function listgrades_get_selected_gradeitem_ids(array $selecteditems): array {
 }
 
 /**
+ * Return only explicitly selected grade item ids.
+ *
+ * Negative ids select feedback and must not expose the corresponding grade.
+ *
+ * @param array $selecteditems selected ids
+ * @return array positive grade item ids
+ */
+function listgrades_get_selected_grade_ids(array $selecteditems): array {
+    $gradeids = [];
+    foreach ($selecteditems as $itemid) {
+        $itemid = (int) $itemid;
+        if ($itemid > 0 && !in_array($itemid, $gradeids, true)) {
+            $gradeids[] = $itemid;
+        }
+    }
+    return $gradeids;
+}
+
+/**
  * Calculate a percentile using linear interpolation between adjacent values.
  *
  * @param array $values numeric values
@@ -329,16 +348,22 @@ function listgrades_render_individual_table(
     context $context,
     stdClass $user
 ): string {
+    $showgrade = [];
     $showfeedback = [];
     foreach ($selecteditems as $itemid) {
         if ($itemid < 0) {
             $showfeedback[abs($itemid)] = true;
+        } else if ($itemid > 0) {
+            $showgrade[$itemid] = true;
         }
     }
 
     $table = new html_table();
     $table->attributes['class'] = 'generaltable listgrades-individual-table';
-    $table->head = [get_string('gradeitem', 'listgrades'), get_string('grade', 'listgrades')];
+    $table->head = [get_string('gradeitem', 'listgrades')];
+    if ($showgrade) {
+        $table->head[] = get_string('grade', 'listgrades');
+    }
     if ($showfeedback) {
         $table->head[] = get_string('feedback', 'listgrades');
     }
@@ -352,10 +377,13 @@ function listgrades_render_individual_table(
         $item = $gradeitems[$itemid];
         $grade = $usergrades[$itemid] ?? null;
         $finalgrade = $grade ? $grade->finalgrade : null;
-        $row = [
-            format_string($itemnames[$itemid]),
-            listgrades_format_grade_with_reference($finalgrade === null ? null : (float) $finalgrade, $item),
-        ];
+        $row = [format_string($itemnames[$itemid])];
+
+        if ($showgrade) {
+            $row[] = !empty($showgrade[$itemid])
+                ? listgrades_format_grade_with_reference($finalgrade === null ? null : (float) $finalgrade, $item)
+                : '';
+        }
 
         if ($showfeedback) {
             if (!empty($showfeedback[$itemid]) && $grade && $grade->feedback !== null && $grade->feedback !== '') {
@@ -819,6 +847,68 @@ function listgrades_render_scale_chart(
 }
 
 /**
+ * Decide whether aggregate statistics may be published for an item.
+ *
+ * An item without grades is left to the normal empty-statistics handling. When
+ * privacy conditions are enabled, aggregates require more than five grades.
+ *
+ * @param int $gradecount number of students with a grade
+ * @param bool $privacyconditions whether the site privacy conditions are enabled
+ * @return bool
+ */
+function listgrades_privacy_allows_aggregates(int $gradecount, bool $privacyconditions): bool {
+    return !$privacyconditions || $gradecount === 0 || $gradecount > 5;
+}
+
+/**
+ * Decide whether a distribution across grade bands may be published.
+ *
+ * @param array $counts number of grades in each band
+ * @param bool $privacyconditions whether the site privacy conditions are enabled
+ * @return bool
+ */
+function listgrades_privacy_allows_distribution(array $counts, bool $privacyconditions): bool {
+    if (!$privacyconditions) {
+        return true;
+    }
+    $populatedbands = array_filter($counts, static fn($count): bool => (int) $count > 0);
+    return count($populatedbands) > 1;
+}
+
+/**
+ * Decide whether numeric statistics may be published when a passing grade exists.
+ *
+ * @param array $values numeric grades
+ * @param float|null $gradepass passing grade, or null when it is not configured
+ * @param bool $privacyconditions whether the site privacy conditions are enabled
+ * @return bool
+ */
+function listgrades_privacy_allows_numeric_statistics(
+    array $values,
+    ?float $gradepass,
+    bool $privacyconditions
+): bool {
+    if (!$privacyconditions || !$values || $gradepass === null) {
+        return true;
+    }
+    foreach ($values as $value) {
+        if ((float) $value >= $gradepass) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Return whether the site has explicitly enabled the privacy conditions.
+ *
+ * @return bool
+ */
+function listgrades_privacy_conditions_enabled(): bool {
+    return (bool) get_config('listgrades', 'privacyconditions');
+}
+
+/**
  * Render statistics for all selected grade items.
  *
  * @param array $selecteditems selected ids
@@ -828,7 +918,7 @@ function listgrades_render_scale_chart(
  * @param array $statuserids user ids included in the statistics
  * @param stdClass $user current user
  * @param int $courseid course id
- * @param bool $previewmissinggrades show an illustrative marker for an ungraded teacher
+ * @param bool $teacherpreview show teacher previews and privacy explanations
  * @return string
  */
 function listgrades_render_statistics(
@@ -839,12 +929,14 @@ function listgrades_render_statistics(
     array $statuserids,
     stdClass $user,
     int $courseid,
-    bool $previewmissinggrades = false
+    bool $teacherpreview = false
 ): string {
     global $OUTPUT;
 
+    $privacyconditions = listgrades_privacy_conditions_enabled();
     $charts = '';
-    foreach (listgrades_get_selected_gradeitem_ids($selecteditems) as $itemid) {
+    $privacyrestricted = false;
+    foreach (listgrades_get_selected_grade_ids($selecteditems) as $itemid) {
         if (!isset($gradeitems[$itemid])) {
             continue;
         }
@@ -859,9 +951,46 @@ function listgrades_render_statistics(
         $usergrade = $grades[$user->id][$itemid]->finalgrade ?? null;
         $usergrade = $usergrade === null ? null : (float) $usergrade;
 
-        $illustrative = $previewmissinggrades && $usergrade === null && !empty($values);
+        $illustrative = $teacherpreview && $usergrade === null && !empty($values);
         $itemcharts = '';
+        $privacyreason = null;
+        if (!$values) {
+            if (!$teacherpreview) {
+                $privacyrestricted = true;
+                continue;
+            }
+            $heading = html_writer::tag('h4', format_string($itemnames[$itemid]), ['class' => 'h5']);
+            $emptygrades = $OUTPUT->notification(get_string('itemnogrades', 'listgrades'), 'info');
+            $charts .= html_writer::div($heading . $emptygrades, 'listgrades-stat-item');
+            continue;
+        }
+        if (!listgrades_privacy_allows_aggregates(count($values), $privacyconditions)) {
+            $privacyreason = 'privacyaggregateshidden';
+        }
+
         if ($item->gradetype == GRADE_TYPE_SCALE) {
+            $scalecounts = [];
+            foreach ($values as $value) {
+                $scaleindex = (int) round($item->bounded_grade($value));
+                $scalecounts[$scaleindex] = ($scalecounts[$scaleindex] ?? 0) + 1;
+            }
+            if (
+                $privacyreason === null &&
+                !listgrades_privacy_allows_distribution($scalecounts, $privacyconditions)
+            ) {
+                $privacyreason = 'privacydistributionhidden';
+            }
+            if ($privacyreason !== null) {
+                $privacyrestricted = true;
+                if (!$teacherpreview) {
+                    continue;
+                }
+                $itemcharts .= $OUTPUT->notification(
+                    get_string($privacyreason, 'listgrades') . ' ' .
+                        get_string('privacyteachernotice', 'listgrades'),
+                    \core\output\notification::NOTIFY_ERROR
+                );
+            }
             if ($illustrative) {
                 $usergrade = (float) $values[array_rand($values)];
             }
@@ -874,6 +1003,39 @@ function listgrades_render_statistics(
                 $illustrative
             );
         } else if ($item->gradetype == GRADE_TYPE_VALUE) {
+            $gradepass = empty($item->gradepass) ? null : (float) $item->gradepass;
+            if (
+                $privacyreason === null &&
+                !listgrades_privacy_allows_numeric_statistics($values, $gradepass, $privacyconditions)
+            ) {
+                $privacyreason = 'privacyallfailedhidden';
+            }
+            $histogrambins = listgrades_build_histogram(
+                $values,
+                $gradepass,
+                (float) $item->grademin,
+                (float) $item->grademax
+            );
+            if (
+                $privacyreason === null &&
+                !listgrades_privacy_allows_distribution(
+                    array_column($histogrambins, 'count'),
+                    $privacyconditions
+                )
+            ) {
+                $privacyreason = 'privacydistributionhidden';
+            }
+            if ($privacyreason !== null) {
+                $privacyrestricted = true;
+                if (!$teacherpreview) {
+                    continue;
+                }
+                $itemcharts .= $OUTPUT->notification(
+                    get_string($privacyreason, 'listgrades') . ' ' .
+                        get_string('privacyteachernotice', 'listgrades'),
+                    \core\output\notification::NOTIFY_ERROR
+                );
+            }
             if ($illustrative) {
                 $usergrade = listgrades_random_preview_grade($values, $item->get_decimals());
             }
@@ -901,6 +1063,9 @@ function listgrades_render_statistics(
     }
 
     if ($charts === '') {
+        if ($privacyrestricted && !$teacherpreview) {
+            return '';
+        }
         return $OUTPUT->notification(get_string('nostatistics', 'listgrades'), 'info');
     }
     return html_writer::tag('h3', get_string('statistics', 'listgrades')) . $charts;

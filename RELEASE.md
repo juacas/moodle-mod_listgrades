@@ -15,10 +15,15 @@
 - Text scales are represented by a horizontal distribution with totals and percentages.
 - The student's position is highlighted in every chart with a marker containing their profile picture.
 - Teachers can preview statistical markers even when they do not have a grade of their own.
+- Administrators can protect small or uniform cohorts by enabling privacy conditions for aggregated statistics.
+- Statistical charts are hidden when every student is below the configured passing grade.
+- Grade items without grades remain visible to teachers with a clear empty-state message and are omitted for students.
+- Privacy-restricted blocks are silently omitted for students, while teachers retain the charts with a prominent warning explaining the restriction.
 
 ## Publication settings
 
 - Administrators can allow the Listing format, the Individual format, or both.
 - When both formats are available, a default format can be selected for new activities.
 - Each publication can select grade items, feedback, and whether statistics are displayed.
+- Feedback can be published without revealing its corresponding grade.
 - Default templates can be personalised with course information and institutional branding.

@@ -67,6 +67,13 @@ if ($ADMIN->fulltree) {
         LISTGRADES_ALLOWED_BOTH
     );
 
+    $settings->add(new admin_setting_configcheckbox(
+        'listgrades/privacyconditions',
+        get_string('privacyconditions', 'listgrades'),
+        get_string('privacyconditions_help', 'listgrades'),
+        1
+    ));
+
     // Show the username in listing.
     $settings->add(new admin_setting_configcheckbox(
         'listgrades/showusername',

@@ -60,6 +60,47 @@ final class lib_test extends \advanced_testcase {
      */
     public function test_get_selected_gradeitem_ids(): void {
         $this->assertSame([8, 3, 5], listgrades_get_selected_gradeitem_ids([-8, 3, 8, -3, 5]));
+        $this->assertSame([3, 8, 5], listgrades_get_selected_grade_ids([-8, 3, 8, -3, 5, 8]));
+    }
+
+    /**
+     * Feedback-only selections do not expose the corresponding grade.
+     */
+    public function test_individual_feedback_without_grade(): void {
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        $user = $this->getDataGenerator()->create_user();
+        $item = new \grade_item();
+        $item->courseid = $course->id;
+        $item->itemtype = 'manual';
+        $item->itemname = 'Feedback-only item';
+        $item->gradetype = GRADE_TYPE_VALUE;
+        $item->grademin = 0;
+        $item->grademax = 100;
+        $item->insert();
+
+        $grade = (object) [
+            'finalgrade' => 72.0,
+            'feedback' => 'Private feedback text',
+            'feedbackformat' => FORMAT_PLAIN,
+        ];
+        $context = \context_course::instance($course->id);
+        $arguments = [
+            [$item->id => $item],
+            [$item->id => $item->itemname],
+            [$item->id => $grade],
+            $context,
+            $user,
+        ];
+
+        $feedbackonly = listgrades_render_individual_table([-($item->id)], ...$arguments);
+        $this->assertStringContainsString('Private feedback text', $feedbackonly);
+        $this->assertStringNotContainsString('72/100', $feedbackonly);
+        $this->assertStringNotContainsString('>' . get_string('grade', 'listgrades') . '<', $feedbackonly);
+
+        $gradeandfeedback = listgrades_render_individual_table([$item->id, -($item->id)], ...$arguments);
+        $this->assertStringContainsString('Private feedback text', $gradeandfeedback);
+        $this->assertStringContainsString('72/100', $gradeandfeedback);
     }
 
     /**
@@ -233,6 +274,166 @@ final class lib_test extends \advanced_testcase {
         $this->assertSame(0.0, $configuredrange[0]['lower']);
         $this->assertSame(100.0, $configuredrange[array_key_last($configuredrange)]['upper']);
         $this->assertSame(2, array_sum(array_column($configuredrange, 'count')));
+    }
+
+    /**
+     * Privacy conditions require a minimum cohort and more than one populated grade band.
+     */
+    public function test_privacy_conditions(): void {
+        $this->resetAfterTest();
+        unset_config('privacyconditions', 'listgrades');
+        $this->assertFalse(listgrades_privacy_conditions_enabled());
+        set_config('privacyconditions', 0, 'listgrades');
+        $this->assertFalse(listgrades_privacy_conditions_enabled());
+        set_config('privacyconditions', 1, 'listgrades');
+        $this->assertTrue(listgrades_privacy_conditions_enabled());
+
+        $this->assertFalse(listgrades_privacy_allows_aggregates(5, true));
+        $this->assertTrue(listgrades_privacy_allows_aggregates(6, true));
+        $this->assertTrue(listgrades_privacy_allows_aggregates(3, false));
+        $this->assertTrue(listgrades_privacy_allows_aggregates(0, true));
+
+        $this->assertFalse(listgrades_privacy_allows_distribution([0, 6, 0], true));
+        $this->assertTrue(listgrades_privacy_allows_distribution([1, 5, 0], true));
+        $this->assertTrue(listgrades_privacy_allows_distribution([0, 6, 0], false));
+
+        $this->assertFalse(listgrades_privacy_allows_numeric_statistics([0, 0, 0, 0, 0, 0], 5, true));
+        $this->assertTrue(listgrades_privacy_allows_numeric_statistics([0, 0, 5], 5, true));
+        $this->assertTrue(listgrades_privacy_allows_numeric_statistics([0, 0, 0], 5, false));
+        $this->assertTrue(listgrades_privacy_allows_numeric_statistics([0, 0, 0], null, true));
+    }
+
+    /**
+     * Privacy explanations are visible to teachers and completely omitted for students.
+     */
+    public function test_privacy_explanations_are_teacher_only(): void {
+        $this->resetAfterTest();
+        set_config('privacyconditions', 1, 'listgrades');
+        $course = $this->getDataGenerator()->create_course();
+        $student = $this->getDataGenerator()->create_user();
+        $item = new \grade_item();
+        $item->courseid = $course->id;
+        $item->itemtype = 'manual';
+        $item->itemname = 'All failed item';
+        $item->gradetype = GRADE_TYPE_VALUE;
+        $item->grademin = 0;
+        $item->grademax = 10;
+        $item->gradepass = 5;
+        $item->insert();
+
+        $grades = [];
+        $studentids = [];
+        for ($index = 0; $index < 6; $index++) {
+            $userid = $index === 0 ? $student->id : $this->getDataGenerator()->create_user()->id;
+            $studentids[] = $userid;
+            $grades[$userid][$item->id] = (object) ['finalgrade' => 0.0];
+        }
+        $arguments = [
+            [$item->id],
+            [$item->id => $item],
+            [$item->id => $item->itemname],
+            $grades,
+            $studentids,
+            $student,
+            $course->id,
+        ];
+
+        $this->assertSame('', listgrades_render_statistics(...[...$arguments, false]));
+
+        $teacheroutput = listgrades_render_statistics(...[...$arguments, true]);
+        $this->assertStringContainsString(get_string('privacyallfailedhidden', 'listgrades'), $teacheroutput);
+        $this->assertStringContainsString(get_string('privacyteachernotice', 'listgrades'), $teacheroutput);
+        $this->assertStringContainsString('listgrades-boxplot', $teacheroutput);
+        $this->assertStringContainsString('listgrades-histogram', $teacheroutput);
+
+        set_config('privacyconditions', 0, 'listgrades');
+        $unrestrictedoutput = listgrades_render_statistics(...[...$arguments, false]);
+        $this->assertStringContainsString('listgrades-boxplot', $unrestrictedoutput);
+        $this->assertStringContainsString('listgrades-histogram', $unrestrictedoutput);
+    }
+
+    /**
+     * Numeric charts are completely hidden when every grade belongs to the same histogram band.
+     */
+    public function test_numeric_charts_are_hidden_for_a_single_populated_band(): void {
+        $this->resetAfterTest();
+        set_config('privacyconditions', 1, 'listgrades');
+        $course = $this->getDataGenerator()->create_course();
+        $student = $this->getDataGenerator()->create_user();
+        $item = new \grade_item();
+        $item->courseid = $course->id;
+        $item->itemtype = 'manual';
+        $item->itemname = 'Single band item';
+        $item->gradetype = GRADE_TYPE_VALUE;
+        $item->grademin = 0;
+        $item->grademax = 100;
+        $item->gradepass = 0;
+        $item->insert();
+
+        $grades = [];
+        $studentids = [];
+        for ($index = 0; $index < 6; $index++) {
+            $userid = $index === 0 ? $student->id : $this->getDataGenerator()->create_user()->id;
+            $studentids[] = $userid;
+            $grades[$userid][$item->id] = (object) ['finalgrade' => 0.0];
+        }
+        $arguments = [
+            [$item->id],
+            [$item->id => $item],
+            [$item->id => $item->itemname],
+            $grades,
+            $studentids,
+            $student,
+            $course->id,
+        ];
+
+        $this->assertSame('', listgrades_render_statistics(...[...$arguments, false]));
+        $teacheroutput = listgrades_render_statistics(...[...$arguments, true]);
+        $this->assertStringContainsString(get_string('privacydistributionhidden', 'listgrades'), $teacheroutput);
+        $this->assertStringContainsString('listgrades-boxplot', $teacheroutput);
+        $this->assertStringContainsString('listgrades-histogram', $teacheroutput);
+    }
+
+    /**
+     * Grade items without grades remain visible and are not treated as privacy restrictions.
+     */
+    public function test_statistics_show_items_without_grades(): void {
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        $teacher = $this->getDataGenerator()->create_user();
+        $item = new \grade_item();
+        $item->courseid = $course->id;
+        $item->itemtype = 'manual';
+        $item->itemname = 'Empty grade item';
+        $item->gradetype = GRADE_TYPE_VALUE;
+        $item->grademin = 0;
+        $item->grademax = 100;
+        $item->insert();
+        $arguments = [
+            [$item->id],
+            [$item->id => $item],
+            [$item->id => $item->itemname],
+            [],
+            [],
+            $teacher,
+            $course->id,
+            true,
+        ];
+
+        set_config('privacyconditions', 0, 'listgrades');
+        $unrestrictedoutput = listgrades_render_statistics(...$arguments);
+        $this->assertStringContainsString($item->itemname, $unrestrictedoutput);
+        $this->assertStringContainsString(get_string('itemnogrades', 'listgrades'), $unrestrictedoutput);
+        $studentarguments = [...$arguments];
+        $studentarguments[7] = false;
+        $this->assertSame('', listgrades_render_statistics(...$studentarguments));
+
+        set_config('privacyconditions', 1, 'listgrades');
+        $restrictedoutput = listgrades_render_statistics(...$arguments);
+        $this->assertStringContainsString($item->itemname, $restrictedoutput);
+        $this->assertStringContainsString(get_string('itemnogrades', 'listgrades'), $restrictedoutput);
+        $this->assertStringNotContainsString(get_string('privacydistributionhidden', 'listgrades'), $restrictedoutput);
+        $this->assertSame('', listgrades_render_statistics(...$studentarguments));
     }
 
     /**
