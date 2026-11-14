@@ -23,8 +23,6 @@
  */
 namespace mod_listgrades\privacy;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * The mod_listgrades module does not store any data.
  *
@@ -38,7 +36,7 @@ class provider implements \core_privacy\local\metadata\null_provider {
      *
      * @return  string
      */
-    public static function get_reason() : string {
+    public static function get_reason(): string {
         return 'privacy:metadata';
     }
 }

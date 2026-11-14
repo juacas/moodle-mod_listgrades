@@ -27,9 +27,9 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die;
-
+/**
+ * Executes post-installation actions for the plugin.
+ */
 function xmldb_listgrades_install() {
     global $CFG;
-
 }

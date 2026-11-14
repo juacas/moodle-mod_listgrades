@@ -27,7 +27,7 @@ Feature: View activity completion information in the listgrades resource
       | intro          | All of you passed!      |
       | completion     | 2                       |
       | completionview | 1                       |
-    When I am on the "Final grades" "listgrades activity" listgrades logged in as teacher1
+    When I am on the "Final grades" "listgrades activity" page logged in as teacher1
     Then "Final grades" should have the "View" completion condition
 
   Scenario: View automatic completion items as student
@@ -39,7 +39,7 @@ Feature: View activity completion information in the listgrades resource
       | intro          | A lesson learned in life |
       | completion     | 2                        |
       | completionview | 1                        |
-    When I am on the "Final grades" "listgrades activity" listgrades logged in as student1
+    When I am on the "Final grades" "listgrades activity" page logged in as student1
     Then the "View" completion condition of "Final grades" is displayed as "done"
 
   @javascript
@@ -52,7 +52,7 @@ Feature: View activity completion information in the listgrades resource
       | intro      | A lesson learned in life |
       | completion | 1                        |
     # Teacher view.
-    When I am on the "Final grades" "listgrades activity" listgrades logged in as teacher1
+    When I am on the "Final grades" "listgrades activity" page logged in as teacher1
     Then the manual completion button for "Final grades" should be disabled
 
   @javascript
@@ -65,7 +65,7 @@ Feature: View activity completion information in the listgrades resource
       | intro      | A lesson learned in life |
       | completion | 1                        |
     # Teacher view.
-    When I am on the "Final grades" "listgrades activity" listgrades logged in as student1
+    When I am on the "Final grades" "listgrades activity" page logged in as student1
     And I toggle the manual completion state of "Final grades"
     And the manual completion button of "Final grades" is displayed as "Done"
 
@@ -77,7 +77,7 @@ Feature: View activity completion information in the listgrades resource
       | name       | Final grades            |
       | intro      | A lesson learned in life |
       | completion | 1                        |
-    When I am on the "Final grades" "listgrades activity" listgrades logged in as teacher1
+    When I am on the "Final grades" "listgrades activity" page logged in as teacher1
     Then the manual completion button for "Final grades" should not exist
 
   Scenario: The manual completion button will not be shown on the course listgrades if the Show activity completion conditions is set to No as student
@@ -88,5 +88,5 @@ Feature: View activity completion information in the listgrades resource
       | name       | Final grades            |
       | intro      | A lesson learned in life |
       | completion | 1                        |
-    When I am on the "Final grades" "listgrades activity" listgrades logged in as student1
+    When I am on the "Final grades" "listgrades activity" page logged in as student1
     Then the manual completion button for "Final grades" should not exist

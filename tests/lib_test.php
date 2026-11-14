@@ -25,9 +25,8 @@
  */
 namespace mod_listgrades;
 
-defined('MOODLE_INTERNAL') || die();
-
-
+// PHPUnit 11 attributes are not recognised by older releases of the Moodle coverage sniff.
+// phpcs:disable moodle.PHPUnit.TestCaseCovers.Missing
 /**
  * Unit tests for mod_listgrades lib
  *
@@ -37,8 +36,8 @@ defined('MOODLE_INTERNAL') || die();
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @since      Moodle 3.0
  */
-class lib_test extends \advanced_testcase {
-
+#[\PHPUnit\Framework\Attributes\CoversNothing]
+final class lib_test extends \advanced_testcase {
     /**
      * Prepares things before this test case is initialised
      * @return void
@@ -46,22 +45,414 @@ class lib_test extends \advanced_testcase {
     public static function setUpBeforeClass(): void {
         global $CFG;
         require_once($CFG->dirroot . '/mod/listgrades/lib.php');
+        parent::setUpBeforeClass();
+    }
+
+    /**
+     * The activity chooser classifies List grades as an administration tool.
+     */
+    public function test_activity_chooser_purpose(): void {
+        $this->assertSame(MOD_PURPOSE_ADMINISTRATION, listgrades_supports(FEATURE_MOD_PURPOSE));
+    }
+
+    /**
+     * Selected feedback ids are folded into their grade item without changing order.
+     */
+    public function test_get_selected_gradeitem_ids(): void {
+        $this->assertSame([8, 3, 5], listgrades_get_selected_gradeitem_ids([-8, 3, 8, -3, 5]));
+        $this->assertSame([3, 8, 5], listgrades_get_selected_grade_ids([-8, 3, 8, -3, 5, 8]));
+    }
+
+    /**
+     * Feedback-only selections do not expose the corresponding grade.
+     */
+    public function test_individual_feedback_without_grade(): void {
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        $user = $this->getDataGenerator()->create_user();
+        $item = new \grade_item();
+        $item->courseid = $course->id;
+        $item->itemtype = 'manual';
+        $item->itemname = 'Feedback-only item';
+        $item->gradetype = GRADE_TYPE_VALUE;
+        $item->grademin = 0;
+        $item->grademax = 100;
+        $item->insert();
+
+        $grade = (object) [
+            'finalgrade' => 72.0,
+            'feedback' => 'Private feedback text',
+            'feedbackformat' => FORMAT_PLAIN,
+        ];
+        $context = \context_course::instance($course->id);
+        $arguments = [
+            [$item->id => $item],
+            [$item->id => $item->itemname],
+            [$item->id => $grade],
+            $context,
+            $user,
+        ];
+
+        $feedbackonly = listgrades_render_individual_table([-($item->id)], ...$arguments);
+        $this->assertStringContainsString('Private feedback text', $feedbackonly);
+        $this->assertStringNotContainsString('72/100', $feedbackonly);
+        $this->assertStringNotContainsString('>' . get_string('grade', 'listgrades') . '<', $feedbackonly);
+
+        $gradeandfeedback = listgrades_render_individual_table([$item->id, -($item->id)], ...$arguments);
+        $this->assertStringContainsString('Private feedback text', $gradeandfeedback);
+        $this->assertStringContainsString('72/100', $gradeandfeedback);
+    }
+
+    /**
+     * Percentiles use linear interpolation and support empty and single-value sets.
+     */
+    public function test_percentile(): void {
+        $this->assertNull(listgrades_percentile([], .5));
+        $this->assertSame(4.0, listgrades_percentile([4], .25));
+        $this->assertSame(2.5, listgrades_percentile([1, 2, 3, 4], .5));
+        $this->assertSame(1.75, listgrades_percentile([1, 2, 3, 4], .25));
+    }
+
+    /**
+     * Grade positions are clamped to the chart range.
+     */
+    public function test_grade_position(): void {
+        $this->assertSame(50.0, listgrades_grade_position(5, 0, 10));
+        $this->assertSame(0.0, listgrades_grade_position(-1, 0, 10));
+        $this->assertSame(100.0, listgrades_grade_position(11, 0, 10));
+        $this->assertSame(50.0, listgrades_grade_position(5, 5, 5));
+    }
+
+    /**
+     * Chart axes show both ends of the complete item range.
+     */
+    public function test_render_chart_axis(): void {
+        $axis = listgrades_render_chart_axis('0.00', '100.00');
+
+        $this->assertStringContainsString('listgrades-chart-axis-min', $axis);
+        $this->assertStringContainsString('listgrades-chart-axis-max', $axis);
+        $this->assertStringContainsString('0.00', $axis);
+        $this->assertStringContainsString('100.00', $axis);
+    }
+
+    /**
+     * Site policy restricts or defaults the activity display mode.
+     */
+    public function test_resolve_display_mode(): void {
+        $this->assertSame(LISTGRADES_DISPLAY_LIST, listgrades_resolve_display_mode(
+            LISTGRADES_DISPLAY_INDIVIDUAL,
+            LISTGRADES_DISPLAY_LIST
+        ));
+        $this->assertSame(LISTGRADES_DISPLAY_INDIVIDUAL, listgrades_resolve_display_mode(
+            LISTGRADES_DISPLAY_LIST,
+            LISTGRADES_DISPLAY_INDIVIDUAL
+        ));
+        $this->assertSame(LISTGRADES_DISPLAY_LIST, listgrades_resolve_display_mode(
+            LISTGRADES_DISPLAY_LIST,
+            LISTGRADES_ALLOWED_BOTH,
+            LISTGRADES_DISPLAY_INDIVIDUAL
+        ));
+        $this->assertSame(LISTGRADES_DISPLAY_INDIVIDUAL, listgrades_resolve_display_mode(
+            null,
+            LISTGRADES_ALLOWED_BOTH,
+            LISTGRADES_DISPLAY_INDIVIDUAL
+        ));
+    }
+
+    /**
+     * Default content templates expand course data and preserve unknown placeholders.
+     */
+    public function test_expand_course_template(): void {
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course([
+            'fullname' => 'Template full name',
+            'shortname' => 'Template short name',
+            'idnumber' => 'COURSE-42',
+            'summary' => '<p>Template summary</p>',
+            'summaryformat' => FORMAT_HTML,
+        ]);
+        $template = implode('|', [
+            '{logourl}',
+            '{logocompacturl}',
+            '{coursefullname}',
+            '{courseshortname}',
+            '{courseidnumber}',
+            '{courseurl}',
+            '{courseimage}',
+            '{coursesummary}',
+            '{unknown}',
+        ]);
+
+        $expanded = listgrades_expand_course_template($template, $course);
+
+        $this->assertStringNotContainsString('{logourl}', $expanded);
+        $this->assertStringNotContainsString('{logocompacturl}', $expanded);
+        $this->assertStringContainsString('Template full name', $expanded);
+        $this->assertStringContainsString('Template short name', $expanded);
+        $this->assertStringContainsString('COURSE-42', $expanded);
+        $this->assertStringContainsString('/course/view.php?id=' . $course->id, $expanded);
+        $this->assertStringContainsString('/course/generated/course.svg', $expanded);
+        $this->assertStringContainsString('Template summary', $expanded);
+        $this->assertStringContainsString('{unknown}', $expanded);
+    }
+
+    /**
+     * Preview grades stay within the observed range and preserve fixed values.
+     */
+    public function test_random_preview_grade(): void {
+        $this->assertNull(listgrades_random_preview_grade([], 2));
+        $this->assertSame(7.5, listgrades_random_preview_grade([7.5, 7.5], 2));
+
+        $grade = listgrades_random_preview_grade([10, 20], 2);
+        $this->assertGreaterThanOrEqual(10, $grade);
+        $this->assertLessThanOrEqual(20, $grade);
+        $this->assertEquals(round($grade, 2), $grade);
+    }
+
+    /**
+     * Individual grades include their numeric maximum or all textual scale options.
+     */
+    public function test_format_grade_with_reference(): void {
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        grade_set_setting($course->id, 'decimalpoints', 1);
+
+        $numericitem = new \grade_item();
+        $numericitem->courseid = $course->id;
+        $numericitem->itemtype = 'manual';
+        $numericitem->itemname = 'Numeric item';
+        $numericitem->gradetype = GRADE_TYPE_VALUE;
+        $numericitem->grademin = 0;
+        $numericitem->grademax = 100;
+        $numericitem->insert();
+        $numericgrade = listgrades_format_grade_with_reference(72.5, $numericitem);
+        $this->assertStringContainsString('72.5/100', $numericgrade);
+        $this->assertStringContainsString('72/100', listgrades_format_grade_with_reference(72.04, $numericitem));
+
+        $scale = $this->getDataGenerator()->create_scale([
+            'courseid' => $course->id,
+            'scale' => 'Beginning,Developing,Achieved',
+        ]);
+        $scaleitem = new \grade_item();
+        $scaleitem->courseid = $course->id;
+        $scaleitem->itemtype = 'manual';
+        $scaleitem->itemname = 'Scale item';
+        $scaleitem->gradetype = GRADE_TYPE_SCALE;
+        $scaleitem->scaleid = $scale->id;
+        $scaleitem->insert();
+        $scalegrade = listgrades_format_grade_with_reference(2, $scaleitem);
+        $this->assertStringContainsString('Developing', $scalegrade);
+        $this->assertStringContainsString('(Beginning; Developing; Achieved)', $scalegrade);
+    }
+
+    /**
+     * Histogram bins preserve every value and use individual bins for small integer ranges.
+     */
+    public function test_build_histogram(): void {
+        $bins = listgrades_build_histogram([0, 0, 1, 2, 2, 2]);
+        $this->assertCount(3, $bins);
+        $this->assertSame([2, 1, 3], array_column($bins, 'count'));
+        $this->assertEqualsWithDelta(100.0, array_sum(array_column($bins, 'percentage')), .001);
+
+        $singlebin = listgrades_build_histogram([7, 7]);
+        $this->assertCount(1, $singlebin);
+        $this->assertSame(2, $singlebin[0]['count']);
+        $this->assertSame(100.0, $singlebin[0]['percentage']);
+        $this->assertSame([], listgrades_build_histogram([]));
+
+        $widerange = listgrades_build_histogram(range(0, 20));
+        $this->assertLessThanOrEqual(10, count($widerange));
+
+        $passinggradebins = listgrades_build_histogram(range(0, 100, 10), 50);
+        $this->assertLessThanOrEqual(10, count($passinggradebins));
+        $boundaries = array_column($passinggradebins, 'upper');
+        array_pop($boundaries);
+        $closestboundary = min(array_map(static fn(float $boundary): float => abs($boundary - 50), $boundaries));
+        $this->assertEqualsWithDelta(0, $closestboundary, .001);
+
+        $configuredrange = listgrades_build_histogram([40, 60], 50, 0, 100);
+        $this->assertSame(0.0, $configuredrange[0]['lower']);
+        $this->assertSame(100.0, $configuredrange[array_key_last($configuredrange)]['upper']);
+        $this->assertSame(2, array_sum(array_column($configuredrange, 'count')));
+    }
+
+    /**
+     * Privacy conditions require a minimum cohort and more than one populated grade band.
+     */
+    public function test_privacy_conditions(): void {
+        $this->resetAfterTest();
+        unset_config('privacyconditions', 'listgrades');
+        $this->assertFalse(listgrades_privacy_conditions_enabled());
+        set_config('privacyconditions', 0, 'listgrades');
+        $this->assertFalse(listgrades_privacy_conditions_enabled());
+        set_config('privacyconditions', 1, 'listgrades');
+        $this->assertTrue(listgrades_privacy_conditions_enabled());
+
+        $this->assertFalse(listgrades_privacy_allows_aggregates(5, true));
+        $this->assertTrue(listgrades_privacy_allows_aggregates(6, true));
+        $this->assertTrue(listgrades_privacy_allows_aggregates(3, false));
+        $this->assertTrue(listgrades_privacy_allows_aggregates(0, true));
+
+        $this->assertFalse(listgrades_privacy_allows_distribution([0, 6, 0], true));
+        $this->assertTrue(listgrades_privacy_allows_distribution([1, 5, 0], true));
+        $this->assertTrue(listgrades_privacy_allows_distribution([0, 6, 0], false));
+
+        $this->assertFalse(listgrades_privacy_allows_numeric_statistics([0, 0, 0, 0, 0, 0], 5, true));
+        $this->assertTrue(listgrades_privacy_allows_numeric_statistics([0, 0, 5], 5, true));
+        $this->assertTrue(listgrades_privacy_allows_numeric_statistics([0, 0, 0], 5, false));
+        $this->assertTrue(listgrades_privacy_allows_numeric_statistics([0, 0, 0], null, true));
+    }
+
+    /**
+     * Privacy explanations are visible to teachers and completely omitted for students.
+     */
+    public function test_privacy_explanations_are_teacher_only(): void {
+        $this->resetAfterTest();
+        set_config('privacyconditions', 1, 'listgrades');
+        $course = $this->getDataGenerator()->create_course();
+        $student = $this->getDataGenerator()->create_user();
+        $item = new \grade_item();
+        $item->courseid = $course->id;
+        $item->itemtype = 'manual';
+        $item->itemname = 'All failed item';
+        $item->gradetype = GRADE_TYPE_VALUE;
+        $item->grademin = 0;
+        $item->grademax = 10;
+        $item->gradepass = 5;
+        $item->insert();
+
+        $grades = [];
+        $studentids = [];
+        for ($index = 0; $index < 6; $index++) {
+            $userid = $index === 0 ? $student->id : $this->getDataGenerator()->create_user()->id;
+            $studentids[] = $userid;
+            $grades[$userid][$item->id] = (object) ['finalgrade' => 0.0];
+        }
+        $arguments = [
+            [$item->id],
+            [$item->id => $item],
+            [$item->id => $item->itemname],
+            $grades,
+            $studentids,
+            $student,
+            $course->id,
+        ];
+
+        $this->assertSame('', listgrades_render_statistics(...[...$arguments, false]));
+
+        $teacheroutput = listgrades_render_statistics(...[...$arguments, true]);
+        $this->assertStringContainsString(get_string('privacyallfailedhidden', 'listgrades'), $teacheroutput);
+        $this->assertStringContainsString(get_string('privacyteachernotice', 'listgrades'), $teacheroutput);
+        $this->assertStringContainsString('listgrades-boxplot', $teacheroutput);
+        $this->assertStringContainsString('listgrades-histogram', $teacheroutput);
+
+        set_config('privacyconditions', 0, 'listgrades');
+        $unrestrictedoutput = listgrades_render_statistics(...[...$arguments, false]);
+        $this->assertStringContainsString('listgrades-boxplot', $unrestrictedoutput);
+        $this->assertStringContainsString('listgrades-histogram', $unrestrictedoutput);
+    }
+
+    /**
+     * Numeric charts are completely hidden when every grade belongs to the same histogram band.
+     */
+    public function test_numeric_charts_are_hidden_for_a_single_populated_band(): void {
+        $this->resetAfterTest();
+        set_config('privacyconditions', 1, 'listgrades');
+        $course = $this->getDataGenerator()->create_course();
+        $student = $this->getDataGenerator()->create_user();
+        $item = new \grade_item();
+        $item->courseid = $course->id;
+        $item->itemtype = 'manual';
+        $item->itemname = 'Single band item';
+        $item->gradetype = GRADE_TYPE_VALUE;
+        $item->grademin = 0;
+        $item->grademax = 100;
+        $item->gradepass = 0;
+        $item->insert();
+
+        $grades = [];
+        $studentids = [];
+        for ($index = 0; $index < 6; $index++) {
+            $userid = $index === 0 ? $student->id : $this->getDataGenerator()->create_user()->id;
+            $studentids[] = $userid;
+            $grades[$userid][$item->id] = (object) ['finalgrade' => 0.0];
+        }
+        $arguments = [
+            [$item->id],
+            [$item->id => $item],
+            [$item->id => $item->itemname],
+            $grades,
+            $studentids,
+            $student,
+            $course->id,
+        ];
+
+        $this->assertSame('', listgrades_render_statistics(...[...$arguments, false]));
+        $teacheroutput = listgrades_render_statistics(...[...$arguments, true]);
+        $this->assertStringContainsString(get_string('privacydistributionhidden', 'listgrades'), $teacheroutput);
+        $this->assertStringContainsString('listgrades-boxplot', $teacheroutput);
+        $this->assertStringContainsString('listgrades-histogram', $teacheroutput);
+    }
+
+    /**
+     * Grade items without grades remain visible and are not treated as privacy restrictions.
+     */
+    public function test_statistics_show_items_without_grades(): void {
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        $teacher = $this->getDataGenerator()->create_user();
+        $item = new \grade_item();
+        $item->courseid = $course->id;
+        $item->itemtype = 'manual';
+        $item->itemname = 'Empty grade item';
+        $item->gradetype = GRADE_TYPE_VALUE;
+        $item->grademin = 0;
+        $item->grademax = 100;
+        $item->insert();
+        $arguments = [
+            [$item->id],
+            [$item->id => $item],
+            [$item->id => $item->itemname],
+            [],
+            [],
+            $teacher,
+            $course->id,
+            true,
+        ];
+
+        set_config('privacyconditions', 0, 'listgrades');
+        $unrestrictedoutput = listgrades_render_statistics(...$arguments);
+        $this->assertStringContainsString($item->itemname, $unrestrictedoutput);
+        $this->assertStringContainsString(get_string('itemnogrades', 'listgrades'), $unrestrictedoutput);
+        $studentarguments = [...$arguments];
+        $studentarguments[7] = false;
+        $this->assertSame('', listgrades_render_statistics(...$studentarguments));
+
+        set_config('privacyconditions', 1, 'listgrades');
+        $restrictedoutput = listgrades_render_statistics(...$arguments);
+        $this->assertStringContainsString($item->itemname, $restrictedoutput);
+        $this->assertStringContainsString(get_string('itemnogrades', 'listgrades'), $restrictedoutput);
+        $this->assertStringNotContainsString(get_string('privacydistributionhidden', 'listgrades'), $restrictedoutput);
+        $this->assertSame('', listgrades_render_statistics(...$studentarguments));
     }
 
     /**
      * Test listgrades_view
      * @return void
      */
-    public function test_listgrades_view() {
+    public function test_listgrades_view(): void {
         global $CFG;
 
         $CFG->enablecompletion = 1;
         $this->resetAfterTest();
 
         // Setup test data.
-        $course = $this->getDataGenerator()->create_course(array('enablecompletion' => 1));
-        $listgrades = $this->getDataGenerator()->create_module('listgrades', array('course' => $course->id),
-                                                            array('completion' => 2, 'completionview' => 1));
+        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        $listgrades = $this->getDataGenerator()->create_module(
+            'listgrades',
+            ['course' => $course->id],
+            ['completion' => 2, 'completionview' => 1]
+        );
         $context = \context_module::instance($listgrades->cmid);
         $cm = get_coursemodule_from_instance('listgrades', $listgrades->id);
 
@@ -79,7 +470,7 @@ class lib_test extends \advanced_testcase {
         // Checking that the event contains the expected values.
         $this->assertInstanceOf('\mod_listgrades\event\course_module_viewed', $event);
         $this->assertEquals($context, $event->get_context());
-        $moodleurl = new \moodle_url('/mod/listgrades/view.php', array('id' => $cm->id));
+        $moodleurl = new \moodle_url('/mod/listgrades/view.php', ['id' => $cm->id]);
         $this->assertEquals($moodleurl, $event->get_url());
         $this->assertEventContextNotUsed($event);
         $this->assertNotEmpty($event->get_name());
@@ -90,17 +481,20 @@ class lib_test extends \advanced_testcase {
         $this->assertEquals(1, $completiondata->completionstate);
     }
 
-    public function test_listgrades_core_calendar_provide_event_action() {
+    public function test_listgrades_core_calendar_provide_event_action(): void {
         $this->resetAfterTest();
         $this->setAdminUser();
 
         // Create the activity.
         $course = $this->getDataGenerator()->create_course();
-        $listgrades = $this->getDataGenerator()->create_module('listgrades', array('course' => $course->id));
+        $listgrades = $this->getDataGenerator()->create_module('listgrades', ['course' => $course->id]);
 
         // Create a calendar event.
-        $event = $this->create_action_event($course->id, $listgrades->id,
-            \core_completion\api::COMPLETION_EVENT_TYPE_DATE_COMPLETION_EXPECTED);
+        $event = $this->create_action_event(
+            $course->id,
+            $listgrades->id,
+            \core_completion\api::COMPLETION_EVENT_TYPE_DATE_COMPLETION_EXPECTED
+        );
 
         // Create an action factory.
         $factory = new \core_calendar\action_factory();
@@ -116,7 +510,7 @@ class lib_test extends \advanced_testcase {
         $this->assertTrue($actionevent->is_actionable());
     }
 
-    public function test_listgrades_core_calendar_provide_event_action_already_completed() {
+    public function test_listgrades_core_calendar_provide_event_action_already_completed(): void {
         global $CFG;
 
         $this->resetAfterTest();
@@ -125,16 +519,22 @@ class lib_test extends \advanced_testcase {
         $CFG->enablecompletion = 1;
 
         // Create the activity.
-        $course = $this->getDataGenerator()->create_course(array('enablecompletion' => 1));
-        $listgrades = $this->getDataGenerator()->create_module('listgrades', array('course' => $course->id),
-            array('completion' => 2, 'completionview' => 1, 'completionexpected' => time() + DAYSECS));
+        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        $listgrades = $this->getDataGenerator()->create_module(
+            'listgrades',
+            ['course' => $course->id],
+            ['completion' => 2, 'completionview' => 1, 'completionexpected' => time() + DAYSECS]
+        );
 
         // Get some additional data.
         $cm = get_coursemodule_from_instance('listgrades', $listgrades->id);
 
         // Create a calendar event.
-        $event = $this->create_action_event($course->id, $listgrades->id,
-            \core_completion\api::COMPLETION_EVENT_TYPE_DATE_COMPLETION_EXPECTED);
+        $event = $this->create_action_event(
+            $course->id,
+            $listgrades->id,
+            \core_completion\api::COMPLETION_EVENT_TYPE_DATE_COMPLETION_EXPECTED
+        );
 
         // Mark the activity as completed.
         $completion = new \completion_info($course);
@@ -153,7 +553,7 @@ class lib_test extends \advanced_testcase {
     /**
      * Test mod_listgrades_core_calendar_provide_event_action with user override
      */
-    public function test_listgrades_core_calendar_provide_event_action_user_override() {
+    public function test_listgrades_core_calendar_provide_event_action_user_override(): void {
         global $CFG, $USER;
 
         $this->resetAfterTest();
@@ -162,16 +562,22 @@ class lib_test extends \advanced_testcase {
         $CFG->enablecompletion = 1;
 
         // Create the activity.
-        $course = $this->getDataGenerator()->create_course(array('enablecompletion' => 1));
-        $listgrades = $this->getDataGenerator()->create_module('listgrades', array('course' => $course->id),
-            array('completion' => 2, 'completionview' => 1, 'completionexpected' => time() + DAYSECS));
+        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        $listgrades = $this->getDataGenerator()->create_module(
+            'listgrades',
+            ['course' => $course->id],
+            ['completion' => 2, 'completionview' => 1, 'completionexpected' => time() + DAYSECS]
+        );
 
         // Get some additional data.
         $cm = get_coursemodule_from_instance('listgrades', $listgrades->id);
 
         // Create a calendar event.
-        $event = $this->create_action_event($course->id, $listgrades->id,
-            \core_completion\api::COMPLETION_EVENT_TYPE_DATE_COMPLETION_EXPECTED);
+        $event = $this->create_action_event(
+            $course->id,
+            $listgrades->id,
+            \core_completion\api::COMPLETION_EVENT_TYPE_DATE_COMPLETION_EXPECTED
+        );
 
         // Mark the activity as completed.
         $completion = new \completion_info($course);
@@ -220,3 +626,4 @@ class lib_test extends \advanced_testcase {
         return \calendar_event::create($event);
     }
 }
+// phpcs:enable moodle.PHPUnit.TestCaseCovers.Missing

@@ -24,48 +24,79 @@
 
 $string['aepdmethod'] = 'AEPD identifiers obfuscation';
 $string['aepdmethod_help'] = 'Select the method of obfuscation of identifiers that will be used to comply with the regulations of the Spanish Data Protection Agency: <a href="https://www.aepd.es/documento/orientaciones-da7.pdf">https://www.aepd.es/documento/orientaciones-da7.pdf</a>';
+$string['alloweddisplaymodes'] = 'Allowed grade list formats';
+$string['alloweddisplaymodes_help'] = 'Choose whether activities may use Listing, Individual, or both page formats.';
+$string['boxplotsummary'] = 'Minimum: {$a->min}; first quartile: {$a->q1}; median: {$a->median}; third quartile: {$a->q3}; maximum: {$a->max}.';
 $string['closedate'] = 'Unpublication of grades';
 $string['closedate_help'] = 'The date and time when the listing will be closed.';
 
 $string['configdisplayoptions'] = 'Select all options that should be available, existing settings are not modified. Hold CTRL key to select multiple fields.';
+$string['createlisting'] = 'Create listing';
+$string['defaultdisplaymode'] = 'Default grade list format';
+$string['defaultdisplaymode_help'] = 'Page format selected by default when both formats are allowed.';
 $string['defaultfooter'] = 'Default text footer';
-$string['defaultfooter_help'] = 'Default text footer that will be displayed in the listing.';
-$string['defaultfootertext'] = '<p><img class="img-fluid align-bottom" style="margin: 10px;" role="presentation" src="{$a->logocompacturl}" alt="" width="64" height="64" align="left">This publication is made for informational purposes in exercise of missions of public interest provided for in the Organic Law of the University System (LOSU). Its use by the student for other purposes, and in particular its alteration, manipulation or improper distribution in social networks or other public media may generate legal liability.</p>';
-$string['defaultintrotext'] = '<table border="0" width="100%"><tbody><tr><td><h3><img role="presentation" src="{$a->logourl}" alt="" width="121" height="78"></h3></td>
+$string['defaultfooter_help'] = 'Default text footer that will be displayed in the listing. Available placeholders: <code>{logourl}</code>, <code>{logocompacturl}</code>, <code>{coursefullname}</code>, <code>{courseshortname}</code>, <code>{courseidnumber}</code>, <code>{courseurl}</code>, <code>{courseimage}</code> and <code>{coursesummary}</code>.';
+$string['defaultfootertext'] = '<p><img class="img-fluid align-bottom" style="margin: 10px;" role="presentation" src="{logocompacturl}" alt="" width="64" height="64" align="left">This publication is made for informational purposes in exercise of missions of public interest provided for in the Organic Law of the University System (LOSU). Its use by the student for other purposes, and in particular its alteration, manipulation or improper distribution in social networks or other public media may generate legal liability.</p>';
+$string['defaultintro'] = 'Default text introduction';
+$string['defaultintro_help'] = 'Default text introduction that will be displayed in the listing. Available placeholders: <code>{logourl}</code>, <code>{logocompacturl}</code>, <code>{coursefullname}</code>, <code>{courseshortname}</code>, <code>{courseidnumber}</code>, <code>{courseurl}</code>, <code>{courseimage}</code> and <code>{coursesummary}</code>.';
+$string['defaultintrotext'] = '<table border="0" width="100%"><tbody><tr><td><h3><img role="presentation" src="{logourl}" alt="" width="121" height="78"></h3></td>
 <td><h3>GRADE LISTING</h3><p>Call: 1st</p>
 </td></tr></tbody></table>';
-$string['defaultintro'] = 'Default text introduction';
-$string['defaultintro_help'] = 'Default text introduction that will be displayed in the listing.';
+$string['displaymode'] = 'Page format';
+$string['displaymode_help'] = 'Choose whether to show the grade listing or only the current user’s grades.';
+$string['displaymodeboth'] = 'Both';
+$string['displaymodeindividual'] = 'Individual';
+$string['displaymodelist'] = 'Listing';
+$string['feedback'] = 'Feedback';
 $string['footer'] = 'Footer section';
 $string['footerheader'] = 'Footer';
-$string['createlisting'] = 'Create listing';
+$string['grade'] = 'Grade';
+$string['gradeitem'] = 'Grade item';
 $string['gradeitems'] = 'Grade items to publish';
 $string['gradeitems_help'] = 'Select the grade items that will be published. Hold CTRL key to select multiple fields.';
-
+$string['histogrambin'] = '{$a->range}: {$a->count} grades ({$a->percentage}%)';
+$string['illustrativegrade'] = 'Illustrative grade';
+$string['individualgradedate'] = 'Date: {$a}';
+$string['individualgradeintro'] = 'The grade for {$a} is:';
+$string['individualgradesintro'] = 'The grades for {$a} are:';
+$string['itemnogrades'] = 'There are no grades.';
+$string['listgrades:addinstance'] = 'Add a new grade listing';
+$string['listgrades:view'] = 'View listings';
 $string['modulename'] = 'Grades publication';
 $string['modulename_help'] = 'The "list grades" module enables a teacher to publish the grades of all the students on a page in the course to fullfill transparency requirements. It protects the privacy of the students by masking the user field selected by the teacher.';
 $string['modulename_link'] = 'mod/listgrades/view';
 $string['modulenameplural'] = 'List Grades';
+$string['nostatistics'] = 'There are no grades available to calculate statistics.';
+$string['notopen'] = 'This listing is not open.';
+$string['numericgradewithmaximum'] = '{$a->grade}/{$a->maximum}';
 $string['opendate'] = 'Publication of grades';
 $string['opendate_help'] = 'The date and time when the listing will be published.';
-$string['listgrades:addinstance'] = 'Add a new grade listing';
-$string['listgrades:view'] = 'View listings';
 $string['page-mod-listgrades-x'] = 'Any listgrades module page';
 $string['pluginadministration'] = 'List grades module administration';
 $string['pluginname'] = 'Listgrades';
-
 $string['printintro'] = 'Display header text description';
 $string['privacy:metadata'] = 'The Listgrades resource plugin does not store any personal data.';
+$string['privacyaggregateshidden'] = 'Aggregated results are hidden because five or fewer students have grades for this item.';
+$string['privacyallfailedhidden'] = 'Statistics are hidden because all grades are below the passing grade.';
+$string['privacyconditions'] = 'Privacy conditions';
+$string['privacyconditions_help'] = 'As established in Spanish Royal Decree 855/2026 of 21 October, approving the Statute of University Students in Spain, and summarised as follows: “Aggregated results will not be published when the number of students assessed is five or fewer. The number and percentage of students who passed will not be published when all assessed students passed or failed, nor will the distribution by bands be published when all students are in the same band.”';
+$string['privacydistributionhidden'] = 'The distribution is hidden because all students are in the same grade band.';
+$string['privacyteachernotice'] = '(Students will not see this block at all.)';
+$string['scalegradewithreference'] = '{$a->grade} ({$a->scale})';
 $string['search:activity'] = 'listgrades';
-$string['showusername'] = 'Show usernames';
-$string['showusername_help'] = 'Select if the username will be displayed in the list of grades.';
+$string['showstatistics'] = 'Show grade statistics';
+$string['showstatistics_help'] = 'Display distribution charts for each grade item in both Listing and Individual modes.';
 $string['showuserfield'] = 'Show user ids';
 $string['showuserfield_help'] = 'Select if the userid will be displayed in the list of grades.';
+$string['showusername'] = 'Show usernames';
+$string['showusername_help'] = 'Select if the username will be displayed in the list of grades.';
+$string['statistics'] = 'Grade statistics';
+
+
 $string['userfield'] = 'User field';
 $string['userfield_help'] = 'Select the user field that will be used to display the list of users.';
 $string['userfieldmask'] = 'User field mask';
 $string['userfieldmask_help'] = 'Define the mask that will be used to hide the user field. An * will substitute the character, a - will omit the character and a + will show the character.';
-$string['notopen'] = 'This listing is not open.';
 $string['useridalways'] = 'Always';
-$string['useridonlyifnamecollide'] = 'Only if name collide';
 $string['useridnever'] = 'Never';
+$string['useridonlyifnamecollide'] = 'Only if name collide';

@@ -31,7 +31,6 @@ require_once($CFG->dirroot . '/mod/listgrades/backup/moodle2/backup_listgrades_s
  * Provides the steps to perform one complete backup of the Page instance
  */
 class backup_listgrades_activity_task extends backup_activity_task {
-
     /**
      * No specific settings for this activity
      */
@@ -61,7 +60,7 @@ class backup_listgrades_activity_task extends backup_activity_task {
         $content = preg_replace($search, '$@LISTGRADEINDEX*$2@$', $content);
 
         // Link to listgrades view by moduleid.
-        $search = "/(".$base."\/mod\/listgrades\/view.php\?id\=)([0-9]+)/";
+        $search = "/(" . $base . "\/mod\/listgrades\/view.php\?id\=)([0-9]+)/";
         $content = preg_replace($search, '$@LISTGRADEVIEWBYID*$2@$', $content);
 
         return $content;
