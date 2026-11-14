@@ -42,8 +42,12 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die;
-
+/**
+ * Upgrades the List grades database structure.
+ *
+ * @param int $oldversion previously installed plugin version
+ * @return bool
+ */
 function xmldb_listgrades_upgrade($oldversion) {
     global $DB;
 
@@ -60,8 +64,16 @@ function xmldb_listgrades_upgrade($oldversion) {
 
     if ($oldversion < 2026111000) {
         $table = new xmldb_table('listgrades');
-        $field = new xmldb_field('displaymode', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null,
-            'individualstats', 'items');
+        $field = new xmldb_field(
+            'displaymode',
+            XMLDB_TYPE_CHAR,
+            '20',
+            null,
+            XMLDB_NOTNULL,
+            null,
+            'individualstats',
+            'items'
+        );
 
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
@@ -72,8 +84,16 @@ function xmldb_listgrades_upgrade($oldversion) {
 
     if ($oldversion < 2026111001) {
         $table = new xmldb_table('listgrades');
-        $field = new xmldb_field('showstatistics', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1',
-            'displaymode');
+        $field = new xmldb_field(
+            'showstatistics',
+            XMLDB_TYPE_INTEGER,
+            '1',
+            null,
+            XMLDB_NOTNULL,
+            null,
+            '1',
+            'displaymode'
+        );
 
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);

@@ -29,33 +29,64 @@ if ($ADMIN->fulltree) {
     require_once($CFG->dirroot . '/mod/listgrades/locallib.php');
 
     // Modedit defaults.
-    // @var admin_settingpage $settings
-    $settings->add(new admin_setting_heading('listgradesmodeditdefaults', get_string('modeditdefaults', 'admin'), get_string('condifmodeditdefaults', 'admin')));
+    // Add the activity defaults section to the settings page.
+    $settings->add(new admin_setting_heading(
+        'listgradesmodeditdefaults',
+        get_string('modeditdefaults', 'admin'),
+        get_string('condifmodeditdefaults', 'admin')
+    ));
 
     $allowedmodeoptions = [
         LISTGRADES_DISPLAY_LIST => get_string('displaymodelist', 'listgrades'),
         LISTGRADES_DISPLAY_INDIVIDUAL => get_string('displaymodeindividual', 'listgrades'),
         LISTGRADES_ALLOWED_BOTH => get_string('displaymodeboth', 'listgrades'),
     ];
-    $settings->add(new admin_setting_configselect('listgrades/alloweddisplaymodes',
-        get_string('alloweddisplaymodes', 'listgrades'), get_string('alloweddisplaymodes_help', 'listgrades'),
-        LISTGRADES_ALLOWED_BOTH, $allowedmodeoptions));
+    $settings->add(new admin_setting_configselect(
+        'listgrades/alloweddisplaymodes',
+        get_string('alloweddisplaymodes', 'listgrades'),
+        get_string('alloweddisplaymodes_help', 'listgrades'),
+        LISTGRADES_ALLOWED_BOTH,
+        $allowedmodeoptions
+    ));
 
     $defaultmodeoptions = [
         LISTGRADES_DISPLAY_LIST => get_string('displaymodelist', 'listgrades'),
         LISTGRADES_DISPLAY_INDIVIDUAL => get_string('displaymodeindividual', 'listgrades'),
     ];
-    $settings->add(new admin_setting_configselect('listgrades/defaultdisplaymode',
-        get_string('defaultdisplaymode', 'listgrades'), get_string('defaultdisplaymode_help', 'listgrades'),
-        LISTGRADES_DISPLAY_INDIVIDUAL, $defaultmodeoptions));
-    $settings->hide_if('listgrades/defaultdisplaymode', 'listgrades/alloweddisplaymodes', 'neq',
-        LISTGRADES_ALLOWED_BOTH);
+    $settings->add(new admin_setting_configselect(
+        'listgrades/defaultdisplaymode',
+        get_string('defaultdisplaymode', 'listgrades'),
+        get_string('defaultdisplaymode_help', 'listgrades'),
+        LISTGRADES_DISPLAY_INDIVIDUAL,
+        $defaultmodeoptions
+    ));
+    $settings->hide_if(
+        'listgrades/defaultdisplaymode',
+        'listgrades/alloweddisplaymodes',
+        'neq',
+        LISTGRADES_ALLOWED_BOTH
+    );
+
+    $settings->add(new admin_setting_configcheckbox(
+        'listgrades/privacyconditions',
+        get_string('privacyconditions', 'listgrades'),
+        get_string('privacyconditions_help', 'listgrades'),
+        1
+    ));
 
     // Show the username in listing.
-    $settings->add(new admin_setting_configcheckbox('listgrades/showusername',
-                    get_string('showusername', 'listgrades'), get_string('showusername_help', 'listgrades'), 1));
-    $settings->hide_if('listgrades/showusername', 'listgrades/alloweddisplaymodes', 'eq',
-        LISTGRADES_DISPLAY_INDIVIDUAL);
+    $settings->add(new admin_setting_configcheckbox(
+        'listgrades/showusername',
+        get_string('showusername', 'listgrades'),
+        get_string('showusername_help', 'listgrades'),
+        1
+    ));
+    $settings->hide_if(
+        'listgrades/showusername',
+        'listgrades/alloweddisplaymodes',
+        'eq',
+        LISTGRADES_DISPLAY_INDIVIDUAL
+    );
     // Checkbox to show the userfield.
     // 'always', 'onlyifnamecollide', 'never'.
     $options = [
@@ -63,10 +94,19 @@ if ($ADMIN->fulltree) {
         'onlyifnamecollide' => get_string('useridonlyifnamecollide', 'listgrades'),
         'never' => get_string('useridnever', 'listgrades'),
     ];
-    $settings->add(new admin_setting_configselect('listgrades/showuserfield',
-                    get_string('showuserfield', 'listgrades'), get_string('showuserfield_help', 'listgrades'), 'onlyifnamecollide', $options));
-    $settings->hide_if('listgrades/showuserfield', 'listgrades/alloweddisplaymodes', 'eq',
-        LISTGRADES_DISPLAY_INDIVIDUAL);
+    $settings->add(new admin_setting_configselect(
+        'listgrades/showuserfield',
+        get_string('showuserfield', 'listgrades'),
+        get_string('showuserfield_help', 'listgrades'),
+        'onlyifnamecollide',
+        $options
+    ));
+    $settings->hide_if(
+        'listgrades/showuserfield',
+        'listgrades/alloweddisplaymodes',
+        'eq',
+        LISTGRADES_DISPLAY_INDIVIDUAL
+    );
     // User field section.
     // Get userfields.
     $fields = get_user_fieldnames();
@@ -82,31 +122,65 @@ if ($ADMIN->fulltree) {
     }
 
 
-    $settings->add(new admin_setting_configselect('listgrades/userfield',
-        get_string('userfield', 'listgrades'), get_string('userfield_help', 'listgrades'), 'userid', $userfields));
-    $settings->hide_if('listgrades/userfield', 'listgrades/alloweddisplaymodes', 'eq',
-        LISTGRADES_DISPLAY_INDIVIDUAL);
+    $settings->add(new admin_setting_configselect(
+        'listgrades/userfield',
+        get_string('userfield', 'listgrades'),
+        get_string('userfield_help', 'listgrades'),
+        'userid',
+        $userfields
+    ));
+    $settings->hide_if(
+        'listgrades/userfield',
+        'listgrades/alloweddisplaymodes',
+        'eq',
+        LISTGRADES_DISPLAY_INDIVIDUAL
+    );
     // Checkbox to use  AEPD method.
-    $settings->add(new admin_setting_configcheckbox('listgrades/aepdmethod',
-        get_string('aepdmethod', 'listgrades'), get_string('aepdmethod_help', 'listgrades'), 1));
-    $settings->hide_if('listgrades/aepdmethod', 'listgrades/alloweddisplaymodes', 'eq',
-        LISTGRADES_DISPLAY_INDIVIDUAL);
+    $settings->add(new admin_setting_configcheckbox(
+        'listgrades/aepdmethod',
+        get_string('aepdmethod', 'listgrades'),
+        get_string('aepdmethod_help', 'listgrades'),
+        1
+    ));
+    $settings->hide_if(
+        'listgrades/aepdmethod',
+        'listgrades/alloweddisplaymodes',
+        'eq',
+        LISTGRADES_DISPLAY_INDIVIDUAL
+    );
 
     // Define mask string to hide digits of the userfield.
     $mask = '-XXX****XX-';
-    $settings->add(new admin_setting_configtext('listgrades/userfieldmask',
-        get_string('userfieldmask', 'listgrades'), get_string('userfieldmask_help', 'listgrades'), $mask, PARAM_TEXT));
+    $settings->add(new admin_setting_configtext(
+        'listgrades/userfieldmask',
+        get_string('userfieldmask', 'listgrades'),
+        get_string('userfieldmask_help', 'listgrades'),
+        $mask,
+        PARAM_TEXT
+    ));
     // Hide custom mask if aepdmethod is selected.
     $settings->hide_if('listgrades/userfieldmask', 'listgrades/aepdmethod', 'eq', 1);
-    $settings->hide_if('listgrades/userfieldmask', 'listgrades/alloweddisplaymodes', 'eq',
-        LISTGRADES_DISPLAY_INDIVIDUAL);
+    $settings->hide_if(
+        'listgrades/userfieldmask',
+        'listgrades/alloweddisplaymodes',
+        'eq',
+        LISTGRADES_DISPLAY_INDIVIDUAL
+    );
 
     // Keep placeholders untouched here. They are expanded with course data only
     // when the defaults are loaded into a new activity form.
-    $settings->add(new admin_setting_confightmleditor('listgrades/defaultintro',
-       get_string('defaultintro', 'listgrades'), get_string('defaultintro_help', 'listgrades'),
-       get_string('defaultintrotext', 'listgrades'), PARAM_RAW));
-    $settings->add(new admin_setting_confightmleditor('listgrades/defaultfooter',
-        get_string('defaultfooter', 'listgrades'), get_string('defaultfooter_help', 'listgrades'),
-        get_string('defaultfootertext', 'listgrades'), PARAM_RAW));
+    $settings->add(new admin_setting_confightmleditor(
+        'listgrades/defaultintro',
+        get_string('defaultintro', 'listgrades'),
+        get_string('defaultintro_help', 'listgrades'),
+        get_string('defaultintrotext', 'listgrades'),
+        PARAM_RAW
+    ));
+    $settings->add(new admin_setting_confightmleditor(
+        'listgrades/defaultfooter',
+        get_string('defaultfooter', 'listgrades'),
+        get_string('defaultfooter_help', 'listgrades'),
+        get_string('defaultfootertext', 'listgrades'),
+        PARAM_RAW
+    ));
 }

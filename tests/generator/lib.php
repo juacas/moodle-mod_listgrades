@@ -23,9 +23,6 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
-
-
 /**
  * Page module data generator class
  *
@@ -35,10 +32,17 @@ defined('MOODLE_INTERNAL') || die();
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class mod_listgrades_generator extends testing_module_generator {
-
-    public function create_instance($record = null, array $options = null) {
+    /**
+     * Creates a List grades activity instance.
+     *
+     * @param stdClass|null $record activity data
+     * @param array|null $options generator options
+     * @return stdClass
+     */
+    public function create_instance($record = null, ?array $options = null) {
         global $CFG;
         require_once($CFG->dirroot . '/lib/resourcelib.php');
+        require_once($CFG->dirroot . '/mod/listgrades/locallib.php');
 
         $record = (object)(array)$record;
 

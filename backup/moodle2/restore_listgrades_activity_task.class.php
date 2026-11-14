@@ -15,6 +15,8 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
+ * Restore task for the List grades activity.
+ *
  * @package   mod_listgrades
  * @category  backup
  * @copyright 2010 onwards Eloy Lafuente (stronk7) {@link http://stronk7.com}
@@ -30,7 +32,6 @@ require_once($CFG->dirroot . '/mod/listgrades/backup/moodle2/restore_listgrades_
  * complete restore of the activity.
  */
 class restore_listgrades_activity_task extends restore_activity_task {
-
     /**
      * Define (add) particular settings this activity can have.
      */

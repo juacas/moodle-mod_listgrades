@@ -15,6 +15,8 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
+ * Library functions for the List grades activity.
+ *
  * @package mod_listgrades
  * @copyright  2023 Juan Pablo de Castro <juanpablo.decastro@uva.es>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -28,19 +30,30 @@ require_once("{$CFG->dirroot}/mod/listgrades/locallib.php");
  * @return mixed True if module supports feature, false if not, null if doesn't know or string for the module purpose.
  */
 function listgrades_supports($feature) {
-    switch($feature) {
-        case FEATURE_MOD_ARCHETYPE:           return MOD_ARCHETYPE_RESOURCE;
-        case FEATURE_GROUPS:                  return true;
-        case FEATURE_GROUPINGS:               return false;
-        case FEATURE_MOD_INTRO:               return true;
-        case FEATURE_COMPLETION_TRACKS_VIEWS: return true;
-        case FEATURE_GRADE_HAS_GRADE:         return false;
-        case FEATURE_GRADE_OUTCOMES:          return false;
-        case FEATURE_BACKUP_MOODLE2:          return true;
-        case FEATURE_SHOW_DESCRIPTION:        return true;
-        case FEATURE_MOD_PURPOSE:             return MOD_PURPOSE_ADMINISTRATION;
+    switch ($feature) {
+        case FEATURE_MOD_ARCHETYPE:
+            return MOD_ARCHETYPE_RESOURCE;
+        case FEATURE_GROUPS:
+            return true;
+        case FEATURE_GROUPINGS:
+            return false;
+        case FEATURE_MOD_INTRO:
+            return true;
+        case FEATURE_COMPLETION_TRACKS_VIEWS:
+            return true;
+        case FEATURE_GRADE_HAS_GRADE:
+            return false;
+        case FEATURE_GRADE_OUTCOMES:
+            return false;
+        case FEATURE_BACKUP_MOODLE2:
+            return true;
+        case FEATURE_SHOW_DESCRIPTION:
+            return true;
+        case FEATURE_MOD_PURPOSE:
+            return MOD_PURPOSE_ADMINISTRATION;
 
-        default: return null;
+        default:
+            return null;
     }
 }
 
@@ -116,8 +129,15 @@ function listgrades_add_instance($data, $mform = null) {
 
     if ($mform && !empty($data->signature['itemid'])) {
         $draftitemid = $data->signature['itemid'];
-        $data->footer = file_save_draft_area_files($draftitemid, $context->id, 'mod_listgrades',
-                                'footer', 0, listgrades_get_editor_options($context), $data->footer);
+        $data->footer = file_save_draft_area_files(
+            $draftitemid,
+            $context->id,
+            'mod_listgrades',
+            'footer',
+            0,
+            listgrades_get_editor_options($context),
+            $data->footer
+        );
         $DB->update_record('listgrades', $data);
     }
 
@@ -154,8 +174,15 @@ function listgrades_update_instance($data, $mform) {
 
     $context = context_module::instance($cmid);
     if ($draftitemid) {
-        $data->footer = file_save_draft_area_files($draftitemid, $context->id, 'mod_listgrades',
-                            'footer', 0, listgrades_get_editor_options($context), $data->footer);
+        $data->footer = file_save_draft_area_files(
+            $draftitemid,
+            $context->id,
+            'mod_listgrades',
+            'footer',
+            0,
+            listgrades_get_editor_options($context),
+            $data->footer
+        );
         $DB->update_record('listgrades', $data);
     }
 
@@ -184,7 +211,7 @@ function listgrades_delete_instance($id) {
     $listgrades->opendate = null;
     $listgrades->closedate = null;
     listgrades_update_calendar($listgrades);
-    
+
     // Note: all context files are deleted automatically.
     $DB->delete_records('listgrades', ['id' => $listgrades->id]);
     return true;
@@ -239,7 +266,7 @@ function listgrades_get_file_info($browser, $areas, $course, $cm, $context, $fil
         $filepath = is_null($filepath) ? '/' : $filepath;
         $filename = is_null($filename) ? '.' : $filename;
 
-        $urlbase = $CFG->wwwroot.'/pluginfile.php';
+        $urlbase = $CFG->wwwroot . '/pluginfile.php';
         if (!$storedfile = $fs->get_file($context->id, 'mod_listgrades', 'footer', 0, $filepath, $filename)) {
             if ($filepath === '/' && $filename === '.') {
                 $storedfile = new virtual_root_file($context->id, 'mod_listgrades', 'footer', 0);
@@ -249,7 +276,17 @@ function listgrades_get_file_info($browser, $areas, $course, $cm, $context, $fil
             }
         }
         require_once("$CFG->dirroot/mod/listgrades/locallib.php");
-        return new listgrades_content_file_info($browser, $context, $storedfile, $urlbase, $areas[$filearea], true, true, true, false);
+        return new listgrades_content_file_info(
+            $browser,
+            $context,
+            $storedfile,
+            $urlbase,
+            $areas[$filearea],
+            true,
+            true,
+            true,
+            false
+        );
     }
 
     // Note: intro handled in file_browser automatically.
@@ -300,9 +337,15 @@ function listgrades_pluginfile($course, $cm, $context, $filearea, $args, $forced
         }
 
         // We need to rewrite the pluginfile URLs so the media filters can work.
-        $footer = file_rewrite_pluginfile_urls($page->footer, 'webservice/pluginfile.php', $context->id,
-                                            'mod_listgrades', 'footer', 0);
-        $formatoptions = new stdClass;
+        $footer = file_rewrite_pluginfile_urls(
+            $page->footer,
+            'webservice/pluginfile.php',
+            $context->id,
+            'mod_listgrades',
+            'footer',
+            0
+        );
+        $formatoptions = new stdClass();
         $formatoptions->noclean = true;
         $formatoptions->overflowdiv = true;
         $formatoptions->context = $context;
@@ -310,8 +353,15 @@ function listgrades_pluginfile($course, $cm, $context, $filearea, $args, $forced
 
         // Remove @@PLUGINFILE@@/ from path.
         $options = ['reverse' => true];
-        $footer = file_rewrite_pluginfile_urls($footer, 'webservice/pluginfile.php', $context->id,
-                                                'mod_listgrades', 'footer', 0, $options);
+        $footer = file_rewrite_pluginfile_urls(
+            $footer,
+            'webservice/pluginfile.php',
+            $context->id,
+            'mod_listgrades',
+            'footer',
+            0,
+            $options
+        );
         $footer = str_replace('@@PLUGINFILE@@/', '', $footer);
 
         send_file($footer, $filename, 0, 0, true, true);
@@ -320,7 +370,7 @@ function listgrades_pluginfile($course, $cm, $context, $filearea, $args, $forced
         $relativepath = implode('/', $args);
         $fullpath = "/$context->id/mod_listgrades/$filearea/0/$relativepath";
         $file = $fs->get_file_by_hash(sha1($fullpath));
-        if ( $file == false || $file->is_directory()) {
+        if ($file == false || $file->is_directory()) {
             return false;
         }
 
@@ -347,7 +397,7 @@ function listgrades_page_type_list($pagetype, $parentcontext, $currentcontext) {
  */
 function listgrades_export_contents($cm, $baseurl) {
     global $CFG, $DB;
-    $contents = array();
+    $contents = [];
     $context = context_module::instance($cm->id);
 
     $page = $DB->get_record('listgrades', ['id' => $cm->instance], '*', MUST_EXIST);
@@ -356,12 +406,16 @@ function listgrades_export_contents($cm, $baseurl) {
     $fs = get_file_storage();
     $files = $fs->get_area_files($context->id, 'mod_listgrades', 'footer', 0, 'sortorder DESC, id ASC', false);
     foreach ($files as $fileinfo) {
-        $file = array();
+        $file = [];
         $file['type']         = 'file';
         $file['filename']     = $fileinfo->get_filename();
         $file['filepath']     = $fileinfo->get_filepath();
         $file['filesize']     = $fileinfo->get_filesize();
-        $file['fileurl']      = file_encode_url("$CFG->wwwroot/" . $baseurl, '/'.$context->id.'/mod_listgrades/content/0/'.$fileinfo->get_filepath().$fileinfo->get_filename(), true);
+        $file['fileurl'] = file_encode_url(
+            "$CFG->wwwroot/" . $baseurl,
+            '/' . $context->id . '/mod_listgrades/content/0/' . $fileinfo->get_filepath() . $fileinfo->get_filename(),
+            true
+        );
         $file['timecreated']  = $fileinfo->get_timecreated();
         $file['timemodified'] = $fileinfo->get_timemodified();
         $file['sortorder']    = $fileinfo->get_sortorder();
@@ -383,7 +437,11 @@ function listgrades_export_contents($cm, $baseurl) {
     $pagefile['filename']     = $filename;
     $pagefile['filepath']     = '/';
     $pagefile['filesize']     = 0;
-    $pagefile['fileurl']      = file_encode_url("$CFG->wwwroot/" . $baseurl, '/'.$context->id.'/mod_listgrades/content/' . $filename, true);
+    $pagefile['fileurl'] = file_encode_url(
+        "$CFG->wwwroot/" . $baseurl,
+        '/' . $context->id . '/mod_listgrades/content/' . $filename,
+        true
+    );
     $pagefile['timecreated']  = null;
     $pagefile['timemodified'] = $page->timemodified;
     // Make this file as main file.
@@ -419,7 +477,7 @@ function listgrades_dndupload_handle($uploadinfo) {
     $data = new stdClass();
     $data->course = $uploadinfo->course->id;
     $data->name = $uploadinfo->displayname;
-    $data->intro = '<p>'.$uploadinfo->displayname.'</p>';
+    $data->intro = '<p>' . $uploadinfo->displayname . '</p>';
     $data->introformat = FORMAT_HTML;
     if ($uploadinfo->type == 'text/html') {
         $data->footerformat = FORMAT_HTML;
@@ -493,8 +551,11 @@ function listgrades_check_updates_since(cm_info $cm, $from, $filter = []) {
  * @param \core_calendar\action_factory $factory
  * @return \core_calendar\local\event\entities\action_interface|null
  */
-function mod_listgrades_core_calendar_provide_event_action(calendar_event $event,
-                                                      \core_calendar\action_factory $factory, $userid = 0) {
+function mod_listgrades_core_calendar_provide_event_action(
+    calendar_event $event,
+    \core_calendar\action_factory $factory,
+    $userid = 0
+) {
     global $USER;
 
     if (empty($userid)) {
@@ -526,7 +587,7 @@ function mod_listgrades_core_calendar_provide_event_action(calendar_event $event
  * @param  array  $args The path (the part after the filearea and before the filename).
  * @return array The itemid and the filepath inside the $args path, for the defined filearea.
  */
-function mod_listgrades_get_path_from_pluginfile(string $filearea, array $args) : array {
+function mod_listgrades_get_path_from_pluginfile(string $filearea, array $args): array {
     // Page never has an itemid (the number represents the revision but it's not stored in database).
     array_shift($args);
 

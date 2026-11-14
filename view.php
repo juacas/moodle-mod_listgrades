@@ -23,9 +23,9 @@
  */
 
 require('../../config.php');
-require_once($CFG->dirroot.'/mod/listgrades/lib.php');
-require_once($CFG->dirroot.'/mod/listgrades/locallib.php');
-require_once($CFG->libdir.'/completionlib.php');
+require_once($CFG->dirroot . '/mod/listgrades/lib.php');
+require_once($CFG->dirroot . '/mod/listgrades/locallib.php');
+require_once($CFG->libdir . '/completionlib.php');
 
 $id = optional_param('id', 0, PARAM_INT); // Course Module ID.
 $requesteduserid = optional_param('userid', 0, PARAM_INT);
@@ -47,15 +47,13 @@ listgrades_view($listgrades, $course, $cm, $context);
 
 $PAGE->set_url('/mod/listgrades/view.php', ['id' => $cm->id]);
 
-$options = empty($listgrades->displayoptions) ? [] : (array) unserialize_array($listgrades->displayoptions);
-
 $activityheader = ['hidecompletion' => false];
-if (empty($options['printintro'])) {
+if (empty($cm->showdescription)) {
     $activityheader['description'] = '';
 }
 
 $PAGE->add_body_class('limitedwidth');
-$PAGE->set_title($course->shortname.': '.$listgrades->name);
+$PAGE->set_title($course->shortname . ': ' . $listgrades->name);
 $PAGE->set_heading($course->fullname);
 $PAGE->set_activity_record($listgrades);
 if (!$PAGE->activityheader->is_title_allowed()) {
@@ -110,13 +108,13 @@ if ($isopen || has_capability('moodle/course:manageactivities', $context)) {
             $headertext = $itemnames[$itemid];
         }
         // Add the range of the grade item formatted to $gradeitem->get_decimals() decimals.
-        if ($itemid > 0 ) {
+        if ($itemid > 0) {
             $headertext .= " (" . $item->get_formatted_range() . ")";
         }
         $headers[] = $headertext;
     }
 
-    $grades = $grader->get_grades();
+    $grades = $grader->get_grades() ?? [];
     // Get users to be graded.
     $users = $grader->get_users();
     $canviewallgrades = has_capability('moodle/grade:viewall', context_course::instance($course->id));
@@ -154,11 +152,6 @@ if ($isopen || has_capability('moodle/course:manageactivities', $context)) {
     if ($selectors) {
         echo html_writer::div(implode('', $selectors), 'd-flex flex-wrap align-items-end gap-3 mb-3');
     }
-
-    // Print intro text.
-    echo $OUTPUT->box_start('generalbox center clearfix');
-    echo format_module_intro('listgrades', $listgrades, $cm->id);
-    echo $OUTPUT->box_end();
 
     $displaymode = listgrades_resolve_display_mode(
         $listgrades->displaymode ?? null,
@@ -200,14 +193,14 @@ if ($isopen || has_capability('moodle/course:manageactivities', $context)) {
         if ($iscustomfield) {
             // Get custom field values.
             $ids = array_keys($users);
-            [$sql_in, $params] = $DB->get_in_or_equal($ids);
+            [$sqlin, $params] = $DB->get_in_or_equal($ids);
             // To Lower case.
             $userfield = strtolower($userfield);
             // Join the user_info_data table with the user table on userid and fieldid.
             $sql = "SELECT d.userid, d.data as $userfield
                      FROM {user_info_data} d
                      WHERE d.fieldid = ?
-                       AND d.userid $sql_in
+                       AND d.userid $sqlin
                      ORDER BY d.data";
             $paramssql = [$fieldid];
             $paramssql = array_merge($paramssql, $params);
@@ -229,7 +222,7 @@ if ($isopen || has_capability('moodle/course:manageactivities', $context)) {
         foreach ($users as $user) {
             $user->fullname = "{$user->lastname}, {$user->firstname}";
         }
-        // if showuserfield is onlyifnamecollide, get the users that have the same username.
+        // If showuserfield is onlyifnamecollide, get the users that have the same username.
         if ($config->showuserfield == 'onlyifnamecollide') {
             // Get the list of users that have the same fullname.
             $namecollisions = array_keys(array_count_values(array_column($users, 'fullname')), 2);
@@ -309,13 +302,12 @@ if ($isopen || has_capability('moodle/course:manageactivities', $context)) {
     }
 
     $signature = file_rewrite_pluginfile_urls($listgrades->footer, 'pluginfile.php', $context->id, 'mod_listgrades', 'footer', 0);
-    $formatoptions = new stdClass;
+    $formatoptions = new stdClass();
     $formatoptions->noclean = true;
     $formatoptions->overflowdiv = true;
     $formatoptions->context = $context;
     $signature = format_text($signature, $listgrades->footerformat, $formatoptions);
     echo $OUTPUT->box($signature, "generalbox center clearfix");
-
 }
 
 echo $OUTPUT->footer();

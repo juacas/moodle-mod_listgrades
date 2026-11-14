@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -18,8 +17,8 @@
 /**
  * Strings for component 'listgrades', language 'ca', branch 'MOODLE_20_STABLE'
  *
- * @package    mod
- * @subpackage listgrades
+ * @package    mod_listgrades
+ * @copyright  2023 Juan Pablo de Castro <juanpablo.decastro@uva.es>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -48,6 +47,7 @@ $string['footer'] = 'Secció del peu de pàgina<br>No modificar aquest contingut
 $string['footerheader'] = 'Peu de pàgina';
 $string['gradeitems'] = 'Elements de qualificació per publicar.';
 $string['gradeitems_help'] = 'Selecciona els elements de qualificació que es publicaran. Manteniu pitjada la tecla CTRL per seleccionar diversos camps.';
+$string['itemnogrades'] = 'No hi ha qualificacions.';
 $string['listgrades:addinstance'] = 'Afegeix una llista de qualificacions';
 $string['listgrades:view'] = 'Mostra les llistes de qualificacions';
 $string['modulename'] = 'Publicació de qualificacions';
@@ -55,13 +55,19 @@ $string['modulename_help'] = 'El mòdul "listgrades" permet a un professor publi
 $string['modulenameplural'] = 'Llista de qualificacions';
 $string['notopen'] = 'Aquesta llista encara no està disponible.';
 $string['numericgradewithmaximum'] = '{$a->grade}/{$a->maximum}';
-$string['scalegradewithreference'] = '{$a->grade} ({$a->scale})';
 $string['opendate'] = 'Publicació de qualificacions';
 $string['opendate_help'] = 'Dia i hora en què es publicarà la llista.';
 $string['pluginadministration'] = 'Administració del mòdul "listgrades"';
 $string['pluginname'] = 'Publicació de qualificacions';
 $string['printintro'] = 'Mostra la descripció de l\'encapçalament';
 $string['privacy:metadata'] = 'El complement de recurs "listgrades" no emmagatzema cap dada personal.';
+$string['privacyaggregateshidden'] = 'Els resultats agregats estan ocults perquè cinc estudiants o menys tenen qualificació en aquest ítem.';
+$string['privacyallfailedhidden'] = 'Les estadístiques estan ocultes perquè totes les qualificacions estan per sota de la nota per aprovar.';
+$string['privacyconditions'] = 'Condicions de privacitat';
+$string['privacyconditions_help'] = 'Segons el que estableix el Reial decret 855/2026, de 21 d’octubre, pel qual s’aprova l’Estatut de l’Estudiantat Universitari d’Espanya, i que es resumeix en: «No es publicaran resultats agregats quan el nombre d’estudiants presentats sigui igual o inferior a cinc. Tampoc es publicaran el nombre i el percentatge d’aprovats quan tots els presentats hagin aprovat o suspès, ni la distribució per trams quan tots es trobin en el mateix tram.»';
+$string['privacydistributionhidden'] = 'La distribució està oculta perquè tots els estudiants es troben en el mateix tram de qualificació.';
+$string['privacyteachernotice'] = '(Els estudiants no veuran aquest bloc en absolut.)';
+$string['scalegradewithreference'] = '{$a->grade} ({$a->scale})';
 $string['showuserfield'] = 'Mostra els identificadors d\'usuari';
 $string['showuserfield_help'] = 'Marca si apareixerà l\'ID de l\'usuari a la llista de qualificacions.';
 $string['showusername'] = 'Mostra els noms d\'usuari';

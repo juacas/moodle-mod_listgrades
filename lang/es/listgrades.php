@@ -26,10 +26,14 @@
  $string['aepdmethod_help'] = 'Usar el método de ofuscación de identificadores que se utilizará para cumplir con la normativa de la Agencia Española de Protección de Datos: <a href="https://www.aepd.es/documento/orientaciones-da7.pdf">https://www.aepd.es/documento/orientaciones-da7.pdf</a>';
  $string['alloweddisplaymodes'] = 'Listados permitidos';
  $string['alloweddisplaymodes_help'] = 'Elija si las actividades pueden utilizar el formato Listado, Individual o ambos.';
- $string['closedate'] = 'Fin de publicación de notas';
+ $string['boxplotsummary'] = 'Mínimo: {$a->min}; primer cuartil: {$a->q1}; mediana: {$a->median}; tercer cuartil: {$a->q3}; máximo: {$a->max}.';
+$string['closedate'] = 'Fin de publicación de notas';
  $string['closedate_help'] = 'La fecha y hora en que se cerrará la lista.';
 
- $string['defaultfooter'] = 'Texto predeterminado del pie de página';
+ $string['createlisting'] = 'Crear listado';
+$string['defaultdisplaymode'] = 'Listados de notas por defecto';
+$string['defaultdisplaymode_help'] = 'Formato de página seleccionado por defecto cuando se permiten ambos formatos.';
+$string['defaultfooter'] = 'Texto predeterminado del pie de página';
  $string['defaultfooter_help'] = 'Texto predeterminado del pie de página que se mostrará al final del listado. Marcadores disponibles: <code>{logourl}</code>, <code>{logocompacturl}</code>, <code>{coursefullname}</code>, <code>{courseshortname}</code>, <code>{courseidnumber}</code>, <code>{courseurl}</code>, <code>{courseimage}</code> y <code>{coursesummary}</code>.';
  $string['defaultfootertext'] = '<hr>
  <p>Revisión de las calificaciones:</p>
@@ -39,61 +43,64 @@
  <hr>
  <p><img class="img-fluid align-bottom" style="margin: 10px; float: left;" role="presentation" src="{logourl}" alt="" width="64" height="64" align="left">Esta publicación se realiza con fines informativos en ejercicio de misiones de interés público previstas en la Ley Orgánica del Sistema Universitario. Su uso por el estudiante para otros fines, y en particular su alteración, manipulación o distribución indebida en redes sociales u otros medios públicos puede generar responsabilidad jurídica.</p>';
  $string['defaultintro'] = 'Texto predeterminado de introducción';
- $string['defaultintrotext'] = '<table border="0" width="100%"><tbody><tr><td><h3><img role="presentation" src="{logourl}" alt="" width="121" height="78"></h3></td>
+ $string['defaultintro_help'] = 'Texto predeterminado de introducción que se mostrará en la lista. Marcadores disponibles: <code>{logourl}</code>, <code>{logocompacturl}</code>, <code>{coursefullname}</code>, <code>{courseshortname}</code>, <code>{courseidnumber}</code>, <code>{courseurl}</code>, <code>{courseimage}</code> y <code>{coursesummary}</code>.';
+$string['defaultintrotext'] = '<table border="0" width="100%"><tbody><tr><td><h3><img role="presentation" src="{logourl}" alt="" width="121" height="78"></h3></td>
  <td><h3>LISTADO DE CALIFICACIONES PROVISIONALES</h3><p>Convocatoria: ORDINARIA</p></td>
  </tr></tbody></table>';
- $string['defaultintro_help'] = 'Texto predeterminado de introducción que se mostrará en la lista. Marcadores disponibles: <code>{logourl}</code>, <code>{logocompacturl}</code>, <code>{coursefullname}</code>, <code>{courseshortname}</code>, <code>{courseidnumber}</code>, <code>{courseurl}</code>, <code>{courseimage}</code> y <code>{coursesummary}</code>.';
- $string['defaultdisplaymode'] = 'Listados de notas por defecto';
- $string['defaultdisplaymode_help'] = 'Formato de página seleccionado por defecto cuando se permiten ambos formatos.';
- $string['displaymode'] = 'Formato de la página';
+    $string['displaymode'] = 'Formato de la página';
  $string['displaymode_help'] = 'Elija entre mostrar el listado de calificaciones o solo las calificaciones del usuario actual.';
- $string['displaymodeindividual'] = 'Individual';
- $string['displaymodelist'] = 'Listado';
  $string['displaymodeboth'] = 'Ambos';
- $string['footer'] = 'Sección de pie de página';
+$string['displaymodeindividual'] = 'Individual';
+ $string['displaymodelist'] = 'Listado';
+  $string['feedback'] = 'Retroalimentación';
+$string['footer'] = 'Sección de pie de página';
  $string['footerheader'] = 'Pie de página';
- $string['createlisting'] = 'Crear listado';
- $string['gradeitems'] = 'Elementos de calificación para publicar.';
+  $string['grade'] = 'Calificación';
+$string['gradeitem'] = 'Ítem de calificación';
+$string['gradeitems'] = 'Elementos de calificación para publicar.';
  $string['gradeitems_help'] = 'Seleccione los elementos de calificación que se publicarán. Mantenga presionada la tecla CTRL para seleccionar varios campos.';
- $string['grade'] = 'Calificación';
- $string['feedback'] = 'Retroalimentación';
- $string['gradeitem'] = 'Ítem de calificación';
- $string['histogrambin'] = '{$a->range}: {$a->count} calificaciones ({$a->percentage} %)';
+    $string['histogrambin'] = '{$a->range}: {$a->count} calificaciones ({$a->percentage} %)';
 $string['illustrativegrade'] = 'Calificación ilustrativa';
  $string['individualgradedate'] = 'Fecha: {$a}';
  $string['individualgradeintro'] = 'La calificación de {$a} es:';
  $string['individualgradesintro'] = 'Las calificaciones de {$a} son:';
- $string['nostatistics'] = 'No hay calificaciones disponibles para calcular estadísticas.';
- $string['numericgradewithmaximum'] = '{$a->grade}/{$a->maximum}';
- $string['scalegradewithreference'] = '{$a->grade} ({$a->scale})';
- $string['statistics'] = 'Estadísticas de calificaciones';
- $string['showstatistics'] = 'Mostrar estadísticas de calificaciones';
- $string['showstatistics_help'] = 'Muestra gráficos de distribución para cada ítem de calificación tanto en modo Listado como Individual.';
- $string['boxplotsummary'] = 'Mínimo: {$a->min}; primer cuartil: {$a->q1}; mediana: {$a->median}; tercer cuartil: {$a->q3}; máximo: {$a->max}.';
-
- $string['modulename'] = 'Publicación de notas';
- $string['modulename_help'] = 'El módulo "list grades" permite a un profesor publicar las calificaciones de todos los estudiantes en una página del curso para cumplir con los requisitos de transparencia. Protege la privacidad de los estudiantes al ocultar el campo de usuario seleccionado por el profesor.';
- $string['modulename_link'] = 'mod/listgrades/view';
- $string['modulenameplural'] = 'Listar Calificaciones';
- $string['opendate'] = 'Publicación de notas';
- $string['opendate_help'] = 'La fecha y hora en que se publicará la lista.';
+$string['itemnogrades'] = 'No hay calificaciones.';
  $string['listgrades:addinstance'] = 'Añadir un listado de notas';
- $string['listgrades:view'] = 'Ver listados de notas';
- $string['pluginadministration'] = 'Administración del módulo List Grades';
- $string['pluginname'] = 'Publicación de notas';
-
- $string['printintro'] = 'Mostrar descripción del encabezado';
- $string['privacy:metadata'] = 'El complemento de recurso Listgrades no almacena ningún dato personal.';
+$string['listgrades:view'] = 'Ver listados de notas';
+$string['modulename'] = 'Publicación de notas';
+$string['modulename_help'] = 'El módulo "list grades" permite a un profesor publicar las calificaciones de todos los estudiantes en una página del curso para cumplir con los requisitos de transparencia. Protege la privacidad de los estudiantes al ocultar el campo de usuario seleccionado por el profesor.';
+$string['modulename_link'] = 'mod/listgrades/view';
+$string['modulenameplural'] = 'Listar Calificaciones';
+$string['nostatistics'] = 'No hay calificaciones disponibles para calcular estadísticas.';
+ $string['notopen'] = 'Esta lista aún no está disponible.';
+$string['numericgradewithmaximum'] = '{$a->grade}/{$a->maximum}';
+ $string['opendate'] = 'Publicación de notas';
+$string['opendate_help'] = 'La fecha y hora en que se publicará la lista.';
+$string['pluginadministration'] = 'Administración del módulo List Grades';
+$string['pluginname'] = 'Publicación de notas';
+$string['printintro'] = 'Mostrar descripción del encabezado';
+$string['privacy:metadata'] = 'El complemento de recurso Listgrades no almacena ningún dato personal.';
+$string['privacyaggregateshidden'] = 'Los resultados agregados están ocultos porque cinco o menos estudiantes tienen calificación en este ítem.';
+$string['privacyallfailedhidden'] = 'Las estadísticas están ocultas porque todas las calificaciones están por debajo de la nota para aprobar.';
+$string['privacyconditions'] = 'Condiciones de privacidad';
+$string['privacyconditions_help'] = 'Según lo establecido en el Real Decreto 855/2026, de 21 de octubre, por el que se aprueba el Estatuto del Estudiantado Universitario de España y que se resume en: «No se publicarán resultados agregados cuando el número de estudiantes presentados sea igual o inferior a cinco. Tampoco se publicarán el número y el porcentaje de aprobados cuando todos los presentados hayan aprobado o suspendido, ni la distribución por tramos cuando todos se encuentren en el mismo tramo.»';
+$string['privacydistributionhidden'] = 'La distribución está oculta porque todos los estudiantes se encuentran en el mismo tramo de calificación.';
+$string['privacyteachernotice'] = '(Los estudiantes no verán este bloque por completo.)';
+$string['scalegradewithreference'] = '{$a->grade} ({$a->scale})';
  $string['search:activity'] = 'listgrades';
- $string['showusername'] = 'Mostrar nombres de usuario';
- $string['showusername_help'] = 'Seleccione si se mostrará el nombre de usuario en la lista de calificaciones.';
- $string['showuserfield'] = 'Mostrar identificadores de usuario';
- $string['showuserfield_help'] = 'Seleccione si se mostrará el ID de usuario en la lista de calificaciones.';
- $string['userfield'] = 'Campo de usuario';
+$string['showstatistics'] = 'Mostrar estadísticas de calificaciones';
+$string['showstatistics_help'] = 'Muestra gráficos de distribución para cada ítem de calificación tanto en modo Listado como Individual.';
+$string['showuserfield'] = 'Mostrar identificadores de usuario';
+$string['showuserfield_help'] = 'Seleccione si se mostrará el ID de usuario en la lista de calificaciones.';
+$string['showusername'] = 'Mostrar nombres de usuario';
+$string['showusername_help'] = 'Seleccione si se mostrará el nombre de usuario en la lista de calificaciones.';
+$string['statistics'] = 'Estadísticas de calificaciones';
+
+
+        $string['userfield'] = 'Campo de usuario';
  $string['userfield_help'] = 'Seleccione el campo de usuario que se utilizará para mostrar la lista de usuarios.';
  $string['userfieldmask'] = 'Máscara de campo de usuario';
  $string['userfieldmask_help'] = 'Defina la máscara que se utilizará para ocultar el campo de usuario. Una * sustituirá al carácter, un - omitirá el carácter y un + mostrará el carácter.';
- $string['notopen'] = 'Esta lista aún no está disponible.';
- $string['useridalways'] = 'Siempre';
- $string['useridonlyifnamecollide'] = 'Solo si hay colisión de nombres';
+  $string['useridalways'] = 'Siempre';
  $string['useridnever'] = 'Nunca';
+$string['useridonlyifnamecollide'] = 'Solo si hay colisión de nombres';
