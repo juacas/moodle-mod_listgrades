@@ -277,6 +277,128 @@ final class lib_test extends \advanced_testcase {
     }
 
     /**
+     * Numeric grades use the grade letters configured by Moodle for the course.
+     */
+    public function test_build_letter_distribution(): void {
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        $item = new \grade_item();
+        $item->courseid = $course->id;
+        $item->itemtype = 'manual';
+        $item->itemname = 'Letter item';
+        $item->gradetype = GRADE_TYPE_VALUE;
+        $item->grademin = 0;
+        $item->grademax = 100;
+        $item->insert();
+
+        $distribution = listgrades_build_letter_distribution($item, [95, 91, 50]);
+        $counts = array_combine($distribution['labels'], $distribution['counts']);
+
+        $this->assertSame('F', reset($distribution['labels']));
+        $this->assertSame('A', end($distribution['labels']));
+        $this->assertSame(1, $counts['A']);
+        $this->assertSame(1, $counts['A-']);
+        $this->assertSame(1, $counts['F']);
+    }
+
+    /**
+     * Site statistics settings control summaries and numeric chart formats.
+     */
+    public function test_statistics_settings(): void {
+        $this->resetAfterTest();
+        set_config('privacyconditions', 0, 'listgrades');
+        set_config('showglobalpercentage', 1, 'listgrades');
+        set_config('showboxplot', 0, 'listgrades');
+        set_config('showhistogram', 1, 'listgrades');
+        set_config('numericgradesasletters', 0, 'listgrades');
+        $course = $this->getDataGenerator()->create_course();
+        $student = $this->getDataGenerator()->create_user();
+        $item = new \grade_item();
+        $item->courseid = $course->id;
+        $item->itemtype = 'manual';
+        $item->itemname = 'Configurable statistics';
+        $item->gradetype = GRADE_TYPE_VALUE;
+        $item->grademin = 0;
+        $item->grademax = 100;
+        $item->gradepass = 50;
+        $item->insert();
+
+        $grades = [];
+        $studentids = [];
+        foreach ([20, 40, 55, 65, 80, 95] as $index => $value) {
+            $userid = $index === 0 ? $student->id : $this->getDataGenerator()->create_user()->id;
+            $studentids[] = $userid;
+            $grades[$userid][$item->id] = (object) ['finalgrade' => (float) $value];
+        }
+        $arguments = [
+            [$item->id],
+            [$item->id => $item],
+            [$item->id => $item->itemname],
+            $grades,
+            $studentids,
+            $student,
+            $course->id,
+            false,
+        ];
+
+        $numericoutput = listgrades_render_statistics(...$arguments);
+        $this->assertStringContainsString('listgrades-global-summary', $numericoutput);
+        $this->assertStringContainsString('listgrades-histogram', $numericoutput);
+        $this->assertStringNotContainsString('class="listgrades-boxplot"', $numericoutput);
+
+        set_config('showboxplot', 1, 'listgrades');
+        set_config('numericgradesasletters', 1, 'listgrades');
+        $letteroutput = listgrades_render_statistics(...$arguments);
+        $this->assertStringContainsString('listgrades-letter-chart', $letteroutput);
+        $this->assertStringContainsString('class="listgrades-boxplot"', $letteroutput);
+        $this->assertStringContainsString('listgrades-histogram', $letteroutput);
+
+        set_config('showhistogram', 0, 'listgrades');
+        $withouthistogram = listgrades_render_statistics(...$arguments);
+        $this->assertStringContainsString('listgrades-letter-chart', $withouthistogram);
+        $this->assertStringContainsString('class="listgrades-boxplot"', $withouthistogram);
+        $this->assertStringNotContainsString('listgrades-histogram', $withouthistogram);
+    }
+
+    /**
+     * Empty statistical settings are treated as disabled booleans.
+     */
+    public function test_empty_statistics_settings_are_disabled(): void {
+        $this->resetAfterTest();
+        set_config('privacyconditions', 0, 'listgrades');
+        set_config('showglobalpercentage', '', 'listgrades');
+        set_config('showboxplot', '', 'listgrades');
+        set_config('showhistogram', '', 'listgrades');
+        set_config('numericgradesasletters', '', 'listgrades');
+        $course = $this->getDataGenerator()->create_course();
+        $student = $this->getDataGenerator()->create_user();
+        $item = new \grade_item();
+        $item->courseid = $course->id;
+        $item->itemtype = 'manual';
+        $item->itemname = 'Disabled statistics';
+        $item->gradetype = GRADE_TYPE_VALUE;
+        $item->grademin = 0;
+        $item->grademax = 100;
+        $item->insert();
+        $grades = [$student->id => [$item->id => (object) ['finalgrade' => 50.0]]];
+
+        $output = listgrades_render_statistics(
+            [$item->id],
+            [$item->id => $item],
+            [$item->id => $item->itemname],
+            $grades,
+            [$student->id],
+            $student,
+            $course->id
+        );
+
+        $this->assertStringNotContainsString('listgrades-global-summary', $output);
+        $this->assertStringNotContainsString('listgrades-boxplot', $output);
+        $this->assertStringNotContainsString('listgrades-histogram', $output);
+        $this->assertStringNotContainsString('listgrades-letter-chart', $output);
+    }
+
+    /**
      * Privacy conditions require a minimum cohort and more than one populated grade band.
      */
     public function test_privacy_conditions(): void {
@@ -301,6 +423,12 @@ final class lib_test extends \advanced_testcase {
         $this->assertTrue(listgrades_privacy_allows_numeric_statistics([0, 0, 5], 5, true));
         $this->assertTrue(listgrades_privacy_allows_numeric_statistics([0, 0, 0], 5, false));
         $this->assertTrue(listgrades_privacy_allows_numeric_statistics([0, 0, 0], null, true));
+
+        $this->assertFalse(listgrades_privacy_allows_global_percentage([5, 6, 7], 5, true));
+        $this->assertFalse(listgrades_privacy_allows_global_percentage([1, 2, 3], 5, true));
+        $this->assertTrue(listgrades_privacy_allows_global_percentage([1, 5, 7], 5, true));
+        $this->assertTrue(listgrades_privacy_allows_global_percentage([5, 6, 7], 5, false));
+        $this->assertTrue(listgrades_privacy_allows_global_percentage([1, 2, 3], null, true));
     }
 
     /**
@@ -309,6 +437,8 @@ final class lib_test extends \advanced_testcase {
     public function test_privacy_explanations_are_teacher_only(): void {
         $this->resetAfterTest();
         set_config('privacyconditions', 1, 'listgrades');
+        set_config('showboxplot', 1, 'listgrades');
+        set_config('showhistogram', 1, 'listgrades');
         $course = $this->getDataGenerator()->create_course();
         $student = $this->getDataGenerator()->create_user();
         $item = new \grade_item();
@@ -358,6 +488,8 @@ final class lib_test extends \advanced_testcase {
     public function test_numeric_charts_are_hidden_for_a_single_populated_band(): void {
         $this->resetAfterTest();
         set_config('privacyconditions', 1, 'listgrades');
+        set_config('showboxplot', 1, 'listgrades');
+        set_config('showhistogram', 1, 'listgrades');
         $course = $this->getDataGenerator()->create_course();
         $student = $this->getDataGenerator()->create_user();
         $item = new \grade_item();

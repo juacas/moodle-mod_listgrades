@@ -456,6 +456,7 @@ function listgrades_random_preview_grade(array $values, int $decimals): ?float {
  * @param int $courseid course id
  * @param float $position horizontal percentage position
  * @param bool $illustrative whether this is an illustrative teacher preview
+ * @param string|null $displaygrade formatted grade displayed in the marker tooltip
  * @return string
  */
 function listgrades_render_user_marker(
@@ -464,7 +465,8 @@ function listgrades_render_user_marker(
     stdClass $user,
     int $courseid,
     float $position,
-    bool $illustrative
+    bool $illustrative,
+    ?string $displaygrade = null
 ): string {
     global $OUTPUT;
 
@@ -474,12 +476,115 @@ function listgrades_render_user_marker(
         'link' => false,
         'alttext' => true,
     ]);
-    $gradelabel = grade_format_gradevalue($usergrade, $item, true, GRADE_DISPLAY_TYPE_REAL);
+    $gradelabel = $displaygrade ?? grade_format_gradevalue($usergrade, $item, true, GRADE_DISPLAY_TYPE_REAL);
     $markerlabel = $illustrative ? get_string('illustrativegrade', 'listgrades') : get_string('grade', 'listgrades');
     return html_writer::span($picture, 'listgrades-user-marker', [
         'style' => 'left:' . max(0, min(100, $position)) . '%',
         'title' => $markerlabel . ': ' . $gradelabel,
     ]);
+}
+
+/**
+ * Build a distribution using the course grade letter boundaries.
+ *
+ * @param grade_item $item numeric grade item
+ * @param array $values numeric grades
+ * @return array labels and counts in the order configured by Moodle
+ */
+function listgrades_build_letter_distribution(grade_item $item, array $values): array {
+    $context = context_course::instance($item->courseid);
+    $labels = array_reverse(array_values(grade_get_letters($context)));
+    $counts = array_fill(0, count($labels), 0);
+
+    foreach ($values as $value) {
+        $label = grade_format_gradevalue((float) $value, $item, true, GRADE_DISPLAY_TYPE_LETTER);
+        $index = array_search($label, $labels, true);
+        if ($index === false) {
+            $labels[] = $label;
+            $counts[] = 1;
+        } else {
+            $counts[$index]++;
+        }
+    }
+
+    return ['labels' => $labels, 'counts' => $counts];
+}
+
+/**
+ * Render numeric grades as a horizontal grade-letter distribution.
+ *
+ * @param grade_item $item numeric grade item
+ * @param array $values cohort grades
+ * @param float|null $usergrade current user's grade
+ * @param stdClass $user current user
+ * @param int $courseid course id
+ * @param bool $illustrative whether this is an illustrative teacher preview
+ * @return string
+ */
+function listgrades_render_letter_chart(
+    grade_item $item,
+    array $values,
+    ?float $usergrade,
+    stdClass $user,
+    int $courseid,
+    bool $illustrative = false
+): string {
+    $distribution = listgrades_build_letter_distribution($item, $values);
+    $labels = $distribution['labels'];
+    $counts = $distribution['counts'];
+    $total = array_sum($counts);
+    if (!$total || !$labels) {
+        return '';
+    }
+
+    $bar = '';
+    $legend = '';
+    $legendtexts = [];
+    $userposition = null;
+    $userlabel = null;
+    $cumulativepercentage = 0.0;
+    if ($usergrade !== null) {
+        $userlabel = grade_format_gradevalue($usergrade, $item, true, GRADE_DISPLAY_TYPE_LETTER);
+    }
+    foreach ($labels as $index => $label) {
+        $percentage = ($counts[$index] / $total) * 100;
+        if ($label === $userlabel) {
+            $userposition = $cumulativepercentage + ($percentage / 2);
+        }
+        if ($counts[$index]) {
+            $segmenttext = format_string($label) . ': ' . $counts[$index] .
+                ' (' . format_float($percentage, 1) . '%)';
+            $bar .= html_writer::span(format_float($percentage, 1) . '%', 'listgrades-scale-segment', [
+                'style' => 'width:' . $percentage . '%',
+                'title' => $segmenttext,
+            ]);
+        } else {
+            $segmenttext = format_string($label) . ': 0 (0.0%)';
+        }
+        $legendtexts[] = $segmenttext;
+        $legend .= html_writer::tag('li', $segmenttext, ['class' => 'listgrades-scale-legend-item']);
+        $cumulativepercentage += $percentage;
+    }
+
+    $letterbar = html_writer::div($bar, 'listgrades-scale-bar', [
+        'role' => 'img',
+        'aria-label' => implode('; ', array_map('strip_tags', $legendtexts)),
+    ]);
+    if ($usergrade !== null && $userposition !== null) {
+        $letterbar .= listgrades_render_user_marker(
+            $item,
+            $usergrade,
+            $user,
+            $courseid,
+            $userposition,
+            $illustrative,
+            $userlabel
+        );
+    }
+    $output = html_writer::div($letterbar, 'listgrades-scale-plot');
+    $output .= listgrades_render_chart_axis(format_string(reset($labels)), format_string(end($labels)));
+    $output .= html_writer::tag('ul', $legend, ['class' => 'list-unstyled listgrades-scale-legend']);
+    return html_writer::div($output, 'listgrades-stat-chart listgrades-letter-chart');
 }
 
 /**
@@ -900,6 +1005,56 @@ function listgrades_privacy_allows_numeric_statistics(
 }
 
 /**
+ * Decide whether pass totals and percentages may be published.
+ *
+ * @param array $values grades from assessed students
+ * @param float|null $gradepass passing grade, or null when it is not configured
+ * @param bool $privacyconditions whether the site privacy conditions are enabled
+ * @return bool
+ */
+function listgrades_privacy_allows_global_percentage(
+    array $values,
+    ?float $gradepass,
+    bool $privacyconditions
+): bool {
+    if (!$privacyconditions || !$values || $gradepass === null) {
+        return true;
+    }
+    $passed = count(array_filter(
+        $values,
+        static fn(float $value): bool => $value >= $gradepass
+    ));
+    return $passed > 0 && $passed < count($values);
+}
+
+/**
+ * Render the number of assessed students and the overall pass figures.
+ *
+ * @param array $values grades from assessed students
+ * @param float|null $gradepass passing grade, or null when it is not configured
+ * @return string
+ */
+function listgrades_render_global_percentage(array $values, ?float $gradepass): string {
+    if (!$values) {
+        return '';
+    }
+    if ($gradepass === null) {
+        $text = get_string('globalgradesnopass', 'listgrades', count($values));
+    } else {
+        $passed = count(array_filter(
+            $values,
+            static fn(float $value): bool => $value >= $gradepass
+        ));
+        $text = get_string('globalgradessummary', 'listgrades', (object) [
+            'presented' => count($values),
+            'passed' => $passed,
+            'percentage' => format_float(($passed / count($values)) * 100, 1),
+        ]);
+    }
+    return html_writer::div($text, 'listgrades-global-summary');
+}
+
+/**
  * Return whether the site has explicitly enabled the privacy conditions.
  *
  * @return bool
@@ -934,6 +1089,11 @@ function listgrades_render_statistics(
     global $OUTPUT;
 
     $privacyconditions = listgrades_privacy_conditions_enabled();
+    $config = get_config('listgrades');
+    $showglobalpercentage = (bool) ($config->showglobalpercentage ?? false);
+    $showboxplot = (bool) ($config->showboxplot ?? false);
+    $showhistogram = (bool) ($config->showhistogram ?? false);
+    $numericgradesasletters = (bool) ($config->numericgradesasletters ?? false);
     $charts = '';
     $privacyrestricted = false;
     foreach (listgrades_get_selected_grade_ids($selecteditems) as $itemid) {
@@ -954,6 +1114,7 @@ function listgrades_render_statistics(
         $illustrative = $teacherpreview && $usergrade === null && !empty($values);
         $itemcharts = '';
         $privacyreason = null;
+        $gradepass = empty($item->gradepass) ? null : (float) $item->gradepass;
         if (!$values) {
             if (!$teacherpreview) {
                 $privacyrestricted = true;
@@ -994,6 +1155,23 @@ function listgrades_render_statistics(
             if ($illustrative) {
                 $usergrade = (float) $values[array_rand($values)];
             }
+            if ($showglobalpercentage) {
+                $showglobalsummary = listgrades_privacy_allows_global_percentage(
+                    $values,
+                    $gradepass,
+                    $privacyconditions
+                );
+                if ($showglobalsummary || $teacherpreview) {
+                    if (!$showglobalsummary && $privacyreason === null) {
+                        $itemcharts .= $OUTPUT->notification(
+                            get_string('privacyglobalhidden', 'listgrades') . ' ' .
+                                get_string('privacyteachernotice', 'listgrades'),
+                            \core\output\notification::NOTIFY_ERROR
+                        );
+                    }
+                    $itemcharts .= listgrades_render_global_percentage($values, $gradepass);
+                }
+            }
             $itemcharts .= listgrades_render_scale_chart(
                 $item,
                 $values,
@@ -1003,7 +1181,6 @@ function listgrades_render_statistics(
                 $illustrative
             );
         } else if ($item->gradetype == GRADE_TYPE_VALUE) {
-            $gradepass = empty($item->gradepass) ? null : (float) $item->gradepass;
             if (
                 $privacyreason === null &&
                 !listgrades_privacy_allows_numeric_statistics($values, $gradepass, $privacyconditions)
@@ -1025,6 +1202,12 @@ function listgrades_render_statistics(
             ) {
                 $privacyreason = 'privacydistributionhidden';
             }
+            if ($privacyreason === null && $numericgradesasletters) {
+                $letterdistribution = listgrades_build_letter_distribution($item, $values);
+                if (!listgrades_privacy_allows_distribution($letterdistribution['counts'], $privacyconditions)) {
+                    $privacyreason = 'privacydistributionhidden';
+                }
+            }
             if ($privacyreason !== null) {
                 $privacyrestricted = true;
                 if (!$teacherpreview) {
@@ -1039,22 +1222,53 @@ function listgrades_render_statistics(
             if ($illustrative) {
                 $usergrade = listgrades_random_preview_grade($values, $item->get_decimals());
             }
-            $itemcharts .= listgrades_render_box_plot(
-                $item,
-                $values,
-                $usergrade,
-                $user,
-                $courseid,
-                $illustrative
-            );
-            $itemcharts .= listgrades_render_histogram(
-                $item,
-                $values,
-                $usergrade,
-                $user,
-                $courseid,
-                $illustrative
-            );
+            if ($showglobalpercentage) {
+                $showglobalsummary = listgrades_privacy_allows_global_percentage(
+                    $values,
+                    $gradepass,
+                    $privacyconditions
+                );
+                if ($showglobalsummary || $teacherpreview) {
+                    if (!$showglobalsummary && $privacyreason === null) {
+                        $itemcharts .= $OUTPUT->notification(
+                            get_string('privacyglobalhidden', 'listgrades') . ' ' .
+                                get_string('privacyteachernotice', 'listgrades'),
+                            \core\output\notification::NOTIFY_ERROR
+                        );
+                    }
+                    $itemcharts .= listgrades_render_global_percentage($values, $gradepass);
+                }
+            }
+            if ($showboxplot) {
+                $itemcharts .= listgrades_render_box_plot(
+                    $item,
+                    $values,
+                    $usergrade,
+                    $user,
+                    $courseid,
+                    $illustrative
+                );
+            }
+            if ($showhistogram) {
+                $itemcharts .= listgrades_render_histogram(
+                    $item,
+                    $values,
+                    $usergrade,
+                    $user,
+                    $courseid,
+                    $illustrative
+                );
+            }
+            if ($numericgradesasletters) {
+                $itemcharts .= listgrades_render_letter_chart(
+                    $item,
+                    $values,
+                    $usergrade,
+                    $user,
+                    $courseid,
+                    $illustrative
+                );
+            }
         }
         if ($itemcharts !== '') {
             $heading = html_writer::tag('h4', format_string($itemnames[$itemid]), ['class' => 'h5']);

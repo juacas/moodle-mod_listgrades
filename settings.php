@@ -35,7 +35,22 @@ if ($ADMIN->fulltree) {
         get_string('modeditdefaults', 'admin'),
         get_string('condifmodeditdefaults', 'admin')
     ));
-
+    // Keep placeholders untouched here. They are expanded with course data only
+    // when the defaults are loaded into a new activity form.
+    $settings->add(new admin_setting_confightmleditor(
+        'listgrades/defaultintro',
+        get_string('defaultintro', 'listgrades'),
+        get_string('defaultintro_help', 'listgrades'),
+        get_string('defaultintrotext', 'listgrades'),
+        PARAM_RAW
+    ));
+    $settings->add(new admin_setting_confightmleditor(
+        'listgrades/defaultfooter',
+        get_string('defaultfooter', 'listgrades'),
+        get_string('defaultfooter_help', 'listgrades'),
+        get_string('defaultfootertext', 'listgrades'),
+        PARAM_RAW
+    ));
     $allowedmodeoptions = [
         LISTGRADES_DISPLAY_LIST => get_string('displaymodelist', 'listgrades'),
         LISTGRADES_DISPLAY_INDIVIDUAL => get_string('displaymodeindividual', 'listgrades'),
@@ -67,11 +82,50 @@ if ($ADMIN->fulltree) {
         LISTGRADES_ALLOWED_BOTH
     );
 
+    $settings->add(new admin_setting_heading(
+        'listgrades/statisticssettings',
+        get_string('statisticssettings', 'listgrades'),
+        get_string('statisticssettings_help', 'listgrades')
+    ));
+
+    $settings->add(new admin_setting_configcheckbox(
+        'listgrades/showglobalpercentage',
+        get_string('showglobalpercentage', 'listgrades'),
+        get_string('showglobalpercentage_help', 'listgrades'),
+        1
+    ));
+
+    $settings->add(new admin_setting_configcheckbox(
+        'listgrades/numericgradesasletters',
+        get_string('numericgradesasletters', 'listgrades'),
+        get_string('numericgradesasletters_help', 'listgrades'),
+        0
+    ));
+    $settings->add(new admin_setting_configcheckbox(
+        'listgrades/showboxplot',
+        get_string('showboxplot', 'listgrades'),
+        get_string('showboxplot_help', 'listgrades'),
+        1
+    ));
+
+    $settings->add(new admin_setting_configcheckbox(
+        'listgrades/showhistogram',
+        get_string('showhistogram', 'listgrades'),
+        get_string('showhistogram_help', 'listgrades'),
+        1
+    ));
+
     $settings->add(new admin_setting_configcheckbox(
         'listgrades/privacyconditions',
         get_string('privacyconditions', 'listgrades'),
         get_string('privacyconditions_help', 'listgrades'),
         1
+    ));
+
+    $settings->add(new admin_setting_heading(
+        'listgrades/listingssettings',
+        get_string('listingssettings', 'listgrades'),
+        get_string('listingssettings_help', 'listgrades')
     ));
 
     // Show the username in listing.
@@ -166,21 +220,4 @@ if ($ADMIN->fulltree) {
         'eq',
         LISTGRADES_DISPLAY_INDIVIDUAL
     );
-
-    // Keep placeholders untouched here. They are expanded with course data only
-    // when the defaults are loaded into a new activity form.
-    $settings->add(new admin_setting_confightmleditor(
-        'listgrades/defaultintro',
-        get_string('defaultintro', 'listgrades'),
-        get_string('defaultintro_help', 'listgrades'),
-        get_string('defaultintrotext', 'listgrades'),
-        PARAM_RAW
-    ));
-    $settings->add(new admin_setting_confightmleditor(
-        'listgrades/defaultfooter',
-        get_string('defaultfooter', 'listgrades'),
-        get_string('defaultfooter_help', 'listgrades'),
-        get_string('defaultfootertext', 'listgrades'),
-        PARAM_RAW
-    ));
 }

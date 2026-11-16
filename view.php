@@ -47,10 +47,11 @@ listgrades_view($listgrades, $course, $cm, $context);
 
 $PAGE->set_url('/mod/listgrades/view.php', ['id' => $cm->id]);
 
-$activityheader = ['hidecompletion' => false];
-if (empty($cm->showdescription)) {
-    $activityheader['description'] = '';
-}
+$activityheader = [
+    'hidecompletion' => false,
+    // The introduction is rendered explicitly below so it behaves consistently across themes.
+    'description' => '',
+];
 
 $PAGE->add_body_class('limitedwidth');
 $PAGE->set_title($course->shortname . ': ' . $listgrades->name);
@@ -72,6 +73,11 @@ if (!$isopen) {
     echo $OUTPUT->box_end();
 }
 if ($isopen || has_capability('moodle/course:manageactivities', $context)) {
+    echo $OUTPUT->box(
+        format_module_intro('listgrades', $listgrades, $cm->id),
+        'generalbox center clearfix'
+    );
+
     // Group mode.
     $groupid = groups_get_activity_group($cm, true) ?: null;
 
@@ -237,7 +243,7 @@ if ($isopen || has_capability('moodle/course:manageactivities', $context)) {
             $grade = $grades[$user->id];
             $id = $user->$userfield;
             if ($id == null) {
-                debugging("User $user->id does not have a $userfield");
+                $id = "Student { $user->id } with no ID";
             }
             if ($config->aepdmethod) {
                 $maskeduserfield = listgrades_mask_identifier_aepd($id);
