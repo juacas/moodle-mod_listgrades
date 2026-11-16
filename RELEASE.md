@@ -1,4 +1,4 @@
-# List Grades v1.1.0
+# List Grades v1.1.1
 
 ## New individual publishing mode
 

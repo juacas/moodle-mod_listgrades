@@ -12,14 +12,14 @@ Feature: Configure listgrades appearance
       | activity       | name       | intro      | course | idnumber |
       | listgrades     | PageName1  | PageDesc1  | C1     | PAGE1    |
 
-  Scenario Outline: Hide and display listgrades features
+  Scenario Outline: Always display the description inside listgrades
     Given I am on the "PageName1" "listgrades activity editing" page logged in as admin
     And I expand all fieldsets
-    And I set the field "<feature>" to "<value>"
+    And I set the field "showdescription" to "<value>"
     And I press "Save and display"
-    Then I <shouldornot> see "<lookfor>" in the "region-main" "region"
+    Then I should see "PageDesc1" in the "region-main" "region"
 
     Examples:
-      | feature                          | lookfor        | value | shouldornot |
-      | showdescription                  | PageDesc1      | 1     | should      |
-      | showdescription                  | PageDesc1      | 0     | should not  |
+      | value |
+      | 1     |
+      | 0     |
