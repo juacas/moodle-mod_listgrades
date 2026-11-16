@@ -12,6 +12,9 @@
 
 - Statistics can be enabled or disabled in both individual publications and class listings.
 - Numeric grades are presented with framed box plots and histograms using the full item range as a reference.
+- Administrators can choose whether overall participation and pass figures are shown.
+- Box plots and numeric histograms can be enabled or disabled independently.
+- Numeric grades can additionally be presented as textual percentage bars using the Moodle grade-letter equivalence configured in each course.
 - Text scales are represented by a horizontal distribution with totals and percentages.
 - The student's position is highlighted in every chart with a marker containing their profile picture.
 - Teachers can preview statistical markers even when they do not have a grade of their own.

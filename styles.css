@@ -37,6 +37,11 @@
     margin-bottom: 1rem;
 }
 
+.path-mod-listgrades .listgrades-global-summary {
+    margin: 1rem 0;
+    font-weight: 600;
+}
+
 .path-mod-listgrades .listgrades-boxplot {
     position: relative;
     height: 4.5rem;

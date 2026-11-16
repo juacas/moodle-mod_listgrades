@@ -26,7 +26,11 @@ The **Moodle Privacy-Friendly Grade Publishing Plugin** allows teachers to publi
 
 Statistics can be enabled independently of the publication mode and therefore displayed in both Listing and Individual views.
 
-- **Numeric Grades:** Each item includes a boxplot and a histogram grouped in a shaded panel. The boxplot represents the observed distribution. The histogram uses the configured grade-item range, contains no more than 10 bins and attempts to place a bin boundary close to the configured passing grade.
+- **Overall Results:** Administrators can optionally show the number of assessed students and the number and percentage who achieved the passing grade.
+
+- **Numeric Grades:** Each item can independently include a histogram and a boxplot, grouped in a shaded panel. The boxplot represents the observed distribution. The histogram uses the configured grade-item range, contains no more than 10 bins and attempts to place a bin boundary close to the configured passing grade.
+
+- **Text Grade Statistics:** Administrators can add horizontal percentage bars based on Moodle's course grade-letter equivalences. This textual distribution can be displayed together with the numeric histogram and boxplot.
 
 - **Text Scales:** Scale items use a horizontal stacked distribution with totals and percentages for each scale value.
 
@@ -77,6 +81,8 @@ Statistics can be enabled independently of the publication mode and therefore di
 - Customize privacy masking options, such as ID replacement patterns and masking algorithms.
 
 - Enable or disable the privacy conditions applied to aggregated grade statistics.
+
+- Choose independently whether to show overall pass figures, boxplots, numeric histograms and textual grade distributions.
 
 - Define default settings for new instances.
 
