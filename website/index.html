@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="List Grades publishes the relevant results from a busy Moodle gradebook through individual reports and privacy-aware statistics.">
+  <meta name="theme-color" content="#081426">
+  <meta property="og:title" content="List Grades · Clear, private grade publishing for Moodle">
+  <meta property="og:description" content="Replace PDF grade lists with a gradebook-connected publication, using individual reports or protected aggregate statistics.">
+  <meta property="og:type" content="website">
+  <title>List Grades · Grade publishing for Moodle</title>
+  <link rel="icon" href="assets/pix/listgrades-icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="List Grades home"><span class="brand-mark"><img src="assets/pix/listgrades-icon.svg" alt="" width="30" height="30"></span><span>List Grades</span></a>
+    <nav class="nav-links" aria-label="Primary navigation">
+      <a href="#problem">Why</a><a href="#publication">Publishing</a><a href="#privacy">Privacy</a><a href="#settings">Settings</a>
+      <a class="nav-marketplace" href="https://marketplace.moodle.com/plugins/mod_listgrades">Marketplace ↗</a><a href="es/" lang="es">ES</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero section-shell">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="status-dot"></span> Moodle plugin · Open source GPLv3+</p>
+        <h1>Highlight the grade that matters. <em>Without another PDF.</em></h1>
+        <p class="hero-lede">List Grades turns a relevant result from a crowded gradebook into a clear, current publication prepared for every student.</p>
+        <div class="hero-actions"><a class="button button-primary" href="https://marketplace.moodle.com/plugins/mod_listgrades">Get it on Moodle Marketplace <span>↗</span></a><a class="button button-quiet" href="#problem">Discover the approach <span>↓</span></a></div>
+        <div class="compatibility"><span>Moodle 4.0+</span><span>Individual publishing</span><span>Optional statistics</span></div>
+      </div>
+      <div class="hero-visual" aria-label="Grade statistics preview">
+        <div class="orb orb-blue"></div><div class="orb orb-teal"></div>
+        <div class="window-card"><div class="window-bar"><span></span><span></span><span></span><b>Final exam · Statistics</b><i>•••</i></div><img src="assets/pix/grade-distribution-boxplot-histogram.png" alt="A grade boxplot and histogram with the student's position marked by their profile picture" width="1426" height="1039"><div class="floating-note"><strong>One relevant grade</strong><small>shown in context</small></div></div>
+      </div>
+    </section>
+
+    <section class="proof-strip section-shell" aria-label="Project highlights"><div><strong>Direct from the gradebook</strong><span>no duplicated document data</span></div><div><strong>Only what matters</strong><span>choose grade items and feedback</span></div><div><strong>Privacy by design</strong><span>individual or protected aggregates</span></div></section>
+
+    <section class="problem section-shell section-block" id="problem">
+      <div class="section-heading"><p class="eyebrow">From a static list to a live publication</p><h2>The gradebook can be busy.<br><em>Communication does not have to be.</em></h2></div>
+      <div class="problem-layout">
+        <div class="problem-copy"><p class="lead">When a course accumulates assignments, quizzes, categories and calculations, an important result can disappear among too many items.</p><p>The traditional workflow often ends with an export, a PDF and another copy to check and republish. List Grades replaces that static list with a Moodle activity connected to the gradebook.</p><p>The teacher selects exactly which result to communicate. The student receives a focused view in the format and context chosen by the institution.</p></div>
+        <div class="comparison" aria-label="Traditional workflow compared with List Grades"><div class="comparison-row comparison-old"><span>Before</span><strong>Export</strong><i>→</i><strong>Format PDF</strong><i>→</i><strong>Publish copy</strong></div><div class="comparison-row comparison-new"><span>Now</span><strong>Select item</strong><i>→</i><strong>Choose view</strong><i>→</i><strong>Publish in Moodle</strong></div><small>The grade remains connected to its source: the course gradebook.</small></div>
+      </div>
+    </section>
+
+    <section class="publication section-block" id="publication">
+      <div class="section-shell">
+        <div class="section-heading section-heading-light"><p class="eyebrow">Two ways to communicate</p><h2>One result for each student.<br><em>Or a list when it is needed.</em></h2></div>
+        <div class="publication-grid">
+          <article class="publication-card publication-card-individual"><div class="card-copy"><span class="card-index">01</span><h3>Individual publishing</h3><p>Each student sees only their own grades, with maximum or scale references, selected feedback and the viewing date.</p><ul><li>Personalised view for every user</li><li>Student selection for teacher previews</li><li>No exposure of other identities or grades</li></ul></div><figure class="tall-shot"><img src="assets/pix/individual-grade-report-statistics.jpeg" alt="Individual Moodle grade report with a table, boxplots and histograms" loading="lazy" width="2191" height="3343"><figcaption>Individual report with statistics enabled</figcaption></figure></article>
+          <article class="publication-card publication-card-list"><div class="card-copy"><span class="card-index">02</span><h3>Configurable listing</h3><p>When institutional policy allows a list, the plugin keeps the collective format and adds control over names, identifiers and groups.</p><ul><li>Configurable identifier masking</li><li>Separate or visible groups</li><li>Custom header and footer</li></ul></div><figure><img src="assets/pix/class-grade-listing.png" alt="A group grade listing displayed inside Moodle" loading="lazy" width="1136" height="614"><figcaption>A listing integrated into the course</figcaption></figure></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="statistics section-shell section-block" id="statistics">
+      <div class="section-heading"><p class="eyebrow">Context, not noise</p><h2>The individual grade,<br><em>inside its distribution.</em></h2></div>
+      <div class="statistics-layout">
+        <figure class="statistics-figure"><img src="assets/pix/grade-distribution-boxplot-histogram.png" alt="Boxplot and histogram with a personal student marker" loading="lazy" width="1426" height="1039"><figcaption>The circular marker locates the student without changing the cohort data.</figcaption></figure>
+        <div class="statistics-copy"><h3>Statistics that can be enabled independently</h3><p>Administrators choose how much context to provide. Boxplot, numeric histogram, overall pass figures and textual grade bars can be combined or disabled.</p><div class="stat-options"><div><span class="mini-plot mini-box"></span><strong>Boxplot</strong><small>Minimum, quartiles, median and maximum.</small></div><div><span class="mini-plot mini-bars"></span><strong>Histogram</strong><small>Bins adjusted to the grade-item range.</small></div><div><span class="mini-plot mini-text"></span><strong>Text grades</strong><small>Percentages based on Moodle's configured letters.</small></div><div><span class="mini-plot mini-percent">%</span><strong>Overall result</strong><small>Students assessed and passing figures.</small></div></div></div>
+      </div>
+    </section>
+
+    <section class="privacy section-block" id="privacy">
+      <div class="section-shell privacy-inner">
+        <div class="privacy-copy"><p class="eyebrow">Enhanced privacy</p><h2>Publish results<br><em>without publishing too much.</em></h2><p>Article 25 of Spain's <strong>Royal Decree 855/2026 of 21 October</strong> establishes that each student must be able to know only their own grade, without prejudice to the possible anonymised publication of aggregate academic results.</p><p>List Grades provides individual publishing as the direct route and adds optional safeguards whenever aggregate statistics are shown.</p><a class="text-link" href="https://www.boe.es/eli/es/rd/2026/10/21/855/con">Read the official text at the BOE ↗</a></div>
+        <div class="privacy-panel"><div class="privacy-badge">Article 25 · Communication of grades</div><h3>Optional privacy conditions</h3><ul class="privacy-list"><li><span>01</span><div><strong>Small cohorts</strong><p>Aggregate results are omitted when five or fewer students have been assessed.</p></div></li><li><span>02</span><div><strong>Unanimous outcomes</strong><p>Pass totals and percentages are omitted when everyone passed or everyone failed.</p></div></li><li><span>03</span><div><strong>A single band</strong><p>The distribution is omitted when every grade falls inside the same interval.</p></div></li></ul><p class="privacy-note">Students do not see restricted blocks. Teachers retain the preview and receive a clear warning.</p></div>
+      </div>
+    </section>
+
+    <section class="settings section-shell section-block" id="settings">
+      <div class="section-heading"><p class="eyebrow">A policy for every institution</p><h2>Plenty of choice.<br><em>One coherent message.</em></h2><p class="section-intro">Not every institution communicates grades in the same way. Settings adapt the plugin to individual, collective, numeric or textual approaches.</p></div>
+      <div class="feature-grid">
+        <article class="feature-card feature-card-blue"><span class="feature-number">01</span><div class="feature-icon">◫</div><h3>Allowed formats</h3><p>Listing, individual or both, with a default mode for new activities.</p></article>
+        <article class="feature-card feature-card-teal"><span class="feature-number">02</span><div class="feature-icon">◎</div><h3>Modular statistics</h3><p>Enable pass figures, boxplot, histogram and textual equivalents independently.</p></article>
+        <article class="feature-card feature-card-gold"><span class="feature-number">03</span><div class="feature-icon">⌁</div><h3>Identity and groups</h3><p>Control names, user fields, privacy masks and group scope.</p></article>
+        <article class="feature-card feature-card-violet"><span class="feature-number">04</span><div class="feature-icon">✦</div><h3>Institutional templates</h3><p>Headers and footers can include logos, course data, imagery and summaries through placeholders.</p></article>
+        <article class="feature-card feature-card-wide"><span class="feature-number">05</span><div class="feature-icon">✓</div><h3>Precise content selection</h3><p>Publish only relevant items and decide whether feedback appears with its grade or on its own. Gradebook decimals, scales and references are respected.</p></article>
+        <article class="feature-card feature-card-dark"><span class="feature-number">06</span><div class="feature-icon">◷</div><h3>Publication window</h3><p>Set opening and closing dates so communication arrives at the intended time.</p></article>
+      </div>
+    </section>
+
+    <section class="install section-shell section-block" id="install"><div class="install-card"><div><p class="eyebrow">Available for Moodle</p><h2>Leave the grade PDF behind.</h2><p>Install List Grades from the official marketplace and publish from the place where grades already live.</p></div><div class="marketplace-card"><span class="moodle-mark">m</span><div><small>Moodle Marketplace</small><strong>List Grades</strong><span>Activity module · mod_listgrades</span></div></div><a class="button button-light" href="https://marketplace.moodle.com/plugins/mod_listgrades">View the plugin on Marketplace <span>↗</span></a></div></section>
+  </main>
+
+  <footer class="site-footer"><div class="section-shell"><div class="footer-content"><div class="footer-intro"><a class="brand" href="#top"><span class="brand-mark"><img src="assets/pix/listgrades-icon.svg" alt="" width="30" height="30"></span><span>List Grades</span></a><p>Clear, configurable and privacy-conscious grade publishing for Moodle.</p></div><nav class="footer-column" aria-label="Contents"><h2>Contents</h2><a href="#problem">The problem</a><a href="#publication">Publishing</a><a href="#statistics">Statistics</a><a href="#privacy">Privacy</a></nav><nav class="footer-column" aria-label="Resources"><h2>Resources</h2><a href="https://marketplace.moodle.com/plugins/mod_listgrades">Moodle Marketplace</a><a href="https://github.com/juacas/moodle-mod_listgrades">GitHub</a><a href="https://github.com/juacas/moodle-mod_listgrades/issues">Issues</a><a href="https://www.boe.es/eli/es/rd/2026/10/21/855/con">Royal Decree 855/2026</a><a href="es/" lang="es">Español</a></nav></div><div class="partner-row" aria-label="Institutions"><span class="partner-logo partner-uva"><img src="assets/pix/universidad-valladolid-logo.png" alt="University of Valladolid" loading="lazy"></span><span class="partner-logo"><img src="assets/pix/eduvalab-logo.png" alt="EdUVALab" loading="lazy"></span></div><div class="footer-bottom"><span>© List Grades · University of Valladolid</span><span>Open source · GPLv3+ · Moodle activity plugin</span></div></div></footer>
+  <script src="script.js"></script>
+</body>
+</html>

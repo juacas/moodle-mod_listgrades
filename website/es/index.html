@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="List Grades publica desde Moodle las calificaciones relevantes de un gradebook extenso, con vista individual y estadísticas de privacidad reforzada.">
+  <meta name="theme-color" content="#081426">
+  <meta property="og:title" content="List Grades · Publicación clara y privada de calificaciones en Moodle">
+  <meta property="og:description" content="Sustituye los listados PDF por una publicación conectada al gradebook, individual o agregada, con estadísticas configurables.">
+  <meta property="og:type" content="website">
+  <title>List Grades · Publicación de calificaciones para Moodle</title>
+  <link rel="icon" href="../assets/pix/listgrades-icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="Inicio de List Grades">
+      <span class="brand-mark"><img src="../assets/pix/listgrades-icon.svg" alt="" width="30" height="30"></span>
+      <span>List Grades</span>
+    </a>
+    <nav class="nav-links" aria-label="Navegación principal">
+      <a href="#problem">Por qué</a>
+      <a href="#publication">Publicación</a>
+      <a href="#privacy">Privacidad</a>
+      <a href="#settings">Configuración</a>
+      <a class="nav-marketplace" href="https://marketplace.moodle.com/plugins/mod_listgrades">Marketplace ↗</a>
+      <a href="../" lang="en">EN</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero section-shell">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="status-dot"></span> Plugin Moodle · Código abierto GPLv3+</p>
+        <h1>Destaca la nota que importa. <em>Sin otro PDF.</em></h1>
+        <p class="hero-lede">List Grades convierte una calificación relevante de un gradebook extenso en una publicación clara, actualizada y preparada para cada estudiante.</p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="https://marketplace.moodle.com/plugins/mod_listgrades">Obtener en Moodle Marketplace <span>↗</span></a>
+          <a class="button button-quiet" href="#problem">Descubrir el enfoque <span>↓</span></a>
+        </div>
+        <div class="compatibility"><span>Moodle 4.0+</span><span>Publicación individual</span><span>Estadísticas opcionales</span></div>
+      </div>
+      <div class="hero-visual" aria-label="Vista previa de estadísticas de calificaciones">
+        <div class="orb orb-blue"></div><div class="orb orb-teal"></div>
+        <div class="window-card">
+          <div class="window-bar"><span></span><span></span><span></span><b>Examen ordinario · Estadísticas</b><i>•••</i></div>
+          <img src="../assets/pix/grade-distribution-boxplot-histogram.png" alt="Boxplot e histograma de una calificación con la posición del estudiante marcada mediante su foto" width="1426" height="1039">
+          <div class="floating-note"><strong>Una nota relevante</strong><small>en su contexto</small></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="proof-strip section-shell" aria-label="Aspectos destacados">
+      <div><strong>Directo del gradebook</strong><span>sin duplicar datos en documentos</span></div>
+      <div><strong>Solo lo relevante</strong><span>elige ítems y feedback</span></div>
+      <div><strong>Privacidad por diseño</strong><span>individual o agregada protegida</span></div>
+    </section>
+
+    <section class="problem section-shell section-block" id="problem">
+      <div class="section-heading">
+        <p class="eyebrow">Del listado estático a una publicación viva</p>
+        <h2>El gradebook puede ser prolijo.<br><em>La comunicación no tiene por qué serlo.</em></h2>
+      </div>
+      <div class="problem-layout">
+        <div class="problem-copy">
+          <p class="lead">Cuando un curso acumula tareas, cuestionarios, categorías y cálculos, una nota importante puede quedar enterrada entre demasiados ítems.</p>
+          <p>El flujo tradicional suele terminar en una exportación, un PDF y una nueva copia que hay que revisar y volver a publicar. List Grades sustituye ese listado estático por una actividad Moodle conectada al libro de calificaciones.</p>
+          <p>El docente selecciona exactamente qué nota quiere comunicar. El estudiante recibe una vista enfocada, con el formato y el contexto que la institución haya decidido.</p>
+        </div>
+        <div class="comparison" aria-label="Comparación del flujo tradicional y List Grades">
+          <div class="comparison-row comparison-old"><span>Antes</span><strong>Exportar</strong><i>→</i><strong>Maquetar PDF</strong><i>→</i><strong>Publicar copia</strong></div>
+          <div class="comparison-row comparison-new"><span>Ahora</span><strong>Seleccionar ítem</strong><i>→</i><strong>Configurar vista</strong><i>→</i><strong>Publicar en Moodle</strong></div>
+          <small>La calificación permanece vinculada a su fuente: el gradebook del curso.</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="publication section-block" id="publication">
+      <div class="section-shell">
+        <div class="section-heading section-heading-light">
+          <p class="eyebrow">Dos formas de comunicar</p>
+          <h2>Un resultado para cada estudiante.<br><em>O un listado cuando hace falta.</em></h2>
+        </div>
+        <div class="publication-grid">
+          <article class="publication-card publication-card-individual">
+            <div class="card-copy">
+              <span class="card-index">01</span>
+              <h3>Publicación individual</h3>
+              <p>Cada estudiante ve únicamente sus propias calificaciones, con referencias de máximo o escala, feedback seleccionado y fecha de consulta.</p>
+              <ul><li>Vista personalizada por usuario</li><li>Selección de estudiantes para la vista docente</li><li>Sin exponer identidades ni notas ajenas</li></ul>
+            </div>
+            <figure class="tall-shot"><img src="../assets/pix/individual-grade-report-statistics.jpeg" alt="Informe individual de calificaciones en Moodle con tabla, boxplots e histogramas" loading="lazy" width="2191" height="3343"><figcaption>Informe individual con estadísticas activadas</figcaption></figure>
+          </article>
+          <article class="publication-card publication-card-list">
+            <div class="card-copy">
+              <span class="card-index">02</span>
+              <h3>Listado configurable</h3>
+              <p>Cuando la política institucional permite un listado, el plugin conserva el formato colectivo y añade opciones para controlar nombres, identificadores y grupos.</p>
+              <ul><li>Ofuscación configurable de identificadores</li><li>Grupos separados o visibles</li><li>Cabecera y pie personalizables</li></ul>
+            </div>
+            <figure><img src="../assets/pix/class-grade-listing.png" alt="Listado de calificaciones de un grupo dentro de Moodle" loading="lazy" width="1136" height="614"><figcaption>Listado integrado en el curso</figcaption></figure>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="statistics section-shell section-block" id="statistics">
+      <div class="section-heading">
+        <p class="eyebrow">Contexto, no ruido</p>
+        <h2>La nota individual,<br><em>dentro de la distribución.</em></h2>
+      </div>
+      <div class="statistics-layout">
+        <figure class="statistics-figure"><img src="../assets/pix/grade-distribution-boxplot-histogram.png" alt="Boxplot e histograma con el marcador personal del estudiante" loading="lazy" width="1426" height="1039"><figcaption>El marcador circular sitúa al estudiante sin alterar los datos del grupo.</figcaption></figure>
+        <div class="statistics-copy">
+          <h3>Estadísticas que se pueden encender por separado</h3>
+          <p>El administrador decide cuánto contexto se ofrece. Boxplot, histograma numérico, porcentaje global y barras de calificaciones textuales pueden combinarse o desactivarse.</p>
+          <div class="stat-options">
+            <div><span class="mini-plot mini-box"></span><strong>Boxplot</strong><small>Mínimo, cuartiles, mediana y máximo.</small></div>
+            <div><span class="mini-plot mini-bars"></span><strong>Histograma</strong><small>Intervalos ajustados al rango del ítem.</small></div>
+            <div><span class="mini-plot mini-text"></span><strong>Notas como texto</strong><small>Porcentajes según las letras configuradas en Moodle.</small></div>
+            <div><span class="mini-plot mini-percent">%</span><strong>Resultado global</strong><small>Presentados y superación de la prueba.</small></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="privacy section-block" id="privacy">
+      <div class="section-shell privacy-inner">
+        <div class="privacy-copy">
+          <p class="eyebrow">Privacidad reforzada</p>
+          <h2>Publicar resultados<br><em>sin publicar de más.</em></h2>
+          <p>El artículo 25 del <strong>Real Decreto 855/2026, de 21 de octubre</strong>, establece que cada estudiante pueda conocer únicamente su propia calificación, sin perjuicio de la posible publicación anonimizada de resultados académicos agregados.</p>
+          <p>List Grades ofrece la publicación individual como camino directo y añade salvaguardas opcionales cuando se muestran estadísticas agregadas.</p>
+          <a class="text-link" href="https://www.boe.es/eli/es/rd/2026/10/21/855/con">Consultar el texto oficial en el BOE ↗</a>
+        </div>
+        <div class="privacy-panel">
+          <div class="privacy-badge">Artículo 25 · Comunicación de calificaciones</div>
+          <h3>Condiciones de privacidad activables</h3>
+          <ul class="privacy-list">
+            <li><span>01</span><div><strong>Cohortes pequeñas</strong><p>Se omiten resultados agregados con cinco estudiantes presentados o menos.</p></div></li>
+            <li><span>02</span><div><strong>Resultados unánimes</strong><p>No se muestran totales ni porcentajes de aprobados si todos aprueban o todos suspenden.</p></div></li>
+            <li><span>03</span><div><strong>Un único tramo</strong><p>La distribución se oculta cuando todas las calificaciones pertenecen al mismo intervalo.</p></div></li>
+          </ul>
+          <p class="privacy-note">El estudiante no ve bloques restringidos. El profesorado conserva la previsualización y recibe un aviso claro.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="settings section-shell section-block" id="settings">
+      <div class="section-heading">
+        <p class="eyebrow">Una política para cada institución</p>
+        <h2>Mucha optatividad.<br><em>Un mensaje coherente.</em></h2>
+        <p class="section-intro">No todos los centros comunican las calificaciones de la misma forma. Los ajustes permiten adaptar el plugin a modelos individuales, colectivos, cuantitativos o textuales.</p>
+      </div>
+      <div class="feature-grid">
+        <article class="feature-card feature-card-blue"><span class="feature-number">01</span><div class="feature-icon">◫</div><h3>Formatos permitidos</h3><p>Listado, individual o ambos, con un modo predeterminado para nuevas actividades.</p></article>
+        <article class="feature-card feature-card-teal"><span class="feature-number">02</span><div class="feature-icon">◎</div><h3>Estadísticas modulares</h3><p>Activa de forma independiente porcentajes, boxplot, histograma y equivalencias textuales.</p></article>
+        <article class="feature-card feature-card-gold"><span class="feature-number">03</span><div class="feature-icon">⌁</div><h3>Identificación y grupos</h3><p>Controla nombres, campos de usuario, máscaras de privacidad y alcance de grupos.</p></article>
+        <article class="feature-card feature-card-violet"><span class="feature-number">04</span><div class="feature-icon">✦</div><h3>Plantillas institucionales</h3><p>Cabeceras y pies con logotipos, datos, imagen y resumen del curso mediante placeholders.</p></article>
+        <article class="feature-card feature-card-wide"><span class="feature-number">05</span><div class="feature-icon">✓</div><h3>Selección precisa de contenido</h3><p>Publica solo los ítems relevantes y decide si cada feedback aparece con su nota o de forma independiente. Respeta decimales, escalas y referencias del gradebook.</p></article>
+        <article class="feature-card feature-card-dark"><span class="feature-number">06</span><div class="feature-icon">◷</div><h3>Ventana de publicación</h3><p>Define apertura y cierre para que la comunicación llegue en el momento previsto.</p></article>
+      </div>
+    </section>
+
+    <section class="install section-shell section-block" id="install">
+      <div class="install-card">
+        <div><p class="eyebrow">Disponible para Moodle</p><h2>Deja atrás el PDF de notas.</h2><p>Instala List Grades desde el marketplace oficial y publica desde el lugar donde ya viven las calificaciones.</p></div>
+        <div class="marketplace-card"><span class="moodle-mark">m</span><div><small>Moodle Marketplace</small><strong>List Grades</strong><span>Activity module · mod_listgrades</span></div></div>
+        <a class="button button-light" href="https://marketplace.moodle.com/plugins/mod_listgrades">Ver el plugin en Marketplace <span>↗</span></a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="section-shell">
+      <div class="footer-content">
+        <div class="footer-intro"><a class="brand" href="#top"><span class="brand-mark"><img src="../assets/pix/listgrades-icon.svg" alt="" width="30" height="30"></span><span>List Grades</span></a><p>Publicación de calificaciones clara, configurable y respetuosa con la privacidad para Moodle.</p></div>
+        <nav class="footer-column" aria-label="Contenidos"><h2>Contenidos</h2><a href="#problem">El problema</a><a href="#publication">Publicación</a><a href="#statistics">Estadísticas</a><a href="#privacy">Privacidad</a></nav>
+        <nav class="footer-column" aria-label="Recursos"><h2>Recursos</h2><a href="https://marketplace.moodle.com/plugins/mod_listgrades">Moodle Marketplace</a><a href="https://github.com/juacas/moodle-mod_listgrades">GitHub</a><a href="https://github.com/juacas/moodle-mod_listgrades/issues">Incidencias</a><a href="https://www.boe.es/eli/es/rd/2026/10/21/855/con">Real Decreto 855/2026</a><a href="../" lang="en">English</a></nav>
+      </div>
+      <div class="partner-row" aria-label="Instituciones"><span class="partner-logo partner-uva"><img src="../assets/pix/universidad-valladolid-logo.png" alt="Universidad de Valladolid" loading="lazy"></span><span class="partner-logo"><img src="../assets/pix/eduvalab-logo.png" alt="EdUVALab" loading="lazy"></span></div>
+      <div class="footer-bottom"><span>© List Grades · Universidad de Valladolid</span><span>Código abierto · GPLv3+ · Plugin de actividad Moodle</span></div>
+    </div>
+  </footer>
+  <script src="../script.js"></script>
+</body>
+</html>
