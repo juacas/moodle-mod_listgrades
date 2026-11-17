@@ -28,7 +28,7 @@ Statistics can be enabled independently of the publication mode and therefore di
 
 - **Overall Results:** Administrators can optionally show the number of assessed students and the number and percentage who achieved the passing grade.
 
-- **Numeric Grades:** Each item can independently include a histogram and a boxplot, grouped in a shaded panel. The boxplot represents the observed distribution. The histogram uses the configured grade-item range, contains no more than 10 bins and attempts to place a bin boundary close to the configured passing grade.
+- **Numeric Grades:** Each item can independently include a histogram and a boxplot, grouped in a shaded panel. The boxplot represents the observed distribution. The histogram uses the configured grade-item range, contains no more than 10 bins, favours round interval widths and attempts to place a bin boundary close to the configured passing grade.
 
 - **Text Grade Statistics:** Administrators can add horizontal percentage bars based on Moodle's course grade-letter equivalences. This textual distribution can be displayed together with the numeric histogram and boxplot.
 

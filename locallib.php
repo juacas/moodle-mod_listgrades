@@ -476,7 +476,13 @@ function listgrades_render_user_marker(
         'link' => false,
         'alttext' => true,
     ]);
-    $gradelabel = $displaygrade ?? grade_format_gradevalue($usergrade, $item, true, GRADE_DISPLAY_TYPE_REAL);
+    if ($displaygrade !== null) {
+        $gradelabel = $displaygrade;
+    } else if ($item->gradetype == GRADE_TYPE_VALUE) {
+        $gradelabel = listgrades_format_numeric_grade_value($usergrade, $item);
+    } else {
+        $gradelabel = grade_format_gradevalue($usergrade, $item, true, GRADE_DISPLAY_TYPE_REAL);
+    }
     $markerlabel = $illustrative ? get_string('illustrativegrade', 'listgrades') : get_string('grade', 'listgrades');
     return html_writer::span($picture, 'listgrades-user-marker', [
         'style' => 'left:' . max(0, min(100, $position)) . '%',
@@ -673,14 +679,13 @@ function listgrades_render_box_plot(
         );
     }
 
-    $decimals = $item->get_decimals();
     $summary = (object) [];
     foreach (['min', 'q1', 'median', 'q3', 'max'] as $stat) {
-        $summary->$stat = format_float($stats->$stat, $decimals);
+        $summary->$stat = listgrades_format_numeric_grade_value($stats->$stat, $item);
     }
     $axis = listgrades_render_chart_axis(
-        format_float($rangemin, $decimals),
-        format_float($rangemax, $decimals)
+        listgrades_format_numeric_grade_value($rangemin, $item),
+        listgrades_format_numeric_grade_value($rangemax, $item)
     );
 
     $output = html_writer::div($plot, 'listgrades-boxplot', [
@@ -698,9 +703,11 @@ function listgrades_render_box_plot(
 /**
  * Build histogram bins for numeric grades.
  *
- * Small integer ranges get one bin per value. Other distributions use at most 10
- * equal-width bins. When a passing grade is configured inside the observed range,
- * the bin count is chosen so that a boundary falls as close to it as possible.
+ * Small integer ranges get one bin per value. Other distributions use between 5
+ * and 10 bins. Widths of 1, 2, 5, 10, 20, 25, 50 or 100 take priority,
+ * choosing the smallest width that does not exceed 10 bins. Proportionally
+ * scaled round widths and the sample size are used only as fallbacks. The final
+ * bin may be shorter to preserve the configured range.
  *
  * @param array $values numeric values
  * @param float|null $gradepass passing grade
@@ -744,24 +751,36 @@ function listgrades_build_histogram(
         $binwidth = 1.0;
     } else {
         $suggestedbincount = max(5, min(10, (int) ceil(sqrt($total))));
+        $range = $maximum - $minimum;
+        $baseexponent = (int) floor(log10($range));
         $bincount = $suggestedbincount;
-        if ($gradepass !== null && $gradepass > $minimum && $gradepass < $maximum) {
-            $passposition = ($gradepass - $minimum) / ($maximum - $minimum);
-            $bestdistance = INF;
-            for ($candidate = 5; $candidate <= 10; $candidate++) {
-                $nearestboundary = round($passposition * $candidate) / $candidate;
-                $distance = abs($passposition - $nearestboundary);
-                if (
-                    $distance < $bestdistance ||
-                        ($distance === $bestdistance &&
-                            abs($candidate - $suggestedbincount) < abs($bincount - $suggestedbincount))
-                ) {
-                    $bestdistance = $distance;
-                    $bincount = $candidate;
+        $binwidth = $range / $bincount;
+        $roundwidthfound = false;
+        foreach ([1.0, 2.0, 5.0, 10.0, 20.0, 25.0, 50.0, 100.0] as $candidatewidth) {
+            $candidatecount = (int) ceil(($range / $candidatewidth) - 1.0e-12);
+            if ($candidatecount < 5 || $candidatecount > 10) {
+                continue;
+            }
+            $bincount = $candidatecount;
+            $binwidth = $candidatewidth;
+            $roundwidthfound = true;
+            break;
+        }
+        if (!$roundwidthfound) {
+            foreach (range($baseexponent - 2, $baseexponent + 1) as $exponent) {
+                $magnitude = 10 ** $exponent;
+                foreach ([1.0, 2.0, 2.5, 5.0] as $multiplier) {
+                    $candidatewidth = $multiplier * $magnitude;
+                    $candidatecount = (int) ceil(($range / $candidatewidth) - 1.0e-12);
+                    if ($candidatecount < 5 || $candidatecount > 10) {
+                        continue;
+                    }
+                    $bincount = $candidatecount;
+                    $binwidth = $candidatewidth;
+                    break 2;
                 }
             }
         }
-        $binwidth = ($maximum - $minimum) / $bincount;
     }
 
     $bins = [];
@@ -822,14 +841,14 @@ function listgrades_render_histogram(
     }
 
     $maximumcount = max(array_column($bins, 'count'));
-    $decimals = $item->get_decimals();
     $bars = '';
     $summary = [];
     foreach ($bins as $bin) {
         if ($bin['lower'] === $bin['upper']) {
-            $label = format_float($bin['lower'], $decimals);
+            $label = listgrades_format_numeric_grade_value($bin['lower'], $item);
         } else {
-            $label = format_float($bin['lower'], $decimals) . '–' . format_float($bin['upper'], $decimals);
+            $label = listgrades_format_numeric_grade_value($bin['lower'], $item) . '–' .
+                listgrades_format_numeric_grade_value($bin['upper'], $item);
         }
         $description = get_string('histogrambin', 'listgrades', (object) [
             'range' => $label,
@@ -863,8 +882,8 @@ function listgrades_render_histogram(
         'aria-label' => implode('; ', $summary),
     ]);
     $output .= listgrades_render_chart_axis(
-        format_float((float) $item->grademin, $decimals),
-        format_float((float) $item->grademax, $decimals)
+        listgrades_format_numeric_grade_value((float) $item->grademin, $item),
+        listgrades_format_numeric_grade_value((float) $item->grademax, $item)
     );
     return html_writer::div($output, 'listgrades-stat-chart listgrades-histogram-chart');
 }

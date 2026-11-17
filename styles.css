@@ -159,6 +159,10 @@
     transform: translate(-50%, -50%);
 }
 
+.path-mod-listgrades .listgrades-letter-chart .listgrades-scale-plot .listgrades-user-marker {
+    transform: translate(.75rem, -50%);
+}
+
 .path-mod-listgrades .listgrades-scale-segment {
     display: flex;
     align-items: center;

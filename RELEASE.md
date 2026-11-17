@@ -14,6 +14,7 @@
 - Numeric grades are presented with framed box plots and histograms using the full item range as a reference.
 - Administrators can choose whether overall participation and pass figures are shown.
 - Box plots and numeric histograms can be enabled or disabled independently.
+- Histograms favour clear, round interval boundaries while retaining the complete grade-item range.
 - Numeric grades can additionally be presented as textual percentage bars using the Moodle grade-letter equivalence configured in each course.
 - Text scales are represented by a horizontal distribution with totals and percentages.
 - The student's position is highlighted in every chart with a marker containing their profile picture.
