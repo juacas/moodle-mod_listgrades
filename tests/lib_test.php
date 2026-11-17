@@ -228,6 +228,8 @@ final class lib_test extends \advanced_testcase {
         $numericgrade = listgrades_format_grade_with_reference(72.5, $numericitem);
         $this->assertStringContainsString('72.5/100', $numericgrade);
         $this->assertStringContainsString('72/100', listgrades_format_grade_with_reference(72.04, $numericitem));
+        $this->assertSame('72', listgrades_format_numeric_grade_value(72.0, $numericitem));
+        $this->assertSame('72.5', listgrades_format_numeric_grade_value(72.5, $numericitem));
 
         $scale = $this->getDataGenerator()->create_scale([
             'courseid' => $course->id,
@@ -274,6 +276,26 @@ final class lib_test extends \advanced_testcase {
         $this->assertSame(0.0, $configuredrange[0]['lower']);
         $this->assertSame(100.0, $configuredrange[array_key_last($configuredrange)]['upper']);
         $this->assertSame(2, array_sum(array_column($configuredrange, 'count')));
+
+        $decimalgrades = [];
+        for ($index = 0; $index < 80; $index++) {
+            $decimalgrades[] = ($index + .5) / 8;
+        }
+        $roundbins = listgrades_build_histogram($decimalgrades, null, 0, 10);
+        $this->assertCount(10, $roundbins);
+        $this->assertEquals(range(1, 10), array_column($roundbins, 'upper'));
+
+        $smallrange = listgrades_build_histogram([3, 4, 5, 6, 8, 9, 10], null, 0, 10);
+        $this->assertCount(10, $smallrange);
+        $this->assertEquals(range(1, 10), array_column($smallrange, 'upper'));
+
+        $coursetotal = listgrades_build_histogram([22, 30, 40, 45, 50, 70, 90], null, 0, 110);
+        $this->assertCount(6, $coursetotal);
+        $this->assertSame([20.0, 40.0, 60.0, 80.0, 100.0, 110.0], array_column($coursetotal, 'upper'));
+
+        $twentyfivepoints = listgrades_build_histogram([5, 10, 15, 20, 25], null, 0, 25);
+        $this->assertCount(5, $twentyfivepoints);
+        $this->assertSame([5.0, 10.0, 15.0, 20.0, 25.0], array_column($twentyfivepoints, 'upper'));
     }
 
     /**
