@@ -14,7 +14,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Grade item tree used by the activity configuration form.
+ * Hierarchical multi-column checkbox selector used by the activity form.
  *
  * @module     mod_listgrades/grade_item_tree
  * @copyright  2026 Juan Pablo de Castro <juanpablo.decastro@uva.es>
@@ -22,16 +22,15 @@
  */
 
 const SELECTORS = {
-    badgeContainer: '.listgrades-grade-tree-badges',
-    categoryToggle: '.listgrades-grade-tree-toggle',
-    itemMetadata: '.listgrades-grade-tree-item-metadata',
-    checkbox: 'input[type="checkbox"][name^="gradeitems["], input[type="checkbox"][name^="feedbackitems["]',
-    columnToggle: '.listgrades-grade-tree-column-toggle',
-    columnHeadings: '.listgrades-grade-tree-column-headings',
+    badgeContainer: '.listgrades-tree-selector-badges',
+    branchToggle: '.listgrades-tree-selector-toggle',
+    itemMetadata: '.listgrades-tree-selector-item-metadata',
+    columnToggle: '.listgrades-tree-selector-column-toggle',
+    columnHeadings: '.listgrades-tree-selector-column-headings',
 };
 
 /**
- * Convert a comma-separated category path to category ids.
+ * Convert a comma-separated branch path to branch ids.
  *
  * @param {string} path Category path.
  * @returns {string[]} Category ids.
@@ -50,45 +49,54 @@ export const init = config => {
     }
 
     const badgeContainer = section.querySelector(SELECTORS.badgeContainer);
-    const categoryToggles = [...section.querySelectorAll(SELECTORS.categoryToggle)];
+    const branchToggles = [...section.querySelectorAll(SELECTORS.branchToggle)];
     const itemMetadata = [...section.querySelectorAll(SELECTORS.itemMetadata)];
     const columnToggles = [...section.querySelectorAll(SELECTORS.columnToggle)];
-    const manuallyExpanded = new Set();
-    let selectedExpanded = new Set();
+    const columns = Object.entries(config.columns);
+    const itemCheckboxSelector = columns.map(([column]) =>
+        `input[type="checkbox"][name^="${column}["]`
+    ).join(', ');
+    const expandedCategories = new Set();
 
-    const categoryRows = categoryToggles.map(toggle => {
+    const branchRows = branchToggles.map(toggle => {
         const row = toggle.closest('.fitem');
-        row.classList.add('listgrades-grade-tree-category-row');
+        row.classList.add('listgrades-tree-selector-branch-row');
         return {
-            id: toggle.dataset.categoryId,
-            path: parsePath(toggle.dataset.categoryPath),
+            id: toggle.dataset.branchId,
+            path: parsePath(toggle.dataset.branchPath),
             row,
             toggle,
         };
     });
     const itemRows = itemMetadata.map(metadata => {
         const row = metadata.closest('.fitem');
-        row.classList.add('listgrades-grade-tree-row');
-        row.querySelector('.felement fieldset > .d-flex')?.classList.add('listgrades-grade-tree-checkboxes');
+        row.classList.add('listgrades-tree-selector-item-row');
+        if (metadata.dataset.itemType === 'category') {
+            row.classList.add('listgrades-tree-selector-category-item-row');
+        }
+        const checkboxgroup = row.querySelector('.felement fieldset > .d-flex');
+        checkboxgroup?.classList.remove('d-flex', 'flex-wrap');
+        checkboxgroup?.classList.add('listgrades-tree-selector-checkboxes');
         return {
             id: metadata.dataset.itemId,
             name: metadata.dataset.itemName,
-            path: parsePath(metadata.dataset.categoryPath),
+            path: parsePath(metadata.dataset.branchPath),
             row,
         };
     });
 
     const headingRow = section.querySelector(SELECTORS.columnHeadings)?.closest('.fitem');
     if (headingRow) {
-        headingRow.classList.add('listgrades-grade-tree-header-row');
+        headingRow.classList.add('listgrades-tree-selector-header-row');
         const rows = new Set([
             headingRow,
-            ...categoryRows.map(category => category.row),
+            ...branchRows.map(branch => branch.row),
             ...itemRows.map(item => item.row),
         ]);
         const orderedRows = [...section.querySelectorAll('.fitem')].filter(row => rows.has(row));
         const scrollContainer = document.createElement('div');
-        scrollContainer.className = 'listgrades-grade-tree-scroll';
+        scrollContainer.className = 'listgrades-tree-selector-scroll';
+        scrollContainer.style.setProperty('--listgrades-tree-selector-column-count', columns.length);
         headingRow.before(scrollContainer);
         orderedRows.forEach(row => scrollContainer.append(row));
     }
@@ -104,6 +112,14 @@ export const init = config => {
         `input[type="checkbox"][name="${column}[${itemId}]"]`
     );
 
+    // Selected items determine the initial expansion only; users control it afterwards.
+    itemRows.forEach(item => {
+        const selected = columns.some(([column]) => getCheckbox(column, item.id)?.checked);
+        if (selected) {
+            item.path.forEach(categoryId => expandedCategories.add(categoryId));
+        }
+    });
+
     /** Keep each column controller synchronised with its item checkboxes. */
     const updateColumnToggles = () => {
         columnToggles.forEach(toggle => {
@@ -116,72 +132,54 @@ export const init = config => {
         });
     };
 
-    /** Recalculate categories which must remain expanded for selected items. */
-    const updateSelectedExpanded = () => {
-        selectedExpanded = new Set();
-        itemRows.forEach(item => {
-            const grade = getCheckbox('gradeitems', item.id);
-            const feedback = getCheckbox('feedbackitems', item.id);
-            if (grade?.checked || feedback?.checked) {
-                item.path.forEach(categoryId => selectedExpanded.add(categoryId));
-            }
-        });
-    };
-
-    /** @returns {Set} Categories expanded manually or because they contain a selected item. */
-    const getExpandedCategories = () => new Set([...manuallyExpanded, ...selectedExpanded]);
-
-    /** Apply the current expanded state to every category and item row. */
+    /** Apply the current expanded state to every branch and item row. */
     const applyVisibility = () => {
-        const expanded = getExpandedCategories();
-        categoryRows.forEach(category => {
-            const visible = category.path.every(categoryId => expanded.has(categoryId));
-            category.row.classList.toggle('listgrades-grade-tree-hidden', !visible);
-            const isExpanded = expanded.has(category.id);
-            category.toggle.setAttribute('aria-expanded', isExpanded.toString());
-            category.toggle.setAttribute(
+        branchRows.forEach(branch => {
+            const visible = branch.path.every(branchId => expandedCategories.has(branchId));
+            branch.row.classList.toggle('listgrades-tree-selector-hidden', !visible);
+            const isExpanded = expandedCategories.has(branch.id);
+            branch.toggle.setAttribute('aria-expanded', isExpanded.toString());
+            branch.toggle.setAttribute(
                 'aria-label',
-                isExpanded ? category.toggle.dataset.collapseLabel : category.toggle.dataset.expandLabel
+                isExpanded ? branch.toggle.dataset.collapseLabel : branch.toggle.dataset.expandLabel
             );
         });
         itemRows.forEach(item => {
-            const visible = item.path.every(categoryId => expanded.has(categoryId));
-            item.row.classList.toggle('listgrades-grade-tree-hidden', !visible);
+            const visible = item.path.every(branchId => expandedCategories.has(branchId));
+            item.row.classList.toggle('listgrades-tree-selector-hidden', !visible);
         });
     };
 
     /** Rebuild the badges from the current checkbox state. */
     const updateBadges = () => {
-        updateSelectedExpanded();
         badgeContainer.replaceChildren();
         itemRows.forEach(item => {
-            const grade = getCheckbox('gradeitems', item.id);
-            const feedback = getCheckbox('feedbackitems', item.id);
             const selectedColumns = [];
-            if (grade?.checked) {
-                selectedColumns.push(config.gradeLabel);
-            }
-            if (feedback?.checked) {
-                selectedColumns.push(config.feedbackLabel);
-            }
+            columns.forEach(([column, label]) => {
+                if (getCheckbox(column, item.id)?.checked) {
+                    selectedColumns.push(label);
+                }
+            });
             if (!selectedColumns.length) {
                 return;
             }
             const badge = document.createElement('button');
             badge.type = 'button';
-            badge.className = 'listgrades-grade-tree-badge';
+            badge.className = 'listgrades-tree-selector-badge';
             badge.textContent = `${item.name} · ${selectedColumns.join(', ')}`;
             badge.addEventListener('click', () => {
-                item.path.forEach(categoryId => manuallyExpanded.add(categoryId));
+                item.path.forEach(categoryId => expandedCategories.add(categoryId));
                 applyVisibility();
                 item.row.scrollIntoView({behavior: 'smooth', block: 'center'});
-                (grade?.checked ? grade : feedback)?.focus({preventScroll: true});
+                const selected = columns.map(([column]) => getCheckbox(column, item.id))
+                    .find(checkbox => checkbox?.checked);
+                selected?.focus({preventScroll: true});
             });
             badgeContainer.append(badge);
         });
         if (!badgeContainer.children.length) {
             const empty = document.createElement('span');
-            empty.className = 'listgrades-grade-tree-empty';
+            empty.className = 'listgrades-tree-selector-empty';
             empty.textContent = config.noneSelectedLabel;
             badgeContainer.append(empty);
         }
@@ -190,15 +188,15 @@ export const init = config => {
     };
 
     section.addEventListener('click', event => {
-        const toggle = event.target.closest(SELECTORS.categoryToggle);
+        const toggle = event.target.closest(SELECTORS.branchToggle);
         if (toggle) {
             event.preventDefault();
-            const categoryId = toggle.dataset.categoryId;
-            const expanded = getExpandedCategories().has(categoryId);
+            const branchId = toggle.dataset.branchId;
+            const expanded = expandedCategories.has(branchId);
             if (expanded) {
-                manuallyExpanded.delete(categoryId);
+                expandedCategories.delete(branchId);
             } else {
-                manuallyExpanded.add(categoryId);
+                expandedCategories.add(branchId);
             }
             applyVisibility();
             return;
@@ -215,7 +213,7 @@ export const init = config => {
             updateBadges();
             return;
         }
-        if (event.target.matches(SELECTORS.checkbox)) {
+        if (event.target.matches(itemCheckboxSelector)) {
             updateBadges();
         }
     });
