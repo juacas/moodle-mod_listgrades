@@ -221,6 +221,31 @@ class grade_report_listing extends grade_report_grader {
 }
 
 /**
+ * Build the stored item selection from the grade and feedback checkbox columns.
+ *
+ * Positive ids select grades and negative ids select feedback. Items are returned
+ * in gradebook order, with the grade before its feedback when both are selected.
+ *
+ * @param int[] $ordereditemids grade item ids in gradebook order
+ * @param array $grades grade checkbox values keyed by item id
+ * @param array $feedback feedback checkbox values keyed by item id
+ * @return int[] selected positive and negative ids
+ */
+function listgrades_build_item_selection(array $ordereditemids, array $grades, array $feedback): array {
+    $selecteditems = [];
+    foreach ($ordereditemids as $itemid) {
+        $itemid = (int) $itemid;
+        if (!empty($grades[$itemid])) {
+            $selecteditems[] = $itemid;
+        }
+        if (!empty($feedback[$itemid])) {
+            $selecteditems[] = -$itemid;
+        }
+    }
+    return $selecteditems;
+}
+
+/**
  * Return the selected grade item ids once, preserving their configured order.
  *
  * Negative ids select feedback for the corresponding positive grade item.

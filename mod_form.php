@@ -33,11 +33,170 @@ require_once($CFG->libdir . '/filelib.php');
  * Activity configuration form.
  */
 class mod_listgrades_mod_form extends moodleform_mod {
+    /** @var int[] Grade item ids in gradebook order. */
+    private array $gradeitemids = [];
+
+    /**
+     * Whether a grade tree node contains at least one selectable item.
+     *
+     * @param array $node grade tree node
+     * @param array $alloweditems selectable item ids
+     * @return bool
+     */
+    private function grade_tree_node_has_items(array $node, array $alloweditems): bool {
+        if (($node['type'] ?? '') !== 'category') {
+            return isset($node['object']->id) && isset($alloweditems[(int) $node['object']->id]);
+        }
+        foreach ($node['children'] ?? [] as $child) {
+            if ($this->grade_tree_node_has_items($child, $alloweditems)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Add a grade category and its descendants to the item selector.
+     *
+     * @param MoodleQuickForm $mform Moodle form
+     * @param array $node category node from grade_tree
+     * @param array $alloweditems selectable item ids
+     * @param int[] $ancestors parent category ids
+     * @param int $depth tree depth
+     * @return void
+     */
+    private function add_grade_tree_category(
+        MoodleQuickForm $mform,
+        array $node,
+        array $alloweditems,
+        array $ancestors = [],
+        int $depth = 0
+    ): void {
+        if (!$this->grade_tree_node_has_items($node, $alloweditems)) {
+            return;
+        }
+
+        $category = $node['object'];
+        $categoryid = (int) $category->id;
+        $categoryname = format_string($category->get_name(), true, ['context' => $this->context]);
+        $categorypath = implode(',', $ancestors);
+        $totalitem = null;
+        foreach ($node['children'] ?? [] as $child) {
+            if (($child['type'] ?? '') === 'category' || !isset($child['object']->id)) {
+                continue;
+            }
+            $candidate = $child['object'];
+            if (isset($alloweditems[(int) $candidate->id]) &&
+                    ($candidate->itemtype === 'category' || $candidate->itemtype === 'course')) {
+                $totalitem = $candidate;
+                break;
+            }
+        }
+
+        $categorylabel = $categoryname;
+        if ($totalitem) {
+            $categorylabel .= ' ' . html_writer::span('(' . get_string('total') . ')', 'listgrades-grade-tree-total');
+        }
+        $toggle = html_writer::span('', 'listgrades-grade-tree-chevron', ['aria-hidden' => 'true']);
+        $toggle .= html_writer::span($categorylabel, 'listgrades-grade-tree-category-name');
+        $toggle = html_writer::tag('button', $toggle, [
+            'type' => 'button',
+            'class' => 'listgrades-grade-tree-toggle',
+            'data-category-id' => $categoryid,
+            'data-category-path' => $categorypath,
+            'data-expand-label' => get_string('expandgradecategory', 'listgrades', strip_tags($categoryname)),
+            'data-collapse-label' => get_string('collapsegradecategory', 'listgrades', strip_tags($categoryname)),
+            'aria-expanded' => 'false',
+            'aria-label' => get_string('expandgradecategory', 'listgrades', strip_tags($categoryname)),
+            'style' => '--listgrades-tree-depth:' . $depth,
+        ]);
+        if ($totalitem) {
+            $totalid = (int) $totalitem->id;
+            $this->gradeitemids[] = $totalid;
+            $itemname = strip_tags($categoryname) . ' (' . get_string('total') . ')';
+            $metadata = html_writer::span('', 'listgrades-grade-tree-item-metadata', [
+                'data-item-id' => $totalid,
+                'data-item-name' => $itemname,
+                'data-category-path' => $categorypath,
+            ]);
+            $checkboxes = [
+                $mform->createElement(
+                    'advcheckbox',
+                    "gradeitems[$totalid]",
+                    '',
+                    html_writer::span(get_string('grade', 'listgrades'), 'visually-hidden'),
+                    [],
+                    [0, 1]
+                ),
+                $mform->createElement(
+                    'advcheckbox',
+                    "feedbackitems[$totalid]",
+                    '',
+                    html_writer::span(get_string('feedback', 'listgrades'), 'visually-hidden'),
+                    [],
+                    [0, 1]
+                ),
+            ];
+            $mform->addGroup($checkboxes, "itemselection_$totalid", $toggle . $metadata, '', false);
+            $mform->setType("gradeitems[$totalid]", PARAM_BOOL);
+            $mform->setType("feedbackitems[$totalid]", PARAM_BOOL);
+        } else {
+            $mform->addElement('static', 'gradecategory_' . $categoryid, $toggle, '');
+        }
+
+        $itemancestors = [...$ancestors, $categoryid];
+        foreach ($node['children'] ?? [] as $child) {
+            if (($child['type'] ?? '') === 'category') {
+                $this->add_grade_tree_category($mform, $child, $alloweditems, $itemancestors, $depth + 1);
+                continue;
+            }
+            if (!isset($child['object']->id)) {
+                continue;
+            }
+            $item = $child['object'];
+            $itemid = (int) $item->id;
+            if (!isset($alloweditems[$itemid]) || ($totalitem && $itemid === (int) $totalitem->id)) {
+                continue;
+            }
+            $this->gradeitemids[] = $itemid;
+            $itemname = format_string($item->get_name(), true, ['context' => $this->context]);
+            $metadata = html_writer::span('', 'listgrades-grade-tree-item-metadata', [
+                'data-item-id' => $itemid,
+                'data-item-name' => strip_tags($itemname),
+                'data-category-path' => implode(',', $itemancestors),
+            ]);
+            $itemlabel = html_writer::span($itemname, 'listgrades-grade-tree-item-name', [
+                'style' => '--listgrades-tree-depth:' . ($depth + 1),
+            ]) . $metadata;
+            $checkboxes = [
+                $mform->createElement(
+                    'advcheckbox',
+                    "gradeitems[$itemid]",
+                    '',
+                    html_writer::span(get_string('grade', 'listgrades'), 'visually-hidden'),
+                    [],
+                    [0, 1]
+                ),
+                $mform->createElement(
+                    'advcheckbox',
+                    "feedbackitems[$itemid]",
+                    '',
+                    html_writer::span(get_string('feedback', 'listgrades'), 'visually-hidden'),
+                    [],
+                    [0, 1]
+                ),
+            ];
+            $mform->addGroup($checkboxes, "itemselection_$itemid", $itemlabel, '', false);
+            $mform->setType("gradeitems[$itemid]", PARAM_BOOL);
+            $mform->setType("feedbackitems[$itemid]", PARAM_BOOL);
+        }
+    }
+
     /**
      * Defines the activity form.
      */
     public function definition() {
-        global $CFG, $DB;
+        global $CFG, $DB, $PAGE;
 
         $mform = $this->_form;
 
@@ -70,22 +229,52 @@ class mod_listgrades_mod_form extends moodleform_mod {
         $mform->setDefault('signature', ['text' => $defaultfooter, 'format' => FORMAT_HTML]);
         $mform->addRule('signature', get_string('required'), 'required', null, 'client');
 
-        // Get Grade items from the course and create a multi-select box.
+        // Get grade items from the course and create one grade/feedback checkbox pair per item.
         // Use grader report as base to get the grades of the students.
         $grader = new grade_report_listing($this->current->course, "0", $this->context);
         $items = $grader->get_item_names();
-        // Add feedback items.
-        foreach ($items as $itemid => $itemname) {
-            $items[-$itemid] = get_string('feedbackforgradeitems', 'grades', $itemname);
+        $alloweditems = array_fill_keys(array_map('intval', array_keys($items)), true);
+
+        $mform->addElement('header', 'gradeitemssection', get_string('gradeitems', 'listgrades'));
+        $mform->addHelpButton('gradeitemssection', 'gradeitems', 'listgrades');
+        $mform->setExpanded('gradeitemssection', true);
+        $badgeheader = html_writer::tag('strong', get_string('selectedgradeitems', 'listgrades'));
+        $badgeheader .= html_writer::div('', 'listgrades-grade-tree-badges', [
+            'role' => 'status',
+            'aria-live' => 'polite',
+        ]);
+        $columnheaders = '';
+        foreach ([
+            'gradeitems' => [get_string('grade', 'listgrades'), get_string('toggleallgrades', 'listgrades')],
+            'feedbackitems' => [get_string('feedback', 'listgrades'), get_string('toggleallfeedback', 'listgrades')],
+        ] as $column => [$label, $togglelabel]) {
+            $heading = html_writer::span($label, 'listgrades-grade-tree-column-label');
+            $heading .= html_writer::empty_tag('input', [
+                'type' => 'checkbox',
+                'class' => 'form-check-input listgrades-grade-tree-column-toggle',
+                'data-column' => $column,
+                'aria-label' => $togglelabel,
+            ]);
+            $columnheaders .= html_writer::tag(
+                'label',
+                $heading,
+                ['class' => 'listgrades-grade-tree-column-heading']
+            );
         }
         $mform->addElement(
-            'select',
-            'items',
-            get_string('gradeitems', 'listgrades'),
-            $items,
-            ['multiple' => 'multiple', 'size' => 10]
+            'static',
+            'gradeitemcolumnheaders',
+            html_writer::div($badgeheader, 'listgrades-grade-tree-badge-header'),
+            html_writer::div($columnheaders, 'listgrades-grade-tree-column-headings')
         );
-        $mform->addRule('items', get_string('required'), 'required', null, 'client');
+        $formgradetree = new grade_tree($this->current->course, false, false);
+        $this->add_grade_tree_category($mform, $formgradetree->top_element, $alloweditems);
+        $PAGE->requires->js_call_amd('mod_listgrades/grade_item_tree', 'init', [[
+            'sectionId' => 'id_gradeitemssection',
+            'gradeLabel' => get_string('grade', 'listgrades'),
+            'feedbackLabel' => get_string('feedback', 'listgrades'),
+            'noneSelectedLabel' => get_string('nogradeitemsselected', 'listgrades'),
+        ]]);
 
         $allowedmodes = $config->alloweddisplaymodes ?? LISTGRADES_ALLOWED_BOTH;
         if ($allowedmodes === LISTGRADES_DISPLAY_LIST) {
@@ -150,8 +339,15 @@ class mod_listgrades_mod_form extends moodleform_mod {
             $defaultvalues['signature']['itemid'] = $draftitemid;
         }
         if (!empty($defaultvalues['items'])) {
-            $gradeitems = (array) unserialize($defaultvalues['items']);
-            $defaultvalues['items'] = array_keys($gradeitems);
+            $selecteditems = array_keys((array) unserialize($defaultvalues['items']));
+            foreach ($selecteditems as $itemid) {
+                $itemid = (int) $itemid;
+                if ($itemid > 0) {
+                    $defaultvalues['gradeitems'][$itemid] = 1;
+                } else if ($itemid < 0) {
+                    $defaultvalues['feedbackitems'][abs($itemid)] = 1;
+                }
+            }
         }
         // Populate both editors for a new activity, expanding the course placeholders
         // while leaving the globally configured templates untouched.
@@ -169,5 +365,43 @@ class mod_listgrades_mod_form extends moodleform_mod {
             );
             $defaultvalues['signature']['format'] = FORMAT_HTML;
         }
+    }
+
+    /**
+     * Convert the checkbox matrix to the existing ordered list of positive and negative ids.
+     *
+     * Positive ids select grades and negative ids select feedback. Keeping this representation
+     * avoids a database or backup format change.
+     *
+     * @param stdClass $data submitted form data
+     * @return void
+     */
+    public function data_postprocessing($data) {
+        parent::data_postprocessing($data);
+
+        $grades = (array) ($data->gradeitems ?? []);
+        $feedback = (array) ($data->feedbackitems ?? []);
+        $data->items = listgrades_build_item_selection($this->gradeitemids, $grades, $feedback);
+        unset($data->gradeitems, $data->feedbackitems);
+    }
+
+    /**
+     * Validate that at least one grade or feedback item is selected.
+     *
+     * @param array $data submitted form data
+     * @param array $files submitted files
+     * @return array validation errors
+     */
+    public function validation($data, $files) {
+        $errors = parent::validation($data, $files);
+        $grades = array_filter((array) ($data['gradeitems'] ?? []));
+        $feedback = array_filter((array) ($data['feedbackitems'] ?? []));
+        if (!$grades && !$feedback && $this->gradeitemids) {
+            $errors['itemselection_' . reset($this->gradeitemids)] = get_string(
+                'selectatleastonegradeitem',
+                'listgrades'
+            );
+        }
+        return $errors;
     }
 }

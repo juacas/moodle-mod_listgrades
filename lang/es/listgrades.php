@@ -29,6 +29,7 @@
  $string['boxplotsummary'] = 'Mínimo: {$a->min}; primer cuartil: {$a->q1}; mediana: {$a->median}; tercer cuartil: {$a->q3}; máximo: {$a->max}.';
 $string['closedate'] = 'Fin de publicación de notas';
  $string['closedate_help'] = 'La fecha y hora en que se cerrará la lista.';
+$string['collapsegradecategory'] = 'Contraer la categoría de calificación {$a}';
 
  $string['createlisting'] = 'Crear listado';
 $string['defaultdisplaymode'] = 'Listados de notas por defecto';
@@ -52,6 +53,7 @@ $string['defaultintrotext'] = '<table border="0" width="100%"><tbody><tr><td><h3
  $string['displaymodeboth'] = 'Ambos';
 $string['displaymodeindividual'] = 'Individual';
  $string['displaymodelist'] = 'Listado';
+$string['expandgradecategory'] = 'Expandir la categoría de calificación {$a}';
   $string['feedback'] = 'Retroalimentación';
 $string['footer'] = 'Sección de pie de página';
  $string['footerheader'] = 'Pie de página';
@@ -60,7 +62,7 @@ $string['globalgradessummary'] = 'Estudiantes presentados: {$a->presented}. Estu
 $string['grade'] = 'Calificación';
 $string['gradeitem'] = 'Ítem de calificación';
 $string['gradeitems'] = 'Elementos de calificación para publicar.';
- $string['gradeitems_help'] = 'Seleccione los elementos de calificación que se publicarán. Mantenga presionada la tecla CTRL para seleccionar varios campos.';
+ $string['gradeitems_help'] = 'Para cada elemento, seleccione si se publica su calificación, su retroalimentación o ambas. Los controles al principio de la sección seleccionan o deseleccionan una columna completa.';
     $string['histogrambin'] = '{$a->range}: {$a->count} calificaciones ({$a->percentage} %)';
 $string['illustrativegrade'] = 'Calificación ilustrativa';
  $string['individualgradedate'] = 'Fecha: {$a}';
@@ -76,6 +78,7 @@ $string['modulename_help'] = 'El módulo "list grades" permite a un profesor pub
 $string['modulename_link'] = 'mod/listgrades/view';
 $string['modulenameplural'] = 'Listar Calificaciones';
 $string['nostatistics'] = 'No hay calificaciones disponibles para calcular estadísticas.';
+$string['nogradeitemsselected'] = 'No hay elementos de calificación seleccionados';
  $string['notopen'] = 'Esta lista aún no está disponible.';
 $string['numericgradesasletters'] = 'Muestra estadística de notas como texto';
 $string['numericgradesasletters_help'] = 'Añade barras horizontales de porcentajes usando las equivalencias de letras configuradas en el curso. El histograma numérico y el boxplot siguen estando disponibles de forma independiente.';
@@ -93,7 +96,9 @@ $string['privacyconditions_help'] = 'Según lo establecido en el Real Decreto 85
 $string['privacydistributionhidden'] = 'La distribución está oculta porque todos los estudiantes se encuentran en el mismo tramo de calificación.';
 $string['privacyglobalhidden'] = 'El número y el porcentaje de estudiantes que superan la prueba están ocultos porque todos los presentados han aprobado o suspendido.';
 $string['privacyteachernotice'] = '(Los estudiantes no verán este bloque por completo.)';
+$string['selectatleastonegradeitem'] = 'Seleccione al menos una calificación o retroalimentación.';
 $string['scalegradewithreference'] = '{$a->grade} ({$a->scale})';
+$string['selectedgradeitems'] = 'Elementos seleccionados';
  $string['search:activity'] = 'listgrades';
 $string['showboxplot'] = 'Mostrar boxplot';
 $string['showboxplot_help'] = 'Muestra un boxplot con el mínimo, los cuartiles, la mediana y el máximo de los ítems de calificación numéricos.';
@@ -110,6 +115,8 @@ $string['showusername_help'] = 'Seleccione si se mostrará el nombre de usuario 
 $string['statistics'] = 'Estadísticas de calificaciones';
 $string['statisticssettings'] = 'Estadísticas';
 $string['statisticssettings_help'] = 'Configura la información estadística que muestran las publicaciones de calificaciones.';
+$string['toggleallfeedback'] = 'Seleccionar/deseleccionar toda la retroalimentación';
+$string['toggleallgrades'] = 'Seleccionar/deseleccionar todas las calificaciones';
 
 
         $string['userfield'] = 'Campo de usuario';
