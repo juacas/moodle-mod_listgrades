@@ -93,7 +93,7 @@ class tree_checkbox_selector {
         global $PAGE;
         $PAGE->requires->js_call_amd('mod_listgrades/grade_item_tree', 'init', [[
             'sectionId' => $sectionid,
-            'columns' => array_map(static function($column) {
+            'columns' => array_map(static function ($column) {
                 return $column['label'];
             }, $this->columns),
             'noneSelectedLabel' => $noneselected,
@@ -159,7 +159,7 @@ class tree_checkbox_selector {
                     'advcheckbox',
                     $name,
                     '',
-                    html_writer::span($column['label'], 'visually-hidden'),
+                    html_writer::span($column['label'], 'listgrades-visually-hidden'),
                     [],
                     [0, 1]
                 );

@@ -121,7 +121,7 @@ function listgrades_cm_info_dynamic(cm_info $cm): void {
         $canviewclosed = has_capability('moodle/course:manageactivities', context_module::instance($cm->id));
 
         if ($isopen || $canviewclosed) {
-            $configureditems = unserialize($listgrades->items, ['allowed_classes' => false]);
+            $configureditems = unserialize_array($listgrades->items);
             $selectedgrades = [];
             $selectedfeedback = [];
             foreach (array_keys((array) $configureditems) as $publisheditemid) {

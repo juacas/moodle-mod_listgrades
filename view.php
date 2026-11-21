@@ -89,7 +89,7 @@ if ($isopen || has_capability('moodle/course:manageactivities', $context)) {
     $config = get_config('listgrades');
     $mask = $config->userfieldmask;
 
-    $items = array_keys(unserialize($listgrades->items));
+    $items = array_keys((array) unserialize_array($listgrades->items));
 
     // Get the items that are to be published.
     // Create the headers.

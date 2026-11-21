@@ -44,6 +44,8 @@ $string['defaultintro_help'] = 'Text predeterminat d\'introducció que apareixer
 $string['defaultintrotext'] = '<table border="0" width="100%"><tbody><tr><td><h3><img role="presentation" src="{logourl}" alt="" width="121" height="78"></h3></td>
  <td><h3>LLISTA DE QUALIFICACIONS PROVISIONALS</h3><p>Convocatòria: ORDINÀRIA</p></td>
  </tr></tbody></table>';
+$string['dynamicicon'] = 'Icona dinàmica de l’activitat';
+$string['dynamicicon_help'] = 'Si s’activa, la icona de l’activitat indica si l’usuari actual té alguna qualificació o comentari per consultar.';
 $string['expandgradecategory'] = 'Amplia la categoria de qualificació {$a}';
 $string['footer'] = 'Secció del peu de pàgina<br>No modificar aquest contingut. Una vegada desat només es visualitzarà en un idioma.';
 $string['footerheader'] = 'Peu de pàgina';
@@ -54,15 +56,13 @@ $string['gradeitems_help'] = 'Per a cada element, seleccioneu si se’n publica 
 $string['itemnogrades'] = 'No hi ha qualificacions.';
 $string['listgrades:addinstance'] = 'Afegeix una llista de qualificacions';
 $string['listgrades:view'] = 'Mostra les llistes de qualificacions';
-$string['dynamicicon'] = 'Icona dinàmica de l’activitat';
-$string['dynamicicon_help'] = 'Si s’activa, la icona de l’activitat indica si l’usuari actual té alguna qualificació o comentari per consultar.';
 $string['listingssettings'] = 'Llistats';
 $string['listingssettings_help'] = 'Configura la informació que es mostra als llistats de qualificacions.';
 $string['modulename'] = 'Publicació de qualificacions';
 $string['modulename_help'] = 'El mòdul "listgrades" permet a un professor publicar les qualificacions de tots els estudiants a una pàgina del curs per complir els requisits de transparència. Protegeix la privacitat dels estudiants ocultant el camp d\'usuari seleccionat pel professor.';
 $string['modulenameplural'] = 'Llista de qualificacions';
-$string['notopen'] = 'Aquesta llista encara no està disponible.';
 $string['nogradeitemsselected'] = 'No hi ha elements de qualificació seleccionats';
+$string['notopen'] = 'Aquesta llista encara no està disponible.';
 $string['numericgradesasletters'] = 'Mostra estadístiques de qualificacions com a text';
 $string['numericgradesasletters_help'] = 'Afegeix barres horitzontals de percentatges fent servir les equivalències de lletres configurades al curs. L’histograma numèric i el boxplot continuen disponibles de manera independent.';
 $string['numericgradewithmaximum'] = '{$a->grade}/{$a->maximum}';
@@ -79,8 +79,8 @@ $string['privacyconditions_help'] = 'Segons el que estableix el Reial decret 855
 $string['privacydistributionhidden'] = 'La distribució està oculta perquè tots els estudiants es troben en el mateix tram de qualificació.';
 $string['privacyglobalhidden'] = 'El nombre i el percentatge d’estudiants que superen la prova estan ocults perquè tots els presentats han aprovat o suspès.';
 $string['privacyteachernotice'] = '(Els estudiants no veuran aquest bloc en absolut.)';
-$string['selectatleastonegradeitem'] = 'Seleccioneu almenys una qualificació o retroacció.';
 $string['scalegradewithreference'] = '{$a->grade} ({$a->scale})';
+$string['selectatleastonegradeitem'] = 'Seleccioneu almenys una qualificació o retroacció.';
 $string['selectedgradeitems'] = 'Elements seleccionats';
 $string['showboxplot'] = 'Mostra el boxplot';
 $string['showboxplot_help'] = 'Mostra un boxplot amb el mínim, els quartils, la mediana i el màxim dels ítems de qualificació numèrics.';

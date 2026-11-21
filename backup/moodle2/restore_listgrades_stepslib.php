@@ -62,7 +62,7 @@ class restore_listgrades_activity_structure_step extends restore_activity_struct
         // Check if the gradeitems exist in the course by checking the grade_item table.
         // If they don't exist clear the gradeitems field and show a warning.
         $gradeitems = [];
-        $dataitems = unserialize($data->items);
+        $dataitems = (array) unserialize_array($data->items);
         $itemids = array_keys($dataitems);
         $gradetreeroot = new grade_tree($this->get_courseid());
         $candidateitems = $gradetreeroot->get_items();

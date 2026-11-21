@@ -56,8 +56,10 @@ class mod_listgrades_mod_form extends moodleform_mod {
         $categoryname = format_string($category->get_name(), true, ['context' => $this->context]);
         $totalitem = null;
         foreach ($node['children'] ?? [] as $child) {
-            if (isset($child['object']->id) && isset($alloweditems[(int) $child['object']->id]) &&
-                    in_array($child['object']->itemtype, ['category', 'course'], true)) {
+            if (
+                isset($child['object']->id) && isset($alloweditems[(int) $child['object']->id]) &&
+                    in_array($child['object']->itemtype, ['category', 'course'], true)
+            ) {
                 $totalitem = $child['object'];
                 break;
             }
@@ -242,7 +244,7 @@ class mod_listgrades_mod_form extends moodleform_mod {
             $defaultvalues['signature']['itemid'] = $draftitemid;
         }
         if (!empty($defaultvalues['items'])) {
-            $selecteditems = array_keys((array) unserialize($defaultvalues['items']));
+            $selecteditems = array_keys((array) unserialize_array($defaultvalues['items']));
             foreach ($selecteditems as $itemid) {
                 $itemid = (int) $itemid;
                 if ($itemid > 0) {
