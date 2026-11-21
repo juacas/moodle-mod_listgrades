@@ -107,6 +107,11 @@ function listgrades_get_post_actions() {
 function listgrades_cm_info_dynamic(cm_info $cm): void {
     global $DB, $OUTPUT, $PAGE, $USER;
 
+    $dynamicicon = get_config('listgrades', 'dynamicicon');
+    if ($dynamicicon === '0' || $dynamicicon === 0) {
+        return;
+    }
+
     $listgrades = $DB->get_record('listgrades', ['id' => $cm->instance], 'id, opendate, closedate, items', IGNORE_MISSING);
     $hascontent = false;
     if ($listgrades && has_capability('mod/listgrades:view', context_module::instance($cm->id))) {
@@ -157,7 +162,7 @@ function listgrades_cm_info_dynamic(cm_info $cm): void {
         }
     }
 
-    $icon = $hascontent ? 'icon' : 'icon_empty';
+    $icon = $hascontent ? 'icon_available' : 'icon_empty';
     if ($PAGE->state > 0) {
         $iconurl = $OUTPUT->image_url($icon, 'listgrades');
     } else {

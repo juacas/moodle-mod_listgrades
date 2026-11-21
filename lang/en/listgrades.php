@@ -45,6 +45,8 @@ $string['defaultintrotext'] = '<table border="0" width="100%"><tbody><tr><td><h3
 $string['displaymode'] = 'Page format';
 $string['displaymode_help'] = 'Choose whether to show the grade listing or only the current user’s grades.';
 $string['displaymodeboth'] = 'Both';
+$string['dynamicicon'] = 'Dynamic activity icon';
+$string['dynamicicon_help'] = 'When enabled, the activity icon indicates whether the current user has a grade or feedback to view.';
 $string['displaymodeindividual'] = 'Individual';
 $string['displaymodelist'] = 'Listing';
 $string['feedback'] = 'Feedback';

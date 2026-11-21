@@ -50,6 +50,8 @@ $string['defaultintrotext'] = '<table border="0" width="100%"><tbody><tr><td><h3
     $string['displaymode'] = 'Formato de la página';
  $string['displaymode_help'] = 'Elija entre mostrar el listado de calificaciones o solo las calificaciones del usuario actual.';
  $string['displaymodeboth'] = 'Ambos';
+$string['dynamicicon'] = 'Icono dinámico de la actividad';
+$string['dynamicicon_help'] = 'Si se activa, el icono de la actividad indica si el usuario actual tiene alguna calificación o feedback que consultar.';
 $string['displaymodeindividual'] = 'Individual';
  $string['displaymodelist'] = 'Listado';
   $string['feedback'] = 'Retroalimentación';
