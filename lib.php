@@ -99,6 +99,79 @@ function listgrades_get_post_actions() {
 }
 
 /**
+ * Set an icon reflecting whether the current user has published grades or feedback.
+ *
+ * @param cm_info $cm Course module information.
+ * @return void
+ */
+function listgrades_cm_info_dynamic(cm_info $cm): void {
+    global $DB, $OUTPUT, $PAGE, $USER;
+
+    $dynamicicon = get_config('listgrades', 'dynamicicon');
+    if ($dynamicicon === '0' || $dynamicicon === 0) {
+        return;
+    }
+
+    $listgrades = $DB->get_record('listgrades', ['id' => $cm->instance], 'id, opendate, closedate, items', IGNORE_MISSING);
+    $hascontent = false;
+    if ($listgrades && has_capability('mod/listgrades:view', context_module::instance($cm->id))) {
+        $now = time();
+        $isopen = ($listgrades->opendate == 0 || $listgrades->opendate < $now)
+            && ($listgrades->closedate == 0 || $listgrades->closedate > $now);
+        $canviewclosed = has_capability('moodle/course:manageactivities', context_module::instance($cm->id));
+
+        if ($isopen || $canviewclosed) {
+            $configureditems = unserialize($listgrades->items, ['allowed_classes' => false]);
+            $selectedgrades = [];
+            $selectedfeedback = [];
+            foreach (array_keys((array) $configureditems) as $publisheditemid) {
+                $publisheditemid = (int) $publisheditemid;
+                if ($publisheditemid > 0) {
+                    $selectedgrades[$publisheditemid] = true;
+                } else if ($publisheditemid < 0) {
+                    $selectedfeedback[-$publisheditemid] = true;
+                }
+            }
+
+            $itemids = array_values(array_unique(array_merge(
+                array_keys($selectedgrades),
+                array_keys($selectedfeedback)
+            )));
+            if ($itemids) {
+                [$itemidssql, $itemidsparams] = $DB->get_in_or_equal($itemids, SQL_PARAMS_NAMED, 'gradeitem');
+                $params = ['userid' => $USER->id, 'courseid' => $cm->course] + $itemidsparams;
+                $sql = "SELECT gg.id, gi.id AS itemid, gg.finalgrade, gg.feedback
+                          FROM {grade_grades} gg
+                          JOIN {grade_items} gi ON gi.id = gg.itemid
+                         WHERE gg.userid = :userid
+                           AND gi.courseid = :courseid
+                           AND gi.gradetype <> :gradetypenone
+                           AND gi.id $itemidssql";
+                $params['gradetypenone'] = GRADE_TYPE_NONE;
+                foreach ($DB->get_records_sql($sql, $params) as $grade) {
+                    if (isset($selectedgrades[$grade->itemid]) && $grade->finalgrade !== null) {
+                        $hascontent = true;
+                        break;
+                    }
+                    if (isset($selectedfeedback[$grade->itemid]) && $grade->feedback !== null && $grade->feedback !== '') {
+                        $hascontent = true;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    $icon = $hascontent ? 'icon_available' : 'icon_empty';
+    if ($PAGE->state > 0) {
+        $iconurl = $OUTPUT->image_url($icon, 'listgrades');
+    } else {
+        $iconurl = new moodle_url("/mod/listgrades/pix/{$icon}.svg");
+    }
+    $cm->set_icon_url($iconurl);
+}
+
+/**
  * Add page instance.
  * @param stdClass $data
  * @param mod_listgrades_mod_form $mform

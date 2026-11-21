@@ -28,6 +28,13 @@ if ($ADMIN->fulltree) {
     require_once("$CFG->libdir/resourcelib.php");
     require_once($CFG->dirroot . '/mod/listgrades/locallib.php');
 
+    $settings->add(new admin_setting_configcheckbox(
+        'listgrades/dynamicicon',
+        get_string('dynamicicon', 'listgrades'),
+        get_string('dynamicicon_help', 'listgrades'),
+        1
+    ));
+
     // Modedit defaults.
     // Add the activity defaults section to the settings page.
     $settings->add(new admin_setting_heading(
