@@ -1,33 +1,19 @@
-# List Grades v1.1.2
+# List Grades v1.1.3
 
-## New individual publishing mode
+## Easier grade and feedback selection
 
-- Each student can view only their own grades in a clear, centred table.
-- The individual view identifies the student, shows the viewing date, and can include feedback selected by the teacher.
-- Numeric grades include the maximum value as a reference and follow the decimal settings configured in the gradebook.
-- Scale-based grades show the awarded value together with all the available scale options.
-- Teachers can search for and select course students to review their individual view while respecting the active group.
+- Choose published grades and feedback directly from a tree of the course gradebook, organised by category.
+- Select grades and feedback independently for each item, including category totals.
+- Selected items are highlighted at the top of the selector, and selected categories open automatically when editing an activity.
+- Compact column controls make it easier to select or clear all grades or all feedback, while keeping the item names readable in long gradebooks.
+- Category branches can be expanded and collapsed while configuring the activity.
 
-## Optional grade statistics
+## A clearer activity icon
 
-- Statistics can be enabled or disabled in both individual publications and class listings.
-- Numeric grades are presented with framed box plots and histograms using the full item range as a reference.
-- Administrators can choose whether overall participation and pass figures are shown.
-- Box plots and numeric histograms can be enabled or disabled independently.
-- Histograms favour clear, round interval boundaries while retaining the complete grade-item range.
-- Numeric grades can additionally be presented as textual percentage bars using the Moodle grade-letter equivalence configured in each course.
-- Text scales are represented by a horizontal distribution with totals and percentages.
-- The student's position is highlighted in every chart with a marker containing their profile picture.
-- Teachers can preview statistical markers even when they do not have a grade of their own.
-- Administrators can protect small or uniform cohorts by enabling privacy conditions for aggregated statistics.
-- Statistical charts are hidden when every student is below the configured passing grade.
-- Grade items without grades remain visible to teachers with a clear empty-state message and are omitted for students.
-- Privacy-restricted blocks are silently omitted for students, while teachers retain the charts with a prominent warning explaining the restriction.
+- The activity icon indicates whether the current student has a published grade or feedback to view.
+- A notification marker draws attention to available content; an empty-page icon is shown when there is nothing to display.
+- Administrators can turn this dynamic icon behaviour on or off.
 
-## Publication settings
+## Compatibility and usability
 
-- Administrators can allow the Listing format, the Individual format, or both.
-- When both formats are available, a default format can be selected for new activities.
-- Each publication can select grade items, feedback, and whether statistics are displayed.
-- Feedback can be published without revealing its corresponding grade.
-- Default templates can be personalised with course information and institutional branding.
+- The grade selector layout is improved for Moodle 4.5, including aligned headers and controls.
