@@ -59,6 +59,14 @@ final class lib_test extends \advanced_testcase {
      * Selected feedback ids are folded into their grade item without changing order.
      */
     public function test_get_selected_gradeitem_ids(): void {
+        $this->assertSame(
+            [8, -8, -3, 5],
+            listgrades_build_item_selection(
+                [8, 3, 5],
+                [8 => true, 3 => false, 5 => true],
+                [8 => true, 3 => true, 5 => false]
+            )
+        );
         $this->assertSame([8, 3, 5], listgrades_get_selected_gradeitem_ids([-8, 3, 8, -3, 5]));
         $this->assertSame([3, 8, 5], listgrades_get_selected_grade_ids([-8, 3, 8, -3, 5, 8]));
     }

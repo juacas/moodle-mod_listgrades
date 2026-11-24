@@ -1,5 +1,19 @@
 # Changelog
 
+## [v1.1.3](https://github.com/juacas/moodle-mod_listgrades/tree/v1.1.3) (2026-11-23)
+
+[Full Changelog](https://github.com/juacas/moodle-mod_listgrades/compare/v1.1.2...v1.1.3)
+
+### Added
+
+- A gradebook tree selector for choosing grades and feedback independently, including category totals.
+- Selected-item badges, category expand/collapse controls, and bulk grade/feedback selection.
+- A dynamic activity icon that shows students when grades or feedback are available, with an administrator setting to disable it.
+
+### Improved
+
+- Grade selector alignment and usability on Moodle 4.5.
+
 ## [v1.0.5](https://github.com/juacas/moodle-mod_listgrades/tree/v1.0.5) (2024-01-31)
 
 [Full Changelog](https://github.com/juacas/moodle-mod_listgrades/compare/v1.0.4...v1.0.5)

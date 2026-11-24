@@ -1,3 +1,249 @@
+.listgrades-tree-selector-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .375rem;
+    max-height: 4.5rem;
+    margin-top: .25rem;
+    align-items: center;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+}
+
+.listgrades-tree-selector-badge-header {
+    min-width: 0;
+}
+
+.listgrades-tree-selector-badge {
+    max-width: 100%;
+    padding: .3rem .6rem;
+    border: 1px solid color-mix(in srgb, var(--bs-primary, #0f6cbf) 35%, transparent);
+    border-radius: 50rem;
+    background: color-mix(in srgb, var(--bs-primary, #0f6cbf) 10%, transparent);
+    color: var(--bs-body-color, #212529);
+    font-size: .8125rem;
+    line-height: 1.25;
+    text-align: start;
+    white-space: normal;
+}
+
+.listgrades-tree-selector-empty {
+    color: var(--bs-secondary-color, #6c757d);
+    font-style: italic;
+}
+
+.listgrades-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+.listgrades-tree-selector-column-headings {
+    display: grid;
+    min-width: max-content;
+    width: calc(var(--listgrades-tree-selector-column-count, 1) * 2.5rem);
+    height: 6rem;
+    align-items: stretch;
+    grid-auto-flow: column;
+    grid-auto-columns: 2.5rem;
+    grid-template-columns: repeat(var(--listgrades-tree-selector-column-count, 1), 2.5rem);
+}
+
+.listgrades-tree-selector-column-heading {
+    display: grid;
+    width: 2.5rem;
+    height: 100%;
+    box-sizing: border-box;
+    margin: 0;
+    padding: .25rem;
+    align-items: end;
+    justify-items: center;
+    border-left: 1px solid var(--bs-border-color, #dee2e6);
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: .25rem;
+}
+
+.listgrades-tree-selector-column-label {
+    display: block;
+    align-self: end;
+    justify-self: center;
+    margin: 0;
+    font-size: .75rem;
+    font-weight: 600;
+    line-height: 1;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+}
+
+.listgrades-tree-selector-column-heading .form-check-input {
+    position: static;
+    display: block;
+    float: none;
+    align-self: end;
+    justify-self: center;
+    margin: 0;
+}
+
+.listgrades-tree-selector-scroll {
+    max-height: 65vh;
+    overflow: auto;
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: .375rem;
+}
+
+.listgrades-tree-selector-scroll > .fitem {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    border-bottom: 1px solid var(--bs-border-color, #dee2e6);
+    grid-template-columns: minmax(0, 1fr) repeat(var(--listgrades-tree-selector-column-count, 1), 2.5rem);
+}
+
+.listgrades-tree-selector-scroll > .fitem:last-child {
+    border-bottom: 0;
+}
+
+.listgrades-tree-selector-scroll > .fitem > .col-form-label {
+    grid-column: 1;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    padding: .35rem .5rem;
+    border-right: 1px solid var(--bs-border-color, #dee2e6);
+    flex: none;
+}
+
+.listgrades-tree-selector-scroll > .fitem > .felement {
+    grid-column: 2 / -1;
+    width: calc(var(--listgrades-tree-selector-column-count, 1) * 2.5rem);
+    min-width: 0;
+    max-width: none;
+    padding: 0;
+    align-items: stretch;
+    flex: none;
+}
+
+.listgrades-tree-selector-scroll > .fitem > .felement > fieldset {
+    width: calc(var(--listgrades-tree-selector-column-count, 1) * 2.5rem);
+    height: 100%;
+    margin: 0;
+}
+
+.listgrades-tree-selector-checkboxes {
+    display: grid;
+    width: calc(var(--listgrades-tree-selector-column-count, 1) * 2.5rem);
+    height: 100%;
+    margin: 0;
+    grid-template-columns: repeat(var(--listgrades-tree-selector-column-count, 1), 2.5rem);
+}
+
+.listgrades-tree-selector-checkboxes > .form-check-inline {
+    width: 2.5rem;
+    min-width: 2.5rem;
+    margin: 0;
+}
+
+.listgrades-tree-selector-scroll > .listgrades-tree-selector-header-row > .col-form-label {
+    min-width: 0;
+    height: 6rem;
+    overflow: hidden;
+}
+
+.listgrades-tree-selector-header-row > .felement > .form-control-static {
+    width: calc(var(--listgrades-tree-selector-column-count, 1) * 2.5rem);
+    height: 100%;
+    padding: 0;
+}
+
+.listgrades-tree-selector-header-row {
+    position: sticky;
+    z-index: 3;
+    top: 0;
+    background: var(--bs-body-bg, #fff);
+    box-shadow: 0 1px 0 var(--bs-border-color, #dee2e6);
+}
+
+.listgrades-tree-selector-branch-row {
+    background: var(--bs-tertiary-bg, #f8f9fa);
+}
+
+.listgrades-tree-selector-category-item-row {
+    background: color-mix(in srgb, var(--bs-primary, #0f6cbf) 7%, var(--bs-body-bg, #fff));
+}
+
+.listgrades-tree-selector-toggle {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+    padding: .2rem .35rem;
+    padding-inline-start: calc(.35rem + (var(--listgrades-tree-depth, 0) * 1.25rem));
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-weight: 600;
+    text-align: start;
+}
+
+.listgrades-tree-selector-toggle:hover,
+.listgrades-tree-selector-toggle:focus-visible {
+    color: var(--bs-link-hover-color, #0a58ca);
+}
+
+.listgrades-tree-selector-chevron {
+    display: inline-block;
+    width: 0;
+    height: 0;
+    margin: .4rem .55rem 0 .15rem;
+    border-top: .3rem solid transparent;
+    border-bottom: .3rem solid transparent;
+    border-left: .4rem solid currentcolor;
+    transition: transform .15s ease-in-out;
+}
+
+.listgrades-tree-selector-toggle[aria-expanded="true"] .listgrades-tree-selector-chevron {
+    transform: rotate(90deg);
+}
+
+.listgrades-tree-selector-item-name {
+    display: block;
+    padding-inline-start: calc(var(--listgrades-tree-depth, 0) * 1.25rem);
+}
+
+.listgrades-tree-selector-item-metadata {
+    display: none;
+}
+
+.listgrades-tree-selector-item-row .felement fieldset > .d-flex {
+    gap: 0;
+}
+
+.listgrades-tree-selector-item-row .form-check-inline,
+.listgrades-tree-selector-branch-row .form-check-inline {
+    display: flex;
+    width: 2.5rem;
+    min-height: 1.75rem;
+    margin: 0;
+    align-items: center;
+    border-left: 1px solid var(--bs-border-color, #dee2e6);
+    justify-content: center;
+}
+
+.listgrades-tree-selector-item-row .form-check-input,
+.listgrades-tree-selector-branch-row .form-check-input {
+    margin: 0;
+}
+
+.listgrades-tree-selector-scroll > .fitem.listgrades-tree-selector-hidden {
+    display: none;
+}
+
 .path-mod-listgrades .listgrades-individual-table {
     width: auto;
     max-width: 100%;
