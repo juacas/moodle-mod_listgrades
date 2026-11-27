@@ -56,6 +56,381 @@ final class lib_test extends \advanced_testcase {
     }
 
     /**
+     * Review history keeps cancellations and final student actions while exposing the current state.
+     */
+    public function test_review_history_state(): void {
+        global $DB;
+
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        $instance = $this->getDataGenerator()->create_module('listgrades', ['course' => $course->id]);
+        $student = $this->getDataGenerator()->create_user();
+        $teacher = $this->getDataGenerator()->create_user();
+        $options = array_keys(listgrades_review_response_options());
+
+        set_config('reviewprocess', 0, 'listgrades');
+        $this->assertFalse(listgrades_review_is_enabled((object) ['reviewenabled' => 1]));
+        set_config('reviewprocess', 1, 'listgrades');
+        $this->assertTrue(listgrades_review_is_enabled((object) ['reviewenabled' => 1]));
+        $this->assertFalse(listgrades_review_is_enabled((object) ['reviewenabled' => 0]));
+
+        $DB->insert_record('listgrades_review', (object) [
+            'listgradesid' => $instance->id,
+            'userid' => $student->id,
+            'actorid' => $student->id,
+            'action' => 'requested',
+            'comment' => null,
+            'timecreated' => 100,
+        ]);
+        $DB->insert_record('listgrades_review', (object) [
+            'listgradesid' => $instance->id,
+            'userid' => $student->id,
+            'actorid' => $student->id,
+            'action' => 'cancelled',
+            'comment' => null,
+            'timecreated' => 110,
+        ]);
+        $DB->insert_record('listgrades_review', (object) [
+            'listgradesid' => $instance->id,
+            'userid' => $student->id,
+            'actorid' => $student->id,
+            'action' => 'requested',
+            'comment' => null,
+            'timecreated' => 120,
+        ]);
+        $this->assertSame('', listgrades_get_review_states($instance->id)[$student->id]['snapshot']);
+        $DB->insert_record('listgrades_review', (object) [
+            'listgradesid' => $instance->id,
+            'userid' => $student->id,
+            'actorid' => $student->id,
+            'action' => 'commented',
+            'comment' => listgrades_serialize_review_message([$options[0], $options[3]], 'The review took place.'),
+            'snapshot' => '<table><tr><td>Published grade</td></tr></table>',
+            'timecreated' => 130,
+        ]);
+        $DB->insert_record('listgrades_review', (object) [
+            'listgradesid' => $instance->id,
+            'userid' => $student->id,
+            'actorid' => $teacher->id,
+            'action' => 'teachercommented',
+            'comment' => 'Please come to the review session.',
+            'timecreated' => 140,
+        ]);
+
+        $states = listgrades_get_review_states($instance->id);
+        $this->assertTrue($states[$student->id]['active']);
+        $this->assertSame(120, $states[$student->id]['requesttime']);
+        $this->assertSame('commented', $states[$student->id]['lastaction']);
+        $this->assertStringContainsString('The review took place.', $states[$student->id]['lastcomment']);
+        $this->assertStringContainsString(get_string('reviewseen', 'listgrades'), $states[$student->id]['lastcomment']);
+        $this->assertSame(130, $states[$student->id]['lasttime']);
+        $this->assertSame('<table><tr><td>Published grade</td></tr></table>', $states[$student->id]['snapshot']);
+        $this->assertSame($states[$student->id]['snapshot'], $states[$student->id]['comments'][0]['snapshot']);
+        $history = listgrades_render_review_history($states[$student->id]['comments'], \context_module::instance($instance->cmid));
+        $this->assertStringContainsString(get_string('reviewpublishedgrade', 'listgrades'), $history);
+        $this->assertStringContainsString('Published grade', $history);
+        $this->assertStringNotContainsString('<table>', $history);
+        $this->assertSame(1, substr_count($history, 'listgrades-review-chat-student'));
+        $this->assertSame(1, substr_count($history, 'listgrades-review-chat-teacher'));
+        $this->assertLessThan(strpos($history, 'Please come to the review session.'), strpos($history, 'Published grade'));
+        $this->assertCount(2, $states[$student->id]['comments']);
+        $this->assertSame((int) $student->id, $states[$student->id]['comments'][0]['actorid']);
+        $this->assertSame((int) $teacher->id, $states[$student->id]['comments'][1]['actorid']);
+        $this->assertSame(140, $states[$student->id]['comments'][1]['timecreated']);
+
+        $snapshot = '<p>Unwanted introduction</p><table><tr><th>Item header</th><th>Grade header</th></tr>' .
+            '<tr><td>Class &amp; sessions</td><td>-/100</td><td>Feedback</td></tr></table><p>Unwanted date</p>';
+        $this->assertSame('Class & sessions : -/100  Feedback', listgrades_format_review_snapshot($snapshot));
+
+        $resetstatus = listgrades_reset_userdata((object) [
+            'courseid' => $course->id,
+            'reset_listgrades_reviews' => 1,
+        ]);
+        $this->assertCount(1, $resetstatus);
+        $this->assertSame([], listgrades_get_review_states($instance->id));
+    }
+
+    /**
+     * Review statements support multiple selections and reject unexpected values.
+     */
+    public function test_review_response_statements(): void {
+        $this->resetAfterTest();
+        $options = array_keys(listgrades_review_response_options());
+        $this->assertSame('', listgrades_serialize_review_message([], ''));
+        $output = listgrades_serialize_review_message([$options[0], $options[2], $options[3]], 'My comment');
+        $this->assertStringContainsString(get_string('reviewseen', 'listgrades'), $output);
+        $this->assertStringContainsString(get_string('reviewcopyavailable', 'listgrades'), $output);
+        $this->assertStringContainsString(get_string('reviewobservations', 'listgrades'), $output);
+        $this->assertStringContainsString('My comment', $output);
+        $this->assertStringNotContainsString(get_string('reviewcopyrequested', 'listgrades'), $output);
+        $this->assertStringContainsString('{mlang es}', $output);
+        set_config('reviewresponseoptions', '{mlang es}Nueva opción{mlang}{mlang other}New option{mlang}', 'listgrades');
+        $newoptions = listgrades_review_response_options();
+        $saved = listgrades_serialize_review_message(array_keys($newoptions), '');
+        set_config('reviewresponseoptions', 'Changed option', 'listgrades');
+        $this->assertStringContainsString('{mlang es}Nueva opción{mlang}', $saved);
+        $this->assertStringContainsString('{mlang other}New option{mlang}', $saved);
+        $this->expectException(\moodle_exception::class);
+        listgrades_serialize_review_message(['invalid'], '');
+    }
+
+    /**
+     * Recorded options retain filter tags and are filtered when the history is displayed.
+     */
+    public function test_review_history_filters_recorded_options(): void {
+        global $SESSION, $USER;
+
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        filter_set_global_state('multilang', TEXTFILTER_ON);
+        $SESSION->forcelang = 'en';
+        $option = '<span lang="en" class="multilang">English option</span>' .
+            '<span lang="es" class="multilang">Opción española</span>';
+        set_config('reviewresponseoptions', $option, 'listgrades');
+        $message = listgrades_serialize_review_message(array_keys(listgrades_review_response_options()), '');
+        set_config('reviewresponseoptions', 'Another option', 'listgrades');
+        $html = listgrades_render_review_history([[
+            'actorid' => $USER->id,
+            'action' => 'commented',
+            'comment' => $message,
+            'timecreated' => time(),
+        ]], \context_system::instance());
+        $this->assertStringContainsString($option, $message);
+        $this->assertStringContainsString('English option', $html);
+        $this->assertStringNotContainsString('Opción española', $html);
+    }
+
+    /**
+     * Reopening a review retains each response and its selected statements in order.
+     */
+    public function test_reopened_review_preserves_response_history(): void {
+        global $DB;
+
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        $activity = $this->getDataGenerator()->create_module('listgrades', ['course' => $course->id]);
+        $student = $this->getDataGenerator()->create_user();
+        $teacher = $this->getDataGenerator()->create_user();
+        $options = array_keys(listgrades_review_response_options());
+        $insert = static function (
+            string $action,
+            int $actorid,
+            ?string $comment,
+            int $time
+        ) use (
+            $DB,
+            $activity,
+            $student
+        ): int {
+            return $DB->insert_record('listgrades_review', (object) [
+                'listgradesid' => $activity->id, 'userid' => $student->id, 'actorid' => $actorid,
+                'action' => $action, 'comment' => $comment, 'timecreated' => $time,
+            ]);
+        };
+        $insert('requested', $student->id, null, 100);
+        $insert('validated', $student->id, listgrades_serialize_review_message([$options[0]], ''), 110);
+        $opportunityid = $insert('reopened', $teacher->id, null, 120);
+        $pending = listgrades_get_review_states($activity->id, (int) $student->id)[$student->id];
+        $this->assertSame('requested', $pending['lastaction']);
+        $this->assertSame($opportunityid, $pending['requestid']);
+        $this->assertCount(2, $pending['comments']);
+        $insert('commented', $student->id, listgrades_serialize_review_message(
+            [$options[1], $options[3]],
+            'Second response'
+        ), 130);
+
+        $state = listgrades_get_review_states($activity->id, (int) $student->id)[$student->id];
+        $this->assertSame('commented', $state['lastaction']);
+        $this->assertCount(3, $state['comments']);
+        $this->assertStringContainsString(get_string('reviewseen', 'listgrades'), $state['comments'][0]['comment']);
+        $this->assertSame('reopened', $state['comments'][1]['action']);
+        $this->assertStringContainsString(get_string('reviewobservations', 'listgrades'), $state['comments'][2]['comment']);
+        $html = listgrades_render_review_history($state['comments'], \context_module::instance($activity->cmid));
+        $this->assertStringContainsString(get_string('reviewseen', 'listgrades'), $html);
+        $this->assertStringContainsString(get_string('reviewobservations', 'listgrades'), $html);
+        $this->assertStringContainsString('Second response', $html);
+        $this->assertStringContainsString('listgrades-review-chat-student', $html);
+        $this->assertStringContainsString('listgrades-review-chat-teacher', $html);
+        $this->assertStringContainsString('listgrades-review-chat-time', $html);
+    }
+
+    /**
+     * Review sessions and comments remain scoped to their owner and latest request.
+     */
+    public function test_review_sessions_are_scoped_to_each_student(): void {
+        global $DB;
+
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        $instance = $this->getDataGenerator()->create_module('listgrades', ['course' => $course->id]);
+        $first = $this->getDataGenerator()->create_user();
+        $second = $this->getDataGenerator()->create_user();
+        $teacher = $this->getDataGenerator()->create_user();
+        $insert = static function (int $userid, int $actorid, string $action, ?string $comment) use ($DB, $instance): int {
+            return $DB->insert_record('listgrades_review', (object) [
+                'listgradesid' => $instance->id,
+                'userid' => $userid,
+                'actorid' => $actorid,
+                'action' => $action,
+                'comment' => $comment,
+                'timecreated' => time(),
+            ]);
+        };
+        $firstrequest = $insert($first->id, $first->id, 'requested', null);
+        $secondrequest = $insert($second->id, $second->id, 'requested', null);
+        $insert($first->id, $teacher->id, 'teachercommented', 'First student only');
+        $insert($second->id, $teacher->id, 'teachercommented', 'Second student only');
+
+        $firststates = listgrades_get_review_states($instance->id, (int) $first->id);
+        $secondstates = listgrades_get_review_states($instance->id, (int) $second->id);
+        $this->assertCount(1, $firststates);
+        $this->assertCount(1, $secondstates);
+        $this->assertSame($firstrequest, $firststates[$first->id]['requestid']);
+        $this->assertSame($secondrequest, $secondstates[$second->id]['requestid']);
+        $this->assertSame('First student only', $firststates[$first->id]['comments'][0]['comment']);
+        $this->assertSame('Second student only', $secondstates[$second->id]['comments'][0]['comment']);
+        $this->assertCount(2, listgrades_get_review_states($instance->id));
+
+        $insert($first->id, $first->id, 'cancelled', null);
+        $newrequest = $insert($first->id, $first->id, 'requested', null);
+        $newstate = listgrades_get_review_states($instance->id, (int) $first->id)[$first->id];
+        $this->assertSame($newrequest, $newstate['requestid']);
+        $this->assertNotSame($firstrequest, $newstate['requestid']);
+        $this->assertSame([], $newstate['comments']);
+    }
+
+    /**
+     * Erasing an author anonymises comments while removing that student's own history.
+     */
+    public function test_review_privacy_anonymises_authors(): void {
+        global $DB;
+
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        $instance = $this->getDataGenerator()->create_module('listgrades', ['course' => $course->id]);
+        $otherinstance = $this->getDataGenerator()->create_module('listgrades', ['course' => $course->id]);
+        $context = \context_module::instance($instance->cmid);
+        $student = $this->getDataGenerator()->create_user();
+        $teacher = $this->getDataGenerator()->create_user();
+        $teacher2 = $this->getDataGenerator()->create_user();
+        $otherstudent = $this->getDataGenerator()->create_user();
+
+        $create = static function ($activityid, $ownerid, $actorid, $action, $comment) use ($DB): int {
+            return $DB->insert_record('listgrades_review', (object) [
+                'listgradesid' => $activityid,
+                'userid' => $ownerid,
+                'actorid' => $actorid,
+                'action' => $action,
+                'comment' => $comment,
+                'timecreated' => 12345,
+            ]);
+        };
+        $requestid = $create($instance->id, $student->id, $student->id, 'requested', null);
+        $commentid = $create($instance->id, $student->id, $teacher->id, 'teachercommented', 'Review comment');
+        $commentid2 = $create($instance->id, $student->id, $teacher2->id, 'teachercommented', 'Second comment');
+        $otherid = $create($otherinstance->id, $otherstudent->id, $teacher->id, 'teachercommented', 'Other activity');
+        $ownid = $create($instance->id, $teacher->id, $teacher->id, 'requested', null);
+
+        \mod_listgrades\privacy\provider::delete_data_for_user(
+            new \core_privacy\local\request\approved_contextlist($teacher, 'mod_listgrades', [$context->id])
+        );
+        $comment = $DB->get_record('listgrades_review', ['id' => $commentid], '*', MUST_EXIST);
+        $this->assertEquals(guest_user()->id, $comment->actorid);
+        $this->assertSame('Review comment', $comment->comment);
+        $this->assertEquals(12345, $comment->timecreated);
+        $this->assertFalse($DB->record_exists('listgrades_review', ['id' => $ownid]));
+        $this->assertEquals($teacher->id, $DB->get_field('listgrades_review', 'actorid', ['id' => $otherid]));
+        $this->assertTrue($DB->record_exists('listgrades_review', ['id' => $requestid]));
+
+        \mod_listgrades\privacy\provider::delete_data_for_users(
+            new \core_privacy\local\request\approved_userlist($context, 'mod_listgrades', [$teacher2->id])
+        );
+        $this->assertEquals(guest_user()->id, $DB->get_field('listgrades_review', 'actorid', ['id' => $commentid2]));
+        \mod_listgrades\privacy\provider::delete_data_for_users(
+            new \core_privacy\local\request\approved_userlist($context, 'mod_listgrades', [$student->id])
+        );
+        $this->assertFalse($DB->record_exists('listgrades_review', ['id' => $requestid]));
+        $this->assertFalse($DB->record_exists('listgrades_review', ['id' => $commentid]));
+        $this->assertFalse($DB->record_exists('listgrades_review', ['id' => $commentid2]));
+    }
+
+    /**
+     * Anonymised authors remain anonymous after a backup and restore with user data.
+     */
+    public function test_review_backup_restores_anonymous_author(): void {
+        global $CFG, $DB, $USER;
+
+        require_once($CFG->dirroot . '/backup/util/includes/backup_includes.php');
+        require_once($CFG->dirroot . '/backup/util/includes/restore_includes.php');
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        $course = $this->getDataGenerator()->create_course();
+        $student = $this->getDataGenerator()->create_user();
+        $this->getDataGenerator()->enrol_user($student->id, $course->id, 'student');
+        $instance = $this->getDataGenerator()->create_module('listgrades', ['course' => $course->id]);
+        $options = array_keys(listgrades_review_response_options());
+        $DB->insert_record('listgrades_review', (object) [
+            'listgradesid' => $instance->id,
+            'userid' => $student->id,
+            'actorid' => guest_user()->id,
+            'action' => 'teachercommented',
+            'comment' => 'Anonymous comment',
+            'timecreated' => 12345,
+        ]);
+        $DB->insert_record('listgrades_review', (object) [
+            'listgradesid' => $instance->id,
+            'userid' => $student->id,
+            'actorid' => $student->id,
+            'action' => 'commented',
+            'comment' => listgrades_serialize_review_message([$options[0], $options[3]], 'Student comment'),
+            'timecreated' => 12346,
+        ]);
+        $CFG->backup_file_logger_level = \backup::LOG_NONE;
+        $backup = new \backup_controller(
+            \backup::TYPE_1COURSE,
+            $course->id,
+            \backup::FORMAT_MOODLE,
+            \backup::INTERACTIVE_NO,
+            \backup::MODE_IMPORT,
+            $USER->id
+        );
+        $backup->get_plan()->get_setting('users')->set_status(\backup_setting::NOT_LOCKED);
+        $backup->get_plan()->get_setting('users')->set_value(true);
+        $backupid = $backup->get_backupid();
+        $backup->execute_plan();
+        $backup->destroy();
+
+        $newcourseid = \restore_dbops::create_new_course($course->fullname, $course->shortname . '_restored', $course->category);
+        $restore = new \restore_controller(
+            $backupid,
+            $newcourseid,
+            \backup::INTERACTIVE_NO,
+            \backup::MODE_GENERAL,
+            $USER->id,
+            \backup::TARGET_NEW_COURSE
+        );
+        $restore->get_plan()->get_setting('users')->set_status(\backup_setting::NOT_LOCKED);
+        $restore->get_plan()->get_setting('users')->set_value(true);
+        $this->assertTrue($restore->execute_precheck());
+        $restore->execute_plan();
+        $restore->destroy();
+        $restoredinstance = $DB->get_record('listgrades', ['course' => $newcourseid], '*', MUST_EXIST);
+        $record = $DB->get_record('listgrades_review', [
+            'listgradesid' => $restoredinstance->id,
+            'action' => 'teachercommented',
+        ], '*', MUST_EXIST);
+        $this->assertEquals($student->id, $record->userid);
+        $this->assertEquals(guest_user()->id, $record->actorid);
+        $this->assertSame('Anonymous comment', $record->comment);
+        $response = $DB->get_record('listgrades_review', [
+            'listgradesid' => $restoredinstance->id,
+            'action' => 'commented',
+        ], '*', MUST_EXIST);
+        $this->assertStringContainsString(get_string('reviewseen', 'listgrades'), $response->comment);
+        $this->assertStringContainsString('Student comment', $response->comment);
+    }
+
+    /**
      * Selected feedback ids are folded into their grade item without changing order.
      */
     public function test_get_selected_gradeitem_ids(): void {
@@ -109,6 +484,79 @@ final class lib_test extends \advanced_testcase {
         $gradeandfeedback = listgrades_render_individual_table([$item->id, -($item->id)], ...$arguments);
         $this->assertStringContainsString('Private feedback text', $gradeandfeedback);
         $this->assertStringContainsString('72/100', $gradeandfeedback);
+    }
+
+    /**
+     * Feedback is cleaned while retaining safe formatting and plain text.
+     */
+    public function test_format_feedback_for_listing(): void {
+        $this->resetAfterTest();
+        $context = \context_system::instance();
+        $html = (object) [
+            'feedback' => '<strong>Good work</strong><img src="x" onerror="alert(1)"><script>alert(2)</script>',
+            'feedbackformat' => FORMAT_HTML,
+        ];
+        $output = listgrades_format_feedback($html, $context);
+        $this->assertStringContainsString('<strong>Good work</strong>', $output);
+        $this->assertStringNotContainsString('onerror', $output);
+        $this->assertStringNotContainsString('<script', $output);
+
+        $plain = (object) ['feedback' => '<script>alert(1)</script>', 'feedbackformat' => FORMAT_PLAIN];
+        $this->assertStringNotContainsString('<script', listgrades_format_feedback($plain, $context));
+        $this->assertSame('--', listgrades_format_feedback((object) ['feedback' => ''], $context));
+    }
+
+    /**
+     * The review snapshot contains only the selected published grade and feedback.
+     */
+    public function test_review_snapshot_uses_selected_item_ids(): void {
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        $course = $this->getDataGenerator()->create_course();
+        $student = $this->getDataGenerator()->create_user();
+        $this->getDataGenerator()->enrol_user($student->id, $course->id, 'student');
+        $item = new \grade_item();
+        $item->courseid = $course->id;
+        $item->itemtype = 'manual';
+        $item->itemname = 'Reviewed exam';
+        $item->gradetype = GRADE_TYPE_VALUE;
+        $item->grademin = 0;
+        $item->grademax = 100;
+        $item->insert();
+        $item->update_final_grade($student->id, 72, 'gradebook', 'Review feedback', FORMAT_PLAIN);
+        $instance = $this->getDataGenerator()->create_module('listgrades', [
+            'course' => $course->id,
+            'items' => [$item->id, -$item->id],
+        ]);
+        $snapshottime = 1795788000;
+        $snapshot = listgrades_build_review_snapshot(
+            $instance,
+            \context_module::instance($instance->cmid),
+            $student->id,
+            $snapshottime
+        );
+        $this->assertStringContainsString('Reviewed exam', $snapshot);
+        $this->assertStringContainsString('72/100', $snapshot);
+        $this->assertStringContainsString('Review feedback', $snapshot);
+        $this->assertStringContainsString(userdate($snapshottime, '%d/%m/%Y %H:%M'), $snapshot);
+
+        $instance->items = serialize([-$item->id => '__FEEDBACK__Reviewed exam']);
+        $feedbackonly = listgrades_build_review_snapshot($instance, \context_module::instance($instance->cmid), $student->id);
+        $this->assertStringContainsString('Review feedback', $feedbackonly);
+        $this->assertStringNotContainsString('72/100', $feedbackonly);
+
+        $emptyitem = new \grade_item();
+        $emptyitem->courseid = $course->id;
+        $emptyitem->itemtype = 'manual';
+        $emptyitem->itemname = 'Class sessions';
+        $emptyitem->gradetype = GRADE_TYPE_VALUE;
+        $emptyitem->grademin = 0;
+        $emptyitem->grademax = 100;
+        $emptyitem->insert();
+        $instance->items = serialize([$emptyitem->id => 'Class sessions']);
+        $emptygrade = listgrades_build_review_snapshot($instance, \context_module::instance($instance->cmid), $student->id);
+        $this->assertStringContainsString('Class sessions', $emptygrade);
+        $this->assertStringContainsString('-/100', $emptygrade);
     }
 
     /**

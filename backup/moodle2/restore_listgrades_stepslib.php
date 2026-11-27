@@ -40,6 +40,7 @@ class restore_listgrades_activity_structure_step extends restore_activity_struct
 
         $paths = [];
         $paths[] = new restore_path_element('listgrades', '/activity/listgrades');
+        $paths[] = new restore_path_element('reviewaction', '/activity/listgrades/reviewactions/reviewaction');
 
         // Return the paths wrapped into standard activity structure.
         return $this->prepare_activity_structure($paths);
@@ -111,6 +112,33 @@ class restore_listgrades_activity_structure_step extends restore_activity_struct
         $newitemid = $DB->insert_record('listgrades', $data);
         // Immediately after inserting "activity" record, call this.
         $this->apply_activity_instance($newitemid);
+    }
+
+    /**
+     * Restores a review process action when user data is included in the backup.
+     *
+     * @param array|stdClass $data Restored action data.
+     * @return void
+     */
+    protected function process_reviewaction($data): void {
+        global $DB;
+
+        $data = (object) $data;
+        $userid = $this->get_mappingid('user', $data->userid);
+        $actorid = !empty($data->actoranonymous) ? guest_user()->id : $this->get_mappingid('user', $data->actorid);
+        if (!$userid || !$actorid) {
+            return;
+        }
+        $newid = $DB->insert_record('listgrades_review', (object) [
+            'listgradesid' => $this->get_new_parentid('listgrades'),
+            'userid' => $userid,
+            'actorid' => $actorid,
+            'action' => $data->action,
+            'comment' => $data->comment,
+            'snapshot' => $data->snapshot,
+            'timecreated' => $data->timecreated,
+        ]);
+        $this->set_mapping('reviewaction', $data->id, $newid);
     }
 
     /**

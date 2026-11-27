@@ -485,3 +485,52 @@
     line-height: 1.1;
     overflow-wrap: anywhere;
 }
+
+.path-mod-listgrades .listgrades-review-chat {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    width: 100%;
+    margin: .75rem 0;
+}
+
+.path-mod-listgrades .listgrades-review-chat-message {
+    box-sizing: border-box;
+    max-width: min(90%, 40rem);
+    padding: .7rem .85rem;
+    border: 1px solid #ced8e2;
+    border-radius: .85rem;
+    background: #f3f6f9;
+    color: #202b35;
+    overflow-wrap: anywhere;
+}
+
+.path-mod-listgrades .listgrades-review-chat-student {
+    align-self: flex-end;
+    border-color: #b6d4ec;
+    border-bottom-right-radius: .2rem;
+    background: #eaf4fc;
+}
+
+.path-mod-listgrades .listgrades-review-chat-teacher {
+    align-self: flex-start;
+    border-bottom-left-radius: .2rem;
+}
+
+.path-mod-listgrades .listgrades-review-chat-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .15rem .6rem;
+    margin-bottom: .3rem;
+}
+
+.path-mod-listgrades .listgrades-review-chat-time {
+    color: #526270;
+    font-size: .75rem;
+    font-weight: 400;
+}
+
+.path-mod-listgrades .listgrades-review-chat-body {
+    line-height: 1.45;
+}
