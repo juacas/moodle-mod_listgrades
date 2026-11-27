@@ -64,8 +64,7 @@ if (!$PAGE->activityheader->is_title_allowed()) {
 $PAGE->activityheader->set_attrs($activityheader);
 echo $OUTPUT->header();
 // Check if time is between opendate and closedate if set.
-$isopen = ($listgrades->opendate == 0 || $listgrades->opendate < time())
-        && ($listgrades->closedate == 0 || $listgrades->closedate > time());
+$isopen = listgrades_is_publication_open($listgrades, time());
 // Check if user can manage the listgrades.
 if (!$isopen) {
     echo $OUTPUT->box_start('generalbox center clearfix');

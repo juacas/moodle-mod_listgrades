@@ -119,7 +119,9 @@ try {
         unset($SESSION->listgradesreviewdrafts[$cm->id]);
         $eventaction = $comment === '' ? 'validated' : 'commented';
         $comment = listgrades_serialize_review_message($selected, $comment);
-        $snapshot = listgrades_build_review_snapshot($listgrades, $context, (int) $USER->id, $now);
+        if (listgrades_is_publication_open($listgrades, $now) || has_capability('moodle/course:manageactivities', $context)) {
+            $snapshot = listgrades_build_review_snapshot($listgrades, $context, (int) $USER->id, $now);
+        }
     } else {
         throw new moodle_exception('reviewinvalidaction', 'listgrades');
     }

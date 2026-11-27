@@ -23,6 +23,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @since      Moodle 3.0
  */
+
 namespace mod_listgrades;
 
 // PHPUnit 11 attributes are not recognised by older releases of the Moodle coverage sniff.
@@ -53,6 +54,36 @@ final class lib_test extends \advanced_testcase {
      */
     public function test_activity_chooser_purpose(): void {
         $this->assertSame(MOD_PURPOSE_ADMINISTRATION, listgrades_supports(FEATURE_MOD_PURPOSE));
+    }
+
+    /**
+     * Grade snapshots follow the same publication window as the activity view.
+     */
+    public function test_publication_window(): void {
+        $instance = (object) ['opendate' => 100, 'closedate' => 200];
+        $this->assertFalse(listgrades_is_publication_open($instance, 100));
+        $this->assertTrue(listgrades_is_publication_open($instance, 150));
+        $this->assertFalse(listgrades_is_publication_open($instance, 200));
+        $this->assertTrue(listgrades_is_publication_open((object) ['opendate' => 0, 'closedate' => 0], 150));
+    }
+
+    /**
+     * Closed activities do not expose footer contents through file or export APIs.
+     */
+    public function test_closed_publication_hides_footer_contents(): void {
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        $student = $this->getDataGenerator()->create_user();
+        $this->getDataGenerator()->enrol_user($student->id, $course->id, 'student');
+        $instance = $this->getDataGenerator()->create_module('listgrades', [
+            'course' => $course->id,
+            'closedate' => time() - 60,
+        ]);
+        $cm = get_coursemodule_from_id('listgrades', $instance->cmid, 0, false, MUST_EXIST);
+        $context = \context_module::instance($cm->id);
+        $this->setUser($student);
+        $this->assertFalse(listgrades_pluginfile($course, $cm, $context, 'footer', ['index.html'], false));
+        $this->assertSame([], listgrades_export_contents($cm, 'pluginfile.php'));
     }
 
     /**

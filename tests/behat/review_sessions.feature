@@ -27,7 +27,7 @@ Feature: Review sessions are private to each student
     And the following config values are set as admin:
       | reviewprocess | 1 | listgrades |
     And the following config values are set as admin:
-      | reviewresponseoptions | I have seen my assessment work and received explanations.\nI have requested a copy of my assessment work.\nI have online access to or a copy of my assessment work.\nI have observations about the review process. | listgrades |
+      | reviewresponseoptions | I have observations about the review process. | listgrades |
     And the following "activity" exists:
       | activity      | listgrades    |
       | course        | C1            |
@@ -49,13 +49,13 @@ Feature: Review sessions are private to each student
     And I should see "Review" in the ".breadcrumb" "css_element"
     And "Grade review" "link" should exist in the ".breadcrumb" "css_element"
     And ".breadcrumb a[href*='/mod/listgrades/view.php?id=']" "css_element" should exist
-    And I should see "Alice Student"
-    And I should see "Bob Student"
+    And I should see "Alice"
+    And I should see "Bob"
     And I should not see "Published grade:"
-    And I set the field "comment" in the "Alice Student" "table_row" to "Alice private comment"
-    And I click on "Add comment" "button" in the "Alice Student" "table_row"
-    And I set the field "comment" in the "Bob Student" "table_row" to "Bob private comment"
-    And I click on "Add comment" "button" in the "Bob Student" "table_row"
+    And I set the field "comment" in the "Alice" "table_row" to "Alice private comment"
+    And I click on "Add comment" "button" in the "Alice" "table_row"
+    And I set the field "comment" in the "Bob" "table_row" to "Bob private comment"
+    And I click on "Add comment" "button" in the "Bob" "table_row"
     And I log out
     And I am on the "Grade review" "listgrades activity" page logged in as student1
     Then I should see "Alice private comment"
@@ -73,6 +73,23 @@ Feature: Review sessions are private to each student
     Then I should see "You have not requested a review."
     And I should not see "The review date has not yet arrived."
     And "Request a review" "button" should not exist
+
+  Scenario: A review response does not reveal grades after publication closes
+    Given I am on the "Grade review" "listgrades activity" page logged in as student1
+    And I press "Request a review"
+    And I log out
+    And I am on the "Grade review" "listgrades activity editing" page logged in as admin
+    And I expand all fieldsets
+    And I set the field "id_reviewdate_year" to "2020"
+    And I set the field "id_closedate_enabled" to "1"
+    And I set the field "id_closedate_year" to "2020"
+    And I press "Save and display"
+    And I log out
+    When I am on the "Grade review" "listgrades activity" page logged in as student1
+    And I set the field "I have observations about the review process." to "1"
+    And I press "Record completion of the review"
+    Then I should see "I have observations about the review process."
+    And I should not see "Published grade:"
 
   Scenario: An incomplete review response shows a friendly validation message
     Given I am on the "Grade review" "listgrades activity" page logged in as student1
@@ -100,7 +117,9 @@ Feature: Review sessions are private to each student
     And I should see "My review comment"
     And I should see "I have observations about the review process."
     And I should see "Published grade:"
-    And I click on "Allow another student response" "button" in the "Alice Student" "table_row"
+    And I click on "Allow another student response" "button" in the "Alice" "table_row"
+    And the following config values are set as admin:
+      | reviewresponseoptions | I have seen my assessment work and received explanations. | listgrades |
     And I log out
     And I am on the "Grade review" "listgrades activity" page logged in as student1
     And I should see "My review comment"

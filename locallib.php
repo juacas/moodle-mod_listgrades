@@ -27,11 +27,24 @@ defined('MOODLE_INTERNAL') || die;
 require_once("$CFG->libdir/filelib.php");
 require_once("$CFG->libdir/resourcelib.php");
 require_once("$CFG->dirroot/mod/listgrades/lib.php");
+require_once($CFG->dirroot . '/grade/lib.php');
 require_once($CFG->dirroot . '/grade/report/grader/lib.php');
 
 define('LISTGRADES_DISPLAY_LIST', 'list');
 define('LISTGRADES_DISPLAY_INDIVIDUAL', 'individual');
 define('LISTGRADES_ALLOWED_BOTH', 'both');
+
+/**
+ * Check whether the activity's grade publication window is open.
+ *
+ * @param stdClass $instance Listgrades activity.
+ * @param int $timestamp Time to check.
+ * @return bool Whether grades are published at this time.
+ */
+function listgrades_is_publication_open(stdClass $instance, int $timestamp): bool {
+    return (empty($instance->opendate) || $instance->opendate < $timestamp) &&
+        (empty($instance->closedate) || $instance->closedate > $timestamp);
+}
 
 /**
  * Return the default multilingual review statements, one per line.
@@ -367,6 +380,12 @@ function listgrades_resolve_display_mode(
 class grade_report_listing extends grade_report_grader {
     /**
      * Constructor to override the calculation of grade_tree (avoid removing collapsed categories).
+     *
+     * @param int $courseid Course id.
+     * @param grade_plugin_return|null $gpr Grade report return information.
+     * @param context $context Report context.
+     * @param int|null $page Current page.
+     * @param string|int $sortitemid Sort field or grade item id.
      */
     public function __construct($courseid, $gpr, $context, $page = null, $sortitemid = 'lastname') {
         global $CFG;
@@ -1702,7 +1721,8 @@ function listgrades_asterisks($n) {
 
 /**
  * Find item names matching by id. Negative ids are feedback items.
- * @param array $gradeitems ids. Negative ids are feedback items.
+ * @param array $itemids Item ids. Negative ids are feedback items.
+ * @param array|null $items Existing grade items, or null to load them.
  * @return array of grade_items with id -> name
  */
 function listgrades_get_gradeitems_for_backup($itemids, $items = null) {
@@ -1774,8 +1794,7 @@ function listgrades_get_editor_options($context) {
 /**
  * Update the calendar entries for this listgradesment.
  *
- * @param int $coursemoduleid - Required to pass this in because it might
- *                              not exist in the database yet.
+ * @param stdClass $instance Activity instance.
  * @return bool
  */
 function listgrades_update_calendar($instance) {

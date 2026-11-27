@@ -59,7 +59,7 @@ function listgrades_supports($feature) {
 
 /**
  * This function is used by the reset_course_userdata function in moodlelib.
- * @param $data the data submitted from the reset course.
+ * @param stdClass $data The data submitted from the reset course.
  * @return array status array
  */
 function listgrades_reset_userdata($data) {
@@ -439,15 +439,17 @@ function listgrades_pluginfile($course, $cm, $context, $filearea, $args, $forced
         return false;
     }
 
+    require_once($CFG->dirroot . '/mod/listgrades/locallib.php');
+    $page = $DB->get_record('listgrades', ['id' => $cm->instance], '*', MUST_EXIST);
+    if (!listgrades_is_publication_open($page, time()) && !has_capability('moodle/course:manageactivities', $context)) {
+        return false;
+    }
+
     // The $arg could be revision number or index.html.
     $arg = array_shift($args);
     if ($arg == 'index.html' || $arg == 'index.htm') {
         // Serve page content.
         $filename = $arg;
-
-        if (!$page = $DB->get_record('listgrades', ['id' => $cm->instance], '*', MUST_EXIST)) {
-            return false;
-        }
 
         // We need to rewrite the pluginfile URLs so the media filters can work.
         $footer = file_rewrite_pluginfile_urls(
@@ -506,6 +508,8 @@ function listgrades_page_type_list($pagetype, $parentcontext, $currentcontext) {
 /**
  * Export page resource contents
  *
+ * @param cm_info|stdClass $cm Course module.
+ * @param string $baseurl Base URL for exported files.
  * @return array of file content
  */
 function listgrades_export_contents($cm, $baseurl) {
@@ -514,6 +518,13 @@ function listgrades_export_contents($cm, $baseurl) {
     $context = context_module::instance($cm->id);
 
     $page = $DB->get_record('listgrades', ['id' => $cm->instance], '*', MUST_EXIST);
+    require_once($CFG->dirroot . '/mod/listgrades/locallib.php');
+    if (
+        !has_capability('mod/listgrades:view', $context) ||
+            (!listgrades_is_publication_open($page, time()) && !has_capability('moodle/course:manageactivities', $context))
+    ) {
+        return [];
+    }
 
     // Page contents.
     $fs = get_file_storage();
@@ -662,6 +673,7 @@ function listgrades_check_updates_since(cm_info $cm, $from, $filter = []) {
  *
  * @param calendar_event $event
  * @param \core_calendar\action_factory $factory
+ * @param int $userid User for whom the action is generated.
  * @return \core_calendar\local\event\entities\action_interface|null
  */
 function mod_listgrades_core_calendar_provide_event_action(
