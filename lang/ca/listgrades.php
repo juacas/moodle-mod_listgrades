@@ -91,6 +91,7 @@ $string['privacyglobalhidden'] = 'El nombre i el percentatge d’estudiants que 
 $string['privacyteachernotice'] = '(Els estudiants no veuran aquest bloc en absolut.)';
 $string['resetreviewprocess'] = 'Suprimeix l’historial del procés de revisió de qualificacions';
 $string['reviewaddcomment'] = 'Afegeix un comentari';
+$string['reviewbreadcrumb'] = 'Revisió';
 $string['reviewcancel'] = 'Anul·la la sol·licitud de revisió';
 $string['reviewcancelled'] = 'La sol·licitud de revisió s’ha anul·lat. L’acció queda registrada.';
 $string['reviewcommenthistory'] = 'Historial de comentaris';

@@ -106,6 +106,7 @@ $string['privacyglobalhidden'] = 'Pass totals and percentages are hidden because
 $string['privacyteachernotice'] = '(Students will not see this block at all.)';
 $string['resetreviewprocess'] = 'Delete grade review process history';
 $string['reviewaddcomment'] = 'Add comment';
+$string['reviewbreadcrumb'] = 'Review';
 $string['reviewcancel'] = 'Cancel review request';
 $string['reviewcancelled'] = 'Your review request was cancelled. The action remains recorded.';
 $string['reviewcommenthistory'] = 'Comment history';

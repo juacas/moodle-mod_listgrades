@@ -46,6 +46,9 @@ Feature: Review sessions are private to each student
     Then I should not see "Alice Student"
     And I should see "2 review requests"
     And I follow "Manage reviews"
+    And I should see "Review" in the ".breadcrumb" "css_element"
+    And "Grade review" "link" should exist in the ".breadcrumb" "css_element"
+    And ".breadcrumb a[href*='/mod/listgrades/view.php?id=']" "css_element" should exist
     And I should see "Alice Student"
     And I should see "Bob Student"
     And I should not see "Published grade:"

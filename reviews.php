@@ -42,6 +42,7 @@ $PAGE->set_url('/mod/listgrades/reviews.php', ['id' => $cm->id]);
 $PAGE->set_title(format_string($listgrades->name) . ': ' . get_string('reviewlist', 'listgrades'));
 $PAGE->set_heading($course->fullname);
 $PAGE->set_cm($cm, $course, $listgrades);
+$PAGE->navbar->add(get_string('reviewbreadcrumb', 'listgrades'));
 $reviewurl = new moodle_url('/mod/listgrades/review.php', ['id' => $cm->id]);
 $reviewstates = listgrades_get_review_states((int) $listgrades->id);
 

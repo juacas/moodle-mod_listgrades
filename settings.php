@@ -39,7 +39,7 @@ if ($ADMIN->fulltree) {
         'listgrades/reviewprocess',
         get_string('reviewprocess', 'listgrades'),
         get_string('reviewprocess_help', 'listgrades'),
-        1
+        0
     ));
 
     $settings->add(new admin_setting_configtextarea(
