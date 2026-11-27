@@ -134,5 +134,53 @@ function xmldb_listgrades_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026111201, 'listgrades');
     }
 
+    if ($oldversion < 2026112600) {
+        $table = new xmldb_table('listgrades');
+        $reviewenabled = new xmldb_field('reviewenabled', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'closedate');
+        if (!$dbman->field_exists($table, $reviewenabled)) {
+            $dbman->add_field($table, $reviewenabled);
+        }
+        $reviewdate = new xmldb_field('reviewdate', XMLDB_TYPE_INTEGER, '10', null, null, null, '0', 'reviewenabled');
+        if (!$dbman->field_exists($table, $reviewdate)) {
+            $dbman->add_field($table, $reviewdate);
+        }
+
+        $reviewtable = new xmldb_table('listgrades_review');
+        $reviewtable->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE);
+        $reviewtable->add_field('listgradesid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $reviewtable->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+        $reviewtable->add_field('action', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL);
+        $reviewtable->add_field('comment', XMLDB_TYPE_TEXT);
+        $reviewtable->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $reviewtable->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $reviewtable->add_key('listgradesid', XMLDB_KEY_FOREIGN, ['listgradesid'], 'listgrades', ['id']);
+        $reviewtable->add_key('userid', XMLDB_KEY_FOREIGN, ['userid'], 'user', ['id']);
+        $reviewtable->add_index('activityuser', XMLDB_INDEX_NOTUNIQUE, ['listgradesid', 'userid']);
+        if (!$dbman->table_exists($reviewtable)) {
+            $dbman->create_table($reviewtable);
+        }
+
+        upgrade_mod_savepoint(true, 2026112600, 'listgrades');
+    }
+
+    if ($oldversion < 2026112601) {
+        $table = new xmldb_table('listgrades_review');
+        $actorid = new xmldb_field('actorid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'userid');
+        if (!$dbman->field_exists($table, $actorid)) {
+            $dbman->add_field($table, $actorid);
+            $DB->execute('UPDATE {listgrades_review} SET actorid = userid WHERE actorid = 0');
+        }
+        $snapshot = new xmldb_field('snapshot', XMLDB_TYPE_TEXT, null, null, null, null, null, 'comment');
+        if (!$dbman->field_exists($table, $snapshot)) {
+            $dbman->add_field($table, $snapshot);
+        }
+        $actoridkey = new xmldb_key('actorid', XMLDB_KEY_FOREIGN, ['actorid'], 'user', ['id']);
+        if (!$dbman->find_key_name($table, $actoridkey)) {
+            $dbman->add_key($table, $actoridkey);
+        }
+
+        upgrade_mod_savepoint(true, 2026112601, 'listgrades');
+    }
+
     return true;
 }

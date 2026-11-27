@@ -51,8 +51,26 @@ class backup_listgrades_activity_structure_step extends backup_activity_structur
             'showstatistics',
             'opendate',
             'closedate',
+            'reviewenabled',
+            'reviewdate',
             'timemodified']
         );
+
+        if ($userinfo) {
+            $reviewactions = new backup_nested_element('reviewactions');
+            $reviewaction = new backup_nested_element('reviewaction', ['id'], [
+                'userid', 'actorid', 'actoranonymous', 'action', 'comment', 'snapshot', 'timecreated',
+            ]);
+            $listgrades->add_child($reviewactions);
+            $reviewactions->add_child($reviewaction);
+            $reviewaction->set_source_sql(
+                'SELECT r.*, CASE WHEN r.actorid = :anonymousid THEN 1 ELSE 0 END AS actoranonymous
+                   FROM {listgrades_review} r WHERE r.listgradesid = :listgradesid',
+                ['anonymousid' => ['sqlparam' => guest_user()->id], 'listgradesid' => backup::VAR_PARENTID]
+            );
+            $reviewaction->annotate_ids('user', 'userid');
+            $reviewaction->annotate_ids('user', 'actorid');
+        }
 
         // Build the tree.
         // (love this).

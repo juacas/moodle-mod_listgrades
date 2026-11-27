@@ -15,28 +15,221 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Privacy Subsystem implementation for mod_listgrades.
+ * Privacy provider for mod_listgrades.
  *
  * @package    mod_listgrades
- * @copyright  2023 Juan Pablo de Castro <juanpablo.decastro@uva.ee>
+ * @copyright  2023 Juan Pablo de Castro <juanpablo.decastro@uva.es>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+
 namespace mod_listgrades\privacy;
 
+use core_privacy\local\metadata\collection;
+use core_privacy\local\request\approved_contextlist;
+use core_privacy\local\request\approved_userlist;
+use core_privacy\local\request\contextlist;
+use core_privacy\local\request\core_userlist_provider;
+use core_privacy\local\request\plugin\provider as plugin_provider;
+use core_privacy\local\request\transform;
+use core_privacy\local\request\userlist;
+use core_privacy\local\request\writer;
+
 /**
- * The mod_listgrades module does not store any data.
- *
- * @copyright  2023 Juan Pablo de Castro <juanpablo.decastro@uva.ee>
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * Privacy API implementation for review process data.
  */
-class provider implements \core_privacy\local\metadata\null_provider {
+class provider implements \core_privacy\local\metadata\provider, core_userlist_provider, plugin_provider {
     /**
-     * Get the language string identifier with the component's language
-     * file to explain why this plugin stores no data.
+     * Describe personal data stored by the review process.
      *
-     * @return  string
+     * @param collection $collection Metadata collection.
+     * @return collection
      */
-    public static function get_reason(): string {
-        return 'privacy:metadata';
+    public static function get_metadata(collection $collection): collection {
+        $collection->add_database_table('listgrades_review', [
+            'listgradesid' => 'privacy:metadata:listgrades_review:listgradesid',
+            'userid' => 'privacy:metadata:listgrades_review:userid',
+            'actorid' => 'privacy:metadata:listgrades_review:actorid',
+            'action' => 'privacy:metadata:listgrades_review:action',
+            'comment' => 'privacy:metadata:listgrades_review:comment',
+            'snapshot' => 'privacy:metadata:listgrades_review:snapshot',
+            'timecreated' => 'privacy:metadata:listgrades_review:timecreated',
+        ], 'privacy:metadata:listgrades_review');
+
+        return $collection;
+    }
+
+    /**
+     * Get module contexts containing review actions by a user.
+     *
+     * @param int $userid User id.
+     * @return contextlist
+     */
+    public static function get_contexts_for_userid(int $userid): contextlist {
+        $contextlist = new contextlist();
+        $sql = "SELECT ctx.id
+                  FROM {context} ctx
+                  JOIN {course_modules} cm ON cm.id = ctx.instanceid AND ctx.contextlevel = :contextlevel
+                  JOIN {modules} m ON m.id = cm.module AND m.name = :modname
+                  JOIN {listgrades} lg ON lg.id = cm.instance
+                  JOIN {listgrades_review} lr ON lr.listgradesid = lg.id
+                 WHERE lr.userid = :userid1 OR lr.actorid = :userid2";
+        $contextlist->add_from_sql($sql, [
+            'contextlevel' => CONTEXT_MODULE,
+            'modname' => 'listgrades',
+            'userid1' => $userid,
+            'userid2' => $userid,
+        ]);
+        return $contextlist;
+    }
+
+    /**
+     * List users with review actions in a module context.
+     *
+     * @param userlist $userlist User list.
+     * @return void
+     */
+    public static function get_users_in_context(userlist $userlist): void {
+        $context = $userlist->get_context();
+        if (!$context instanceof \context_module) {
+            return;
+        }
+        $cm = get_coursemodule_from_id('listgrades', $context->instanceid);
+        if (!$cm) {
+            return;
+        }
+        $userlist->add_from_sql('userid', "SELECT userid FROM {listgrades_review} WHERE listgradesid = :listgradesid1
+            UNION SELECT actorid AS userid FROM {listgrades_review}
+             WHERE listgradesid = :listgradesid2 AND actorid <> :anonymousid", [
+            'listgradesid1' => $cm->instance,
+            'listgradesid2' => $cm->instance,
+            'anonymousid' => guest_user()->id,
+        ]);
+    }
+
+    /**
+     * Export review history for an approved user/context request.
+     *
+     * @param approved_contextlist $contextlist Approved contexts.
+     * @return void
+     */
+    public static function export_user_data(approved_contextlist $contextlist): void {
+        global $DB;
+
+        $userid = $contextlist->get_user()->id;
+        foreach ($contextlist->get_contexts() as $context) {
+            if (!$context instanceof \context_module) {
+                continue;
+            }
+            $cm = get_coursemodule_from_id('listgrades', $context->instanceid);
+            if (!$cm) {
+                continue;
+            }
+            $actions = $DB->get_records_select(
+                'listgrades_review',
+                'listgradesid = :listgradesid AND (userid = :userid1 OR actorid = :userid2)',
+                ['listgradesid' => $cm->instance, 'userid1' => $userid, 'userid2' => $userid],
+                'id ASC'
+            );
+            if (!$actions) {
+                continue;
+            }
+            $export = [];
+            foreach ($actions as $action) {
+                $export[] = [
+                    'action' => $action->action,
+                    'comment' => $action->comment,
+                    'snapshot' => $action->snapshot,
+                    'studentid' => $action->userid,
+                    'actorid' => $action->actorid,
+                    'timecreated' => transform::datetime($action->timecreated),
+                ];
+            }
+            writer::with_context($context)->export_data([get_string('reviewsection', 'listgrades')], (object) [
+                'actions' => $export,
+            ]);
+        }
+    }
+
+    /**
+     * Delete all review data in a module context.
+     *
+     * @param \context $context Context.
+     * @return void
+     */
+    public static function delete_data_for_all_users_in_context(\context $context): void {
+        global $DB;
+
+        if (!$context instanceof \context_module) {
+            return;
+        }
+        $cm = get_coursemodule_from_id('listgrades', $context->instanceid);
+        if ($cm) {
+            $DB->delete_records('listgrades_review', ['listgradesid' => $cm->instance]);
+        }
+    }
+
+    /**
+     * Delete review data for a user in approved contexts.
+     *
+     * @param approved_contextlist $contextlist Approved contexts.
+     * @return void
+     */
+    public static function delete_data_for_user(approved_contextlist $contextlist): void {
+        $userid = $contextlist->get_user()->id;
+        foreach ($contextlist->get_contexts() as $context) {
+            if (!$context instanceof \context_module) {
+                continue;
+            }
+            $cm = get_coursemodule_from_id('listgrades', $context->instanceid);
+            if ($cm) {
+                self::delete_or_anonymise_reviews((int) $cm->instance, [(int) $userid]);
+            }
+        }
+    }
+
+    /**
+     * Delete review data for an approved set of users in one context.
+     *
+     * @param approved_userlist $userlist Approved user list.
+     * @return void
+     */
+    public static function delete_data_for_users(approved_userlist $userlist): void {
+        $context = $userlist->get_context();
+        if (!$context instanceof \context_module) {
+            return;
+        }
+        $cm = get_coursemodule_from_id('listgrades', $context->instanceid);
+        if (!$cm) {
+            return;
+        }
+        $userids = $userlist->get_userids();
+        if (!$userids) {
+            return;
+        }
+        self::delete_or_anonymise_reviews((int) $cm->instance, $userids);
+    }
+
+    /**
+     * Delete students' histories and anonymise their contributions to other histories.
+     *
+     * @param int $listgradesid Activity instance id.
+     * @param array $userids Users whose data should be erased.
+     * @return void
+     */
+    private static function delete_or_anonymise_reviews(int $listgradesid, array $userids): void {
+        global $DB;
+
+        [$usersql, $params] = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED, 'reviewuser');
+        $params['listgradesid'] = $listgradesid;
+        $transaction = $DB->start_delegated_transaction();
+        $DB->delete_records_select('listgrades_review', "listgradesid = :listgradesid AND userid $usersql", $params);
+        $DB->set_field_select(
+            'listgrades_review',
+            'actorid',
+            guest_user()->id,
+            "listgradesid = :listgradesid AND actorid $usersql",
+            $params
+        );
+        $transaction->allow_commit();
     }
 }

@@ -59,15 +59,54 @@ function listgrades_supports($feature) {
 
 /**
  * This function is used by the reset_course_userdata function in moodlelib.
- * @param $data the data submitted from the reset course.
+ * @param stdClass $data The data submitted from the reset course.
  * @return array status array
  */
 function listgrades_reset_userdata($data) {
+    global $DB;
 
-    // Any changes to the list of dates that needs to be rolled should be same during course restore and course reset.
-    // See MDL-9367.
+    $status = [];
+    if (!empty($data->reset_listgrades_reviews)) {
+        $instanceids = $DB->get_fieldset_select('listgrades', 'id', 'course = :courseid', [
+            'courseid' => $data->courseid,
+        ]);
+        if ($instanceids) {
+            [$insql, $params] = $DB->get_in_or_equal($instanceids, SQL_PARAMS_NAMED, 'listgradesid');
+            $DB->delete_records_select('listgrades_review', "listgradesid $insql", $params);
+        }
+        $status[] = [
+            'component' => get_string('modulenameplural', 'listgrades'),
+            'item' => get_string('resetreviewprocess', 'listgrades'),
+            'error' => false,
+        ];
+    }
+    return $status;
+}
 
-    return [];
+/**
+ * Add review history options to the course reset form.
+ *
+ * @param MoodleQuickForm $mform Form.
+ * @return void
+ */
+function listgrades_reset_course_form_definition(&$mform): void {
+    global $COURSE, $DB;
+
+    if (!$DB->record_exists('listgrades', ['course' => $COURSE->id])) {
+        return;
+    }
+    $mform->addElement('header', 'listgradesheader', get_string('modulenameplural', 'listgrades'));
+    $mform->addElement('advcheckbox', 'reset_listgrades_reviews', get_string('resetreviewprocess', 'listgrades'));
+}
+
+/**
+ * Course reset defaults.
+ *
+ * @param stdClass $course Course record.
+ * @return array
+ */
+function listgrades_reset_course_form_defaults($course): array {
+    return ['reset_listgrades_reviews' => 0];
 }
 
 /**
@@ -286,6 +325,7 @@ function listgrades_delete_instance($id) {
     listgrades_update_calendar($listgrades);
 
     // Note: all context files are deleted automatically.
+    $DB->delete_records('listgrades_review', ['listgradesid' => $listgrades->id]);
     $DB->delete_records('listgrades', ['id' => $listgrades->id]);
     return true;
 }
@@ -399,15 +439,17 @@ function listgrades_pluginfile($course, $cm, $context, $filearea, $args, $forced
         return false;
     }
 
+    require_once($CFG->dirroot . '/mod/listgrades/locallib.php');
+    $page = $DB->get_record('listgrades', ['id' => $cm->instance], '*', MUST_EXIST);
+    if (!listgrades_is_publication_open($page, time()) && !has_capability('moodle/course:manageactivities', $context)) {
+        return false;
+    }
+
     // The $arg could be revision number or index.html.
     $arg = array_shift($args);
     if ($arg == 'index.html' || $arg == 'index.htm') {
         // Serve page content.
         $filename = $arg;
-
-        if (!$page = $DB->get_record('listgrades', ['id' => $cm->instance], '*', MUST_EXIST)) {
-            return false;
-        }
 
         // We need to rewrite the pluginfile URLs so the media filters can work.
         $footer = file_rewrite_pluginfile_urls(
@@ -466,6 +508,8 @@ function listgrades_page_type_list($pagetype, $parentcontext, $currentcontext) {
 /**
  * Export page resource contents
  *
+ * @param cm_info|stdClass $cm Course module.
+ * @param string $baseurl Base URL for exported files.
  * @return array of file content
  */
 function listgrades_export_contents($cm, $baseurl) {
@@ -474,6 +518,13 @@ function listgrades_export_contents($cm, $baseurl) {
     $context = context_module::instance($cm->id);
 
     $page = $DB->get_record('listgrades', ['id' => $cm->instance], '*', MUST_EXIST);
+    require_once($CFG->dirroot . '/mod/listgrades/locallib.php');
+    if (
+        !has_capability('mod/listgrades:view', $context) ||
+            (!listgrades_is_publication_open($page, time()) && !has_capability('moodle/course:manageactivities', $context))
+    ) {
+        return [];
+    }
 
     // Page contents.
     $fs = get_file_storage();
@@ -622,6 +673,7 @@ function listgrades_check_updates_since(cm_info $cm, $from, $filter = []) {
  *
  * @param calendar_event $event
  * @param \core_calendar\action_factory $factory
+ * @param int $userid User for whom the action is generated.
  * @return \core_calendar\local\event\entities\action_interface|null
  */
 function mod_listgrades_core_calendar_provide_event_action(

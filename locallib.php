@@ -27,11 +27,279 @@ defined('MOODLE_INTERNAL') || die;
 require_once("$CFG->libdir/filelib.php");
 require_once("$CFG->libdir/resourcelib.php");
 require_once("$CFG->dirroot/mod/listgrades/lib.php");
+require_once($CFG->dirroot . '/grade/lib.php');
 require_once($CFG->dirroot . '/grade/report/grader/lib.php');
 
 define('LISTGRADES_DISPLAY_LIST', 'list');
 define('LISTGRADES_DISPLAY_INDIVIDUAL', 'individual');
 define('LISTGRADES_ALLOWED_BOTH', 'both');
+
+/**
+ * Check whether the activity's grade publication window is open.
+ *
+ * @param stdClass $instance Listgrades activity.
+ * @param int $timestamp Time to check.
+ * @return bool Whether grades are published at this time.
+ */
+function listgrades_is_publication_open(stdClass $instance, int $timestamp): bool {
+    return (empty($instance->opendate) || $instance->opendate < $timestamp) &&
+        (empty($instance->closedate) || $instance->closedate > $timestamp);
+}
+
+/**
+ * Return the default multilingual review statements, one per line.
+ *
+ * @return string Default statements.
+ */
+function listgrades_default_review_response_options(): string {
+    return implode("\n", [
+        '{mlang es}He visto mis pruebas y recibido las explicaciones.{mlang}' .
+            '{mlang other}I have seen my assessment work and received explanations.{mlang}',
+        '{mlang es}He reclamado una copia de mis pruebas de evaluación.{mlang}' .
+            '{mlang other}I have requested a copy of my assessment work.{mlang}',
+        '{mlang es}Tengo acceso online o a una copia de mis pruebas de evaluación.{mlang}' .
+            '{mlang other}I have online access to or a copy of my assessment work.{mlang}',
+        '{mlang es}Tengo observaciones que hacer sobre el proceso de revisión.{mlang}' .
+            '{mlang other}I have observations about the review process.{mlang}',
+    ]);
+}
+
+/**
+ * Return configured review statements indexed by a hash of their unfiltered text.
+ *
+ * @return array Statement identifiers and text.
+ */
+function listgrades_review_response_options(): array {
+    $configured = get_config('listgrades', 'reviewresponseoptions');
+    if ($configured === false) {
+        $configured = listgrades_default_review_response_options();
+    }
+    $options = [];
+    foreach (preg_split('/\R/u', $configured) as $line) {
+        $line = trim($line);
+        if ($line !== '') {
+            $options[hash('sha256', $line)] = $line;
+        }
+    }
+    return $options;
+}
+
+/**
+ * Serialize selected statements and an optional comment as readable message text.
+ *
+ * @param array $selected Selected statement identifiers.
+ * @param string $comment Student comment.
+ * @return string Message containing the statements and comment.
+ */
+function listgrades_serialize_review_message(array $selected, string $comment): string {
+    $lines = [];
+    $options = listgrades_review_response_options();
+    foreach (array_unique($selected) as $identifier) {
+        if (!isset($options[$identifier])) {
+            throw new moodle_exception('reviewinvalidaction', 'listgrades');
+        }
+        $lines[] = '- ' . $options[$identifier];
+    }
+    if ($comment !== '') {
+        $lines[] = get_string('comments') . ': ' . $comment;
+    }
+    return implode("\n", $lines);
+}
+
+/**
+ * Format the recorded grade table as one plain-text line per item.
+ *
+ * @param string $snapshot Recorded HTML snapshot.
+ * @return string Published items and their values.
+ */
+function listgrades_format_review_snapshot(string $snapshot): string {
+    $document = new DOMDocument();
+    $document->loadHTML('<meta charset="utf-8">' . $snapshot, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING);
+    $xpath = new DOMXPath($document);
+    $lines = [];
+    foreach ($xpath->query('//table[1]/tbody/tr | //table[1]/tr') as $row) {
+        $cells = [];
+        foreach ($xpath->query('./td', $row) as $cell) {
+            $cells[] = trim(preg_replace('/\s+/u', ' ', html_to_text($document->saveHTML($cell), 0, false)));
+        }
+        if ($cells) {
+            $name = array_shift($cells);
+            $values = array_filter($cells, static fn(string $value): bool => $value !== '');
+            $lines[] = $name . ($values ? ' : ' . implode('  ', $values) : '');
+        }
+    }
+    return implode("\n", $lines);
+}
+
+/**
+ * Render review messages and recorded statements with authors and timestamps.
+ *
+ * @param array $messages Review history entries.
+ * @param context $context Module context for text filters.
+ * @return string HTML history.
+ */
+function listgrades_render_review_history(array $messages, context $context): string {
+    global $DB;
+
+    $output = '';
+    foreach ($messages as $message) {
+        $author = $DB->get_record('user', ['id' => $message['actorid']], '*', IGNORE_MISSING);
+        $name = $author && (int) $author->id !== (int) guest_user()->id && empty($author->deleted)
+            ? fullname($author) : get_string('deleteduser');
+        $metadata = html_writer::tag('strong', s($name), ['class' => 'listgrades-review-chat-author']);
+        $metadata .= html_writer::tag('time', userdate($message['timecreated']), [
+            'class' => 'listgrades-review-chat-time',
+            'datetime' => gmdate('c', $message['timecreated']),
+        ]);
+        if (($message['action'] ?? '') === 'reopened') {
+            $body = get_string('reviewreopened', 'listgrades');
+        } else {
+            $body = format_text(nl2br($message['comment']), FORMAT_HTML, [
+                'context' => $context,
+                'para' => false,
+            ]);
+        }
+        if (!empty($message['snapshot'])) {
+            $snapshot = html_writer::tag('strong', get_string('reviewpublishedgrade', 'listgrades'));
+            $snapshot .= html_writer::tag('div', nl2br(s(listgrades_format_review_snapshot($message['snapshot']))), [
+                'class' => 'listgrades-review-chat-body',
+            ]);
+            $body .= html_writer::tag('div', $snapshot, ['class' => 'listgrades-review-chat-snapshot mt-2']);
+        }
+        if ($body !== '') {
+            $content = html_writer::tag('div', $metadata, ['class' => 'listgrades-review-chat-meta']);
+            $content .= html_writer::tag('div', $body, ['class' => 'listgrades-review-chat-body']);
+            $student = in_array($message['action'] ?? '', ['validated', 'commented'], true);
+            $class = 'listgrades-review-chat-message ' .
+                ($student ? 'listgrades-review-chat-student' : 'listgrades-review-chat-teacher');
+            $output .= html_writer::tag('div', $content, ['class' => $class]);
+        }
+    }
+    return $output === '' ? '' : html_writer::tag('div', $output, ['class' => 'listgrades-review-chat']);
+}
+
+/**
+ * Check whether the review process is enabled both globally and for an activity.
+ *
+ * @param stdClass $instance Listgrades instance.
+ * @return bool
+ */
+function listgrades_review_is_enabled(stdClass $instance): bool {
+    $globallyenabled = get_config('listgrades', 'reviewprocess');
+    return ($globallyenabled === '1' || $globallyenabled === 1) && !empty($instance->reviewenabled);
+}
+
+/**
+ * Build each user's current review state from the append-only action history.
+ *
+ * @param int $listgradesid Activity instance id.
+ * @param int|null $userid Restrict the history to one student, or null for all students.
+ * @return array States keyed by user id.
+ */
+function listgrades_get_review_states(int $listgradesid, ?int $userid = null): array {
+    global $DB;
+
+    $states = [];
+    $conditions = ['listgradesid' => $listgradesid];
+    if ($userid !== null) {
+        $conditions['userid'] = $userid;
+    }
+    foreach ($DB->get_records('listgrades_review', $conditions, 'id ASC') as $event) {
+        $userid = (int) $event->userid;
+        if (!isset($states[$userid])) {
+            $states[$userid] = [
+                'active' => false,
+                'requesttime' => 0,
+                'requestid' => 0,
+                'lastaction' => '',
+                'lastcomment' => '',
+                'lasttime' => 0,
+                'snapshot' => '',
+                'comments' => [],
+            ];
+        }
+        if ($event->action === 'requested') {
+            $states[$userid]['active'] = true;
+            $states[$userid]['requesttime'] = (int) $event->timecreated;
+            $states[$userid]['requestid'] = (int) $event->id;
+            $states[$userid]['lastaction'] = 'requested';
+            $states[$userid]['lastcomment'] = '';
+            $states[$userid]['lasttime'] = (int) $event->timecreated;
+            $states[$userid]['snapshot'] = '';
+            $states[$userid]['comments'] = [];
+        } else if ($event->action === 'cancelled') {
+            $states[$userid]['active'] = false;
+            $states[$userid]['lastaction'] = 'cancelled';
+            $states[$userid]['lasttime'] = (int) $event->timecreated;
+        } else if ($states[$userid]['active'] && $event->action === 'reopened') {
+            $states[$userid]['requestid'] = (int) $event->id;
+            $states[$userid]['lastaction'] = 'requested';
+            $states[$userid]['lasttime'] = (int) $event->timecreated;
+            $states[$userid]['comments'][] = [
+                'actorid' => (int) $event->actorid,
+                'comment' => '',
+                'timecreated' => (int) $event->timecreated,
+                'action' => 'reopened',
+            ];
+        } else if ($states[$userid]['active'] && in_array($event->action, ['validated', 'commented'], true)) {
+            $states[$userid]['lastaction'] = $event->action;
+            $states[$userid]['lastcomment'] = $event->comment ?? '';
+            $states[$userid]['lasttime'] = (int) $event->timecreated;
+            $states[$userid]['snapshot'] = $event->snapshot ?? '';
+            if (($event->comment !== null && $event->comment !== '') || !empty($event->snapshot)) {
+                $states[$userid]['comments'][] = [
+                    'actorid' => (int) ($event->actorid ?? $userid),
+                    'comment' => $event->comment ?? '',
+                    'timecreated' => (int) $event->timecreated,
+                    'action' => $event->action,
+                    'snapshot' => $event->snapshot ?? '',
+                ];
+            }
+        } else if ($states[$userid]['active'] && $event->action === 'teachercommented') {
+            $states[$userid]['comments'][] = [
+                'actorid' => (int) ($event->actorid ?? 0),
+                'comment' => $event->comment ?? '',
+                'timecreated' => (int) $event->timecreated,
+                'action' => $event->action,
+            ];
+        }
+    }
+    return $states;
+}
+
+/**
+ * Create an immutable copy of the grade table published to one student.
+ *
+ * @param stdClass $instance Listgrades activity.
+ * @param context $context Module context.
+ * @param int $userid Student id.
+ * @param int|null $timestamp Snapshot time, or null for the current time.
+ * @return string Snapshot HTML.
+ */
+function listgrades_build_review_snapshot(stdClass $instance, context $context, int $userid, ?int $timestamp = null): string {
+    global $DB;
+
+    $course = $DB->get_record('course', ['id' => $instance->course], '*', MUST_EXIST);
+    $grader = new grade_report_listing($course->id, null, $context);
+    $gradeitems = $grader->get_gradeitems();
+    $itemnames = $grader->get_item_names();
+    $usergrades = [];
+    $sql = 'SELECT gg.* FROM {grade_grades} gg
+              JOIN {grade_items} gi ON gi.id = gg.itemid
+             WHERE gi.courseid = :courseid AND gg.userid = :userid';
+    foreach ($DB->get_records_sql($sql, ['courseid' => $course->id, 'userid' => $userid]) as $record) {
+        $usergrades[$record->itemid] = new grade_grade($record, false);
+    }
+    return listgrades_render_individual_table(
+        array_keys((array) unserialize_array($instance->items)),
+        $gradeitems,
+        $itemnames,
+        $usergrades,
+        $context,
+        $DB->get_record('user', ['id' => $userid], '*', MUST_EXIST),
+        $timestamp ?? time()
+    );
+}
 
 /**
  * Expand the placeholders available in the default intro and footer templates.
@@ -112,6 +380,12 @@ function listgrades_resolve_display_mode(
 class grade_report_listing extends grade_report_grader {
     /**
      * Constructor to override the calculation of grade_tree (avoid removing collapsed categories).
+     *
+     * @param int $courseid Course id.
+     * @param grade_plugin_return|null $gpr Grade report return information.
+     * @param context $context Report context.
+     * @param int|null $page Current page.
+     * @param string|int $sortitemid Sort field or grade item id.
      */
     public function __construct($courseid, $gpr, $context, $page = null, $sortitemid = 'lastname') {
         global $CFG;
@@ -363,6 +637,7 @@ function listgrades_format_grade_with_reference(?float $finalgrade, grade_item $
  * @param array|null $usergrades current user's grades keyed by item id
  * @param context $context module context
  * @param stdClass $user current user
+ * @param int|null $snapshottime Snapshot timestamp, or null for a date-only display.
  * @return string
  */
 function listgrades_render_individual_table(
@@ -371,7 +646,8 @@ function listgrades_render_individual_table(
     array $itemnames,
     ?array $usergrades,
     context $context,
-    stdClass $user
+    stdClass $user,
+    ?int $snapshottime = null
 ): string {
     $showgrade = [];
     $showfeedback = [];
@@ -425,11 +701,30 @@ function listgrades_render_individual_table(
     $intro = html_writer::tag('p', get_string($introstring, 'listgrades', fullname($user)), [
         'class' => 'listgrades-individual-intro',
     ]);
-    $date = html_writer::tag('p', get_string('individualgradedate', 'listgrades', userdate(time(), '%d/%m/%Y')), [
+    $dateformat = $snapshottime === null ? '%d/%m/%Y' : '%d/%m/%Y %H:%M';
+    $date = html_writer::tag('p', get_string('individualgradedate', 'listgrades', userdate($snapshottime ?? time(), $dateformat)), [
         'class' => 'listgrades-individual-date',
     ]);
 
     return $intro . html_writer::table($table) . $date;
+}
+
+/**
+ * Format grade feedback safely for publication.
+ *
+ * @param object $grade Grade record with feedback and feedbackformat.
+ * @param context $context Module context.
+ * @return string Filtered feedback, or a placeholder when empty.
+ */
+function listgrades_format_feedback(object $grade, context $context): string {
+    if ($grade->feedback === null || $grade->feedback === '') {
+        return '--';
+    }
+    return format_text($grade->feedback, $grade->feedbackformat ?? FORMAT_MOODLE, [
+        'context' => $context,
+        'noclean' => false,
+        'trusted' => false,
+    ]);
 }
 
 /**
@@ -1426,7 +1721,8 @@ function listgrades_asterisks($n) {
 
 /**
  * Find item names matching by id. Negative ids are feedback items.
- * @param array $gradeitems ids. Negative ids are feedback items.
+ * @param array $itemids Item ids. Negative ids are feedback items.
+ * @param array|null $items Existing grade items, or null to load them.
  * @return array of grade_items with id -> name
  */
 function listgrades_get_gradeitems_for_backup($itemids, $items = null) {
@@ -1498,8 +1794,7 @@ function listgrades_get_editor_options($context) {
 /**
  * Update the calendar entries for this listgradesment.
  *
- * @param int $coursemoduleid - Required to pass this in because it might
- *                              not exist in the database yet.
+ * @param stdClass $instance Activity instance.
  * @return bool
  */
 function listgrades_update_calendar($instance) {

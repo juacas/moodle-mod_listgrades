@@ -1,19 +1,19 @@
-# List Grades v1.1.3
+# List Grades v1.2.0
 
-## Easier grade and feedback selection
+## A documented grade review process
 
-- Choose published grades and feedback directly from a tree of the course gradebook, organised by category.
-- Select grades and feedback independently for each item, including category totals.
-- Selected items are highlighted at the top of the selector, and selected categories open automatically when editing an activity.
-- Compact column controls make it easier to select or clear all grades or all feedback, while keeping the item names readable in long gradebooks.
-- Category branches can be expanded and collapsed while configuring the activity.
+- Enable an optional review process and set a review date for each activity.
+- Students can request or cancel a review before the scheduled date.
+- After the review date, students can record what took place, select the statements that apply and add a comment.
+- Teachers can manage requests, add comments and allow a student to submit another response.
 
-## A clearer activity icon
+## A private history with context
 
-- The activity icon indicates whether the current student has a published grade or feedback to view.
-- A notification marker draws attention to available content; an empty-page icon is shown when there is nothing to display.
-- Administrators can turn this dynamic icon behaviour on or off.
+- Each student has a separate review history with a clear conversation between the student and the teacher.
+- Each response records its selected statements, comments and timestamp alongside the grades published at the time.
+- Administrators can customise response options and use Moodle text filters to provide multilingual wording.
 
-## Compatibility and usability
+## Explore the workflow
 
-- The grade selector layout is improved for Moodle 4.5, including aligned headers and controls.
+- The project website now illustrates the student and teacher review experience in English and Spanish.
+- The release has been checked with Moodle 4.5 and 5.3.

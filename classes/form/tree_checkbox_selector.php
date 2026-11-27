@@ -56,7 +56,7 @@ class tree_checkbox_selector {
      *
      * @param array $tree Normalized tree nodes.
      * @param string $badgeheading Label displayed above selected item badges.
-     * @param string $noneSelected Label displayed when no item is selected.
+     * @param string $noneselected Label displayed when no item is selected.
      * @param string $sectionid HTML id of the containing form section.
      * @return void
      */
