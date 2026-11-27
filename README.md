@@ -53,6 +53,10 @@ Statistics can be enabled independently of the publication mode and therefore di
 
 - **User-Friendly Interface:** A simple and intuitive interface allows both teachers and students to easily navigate and access the published grades.
 
+### 6. Grade Reviews
+
+Administrators can enable the review process and configure its response options, one option per line. The defaults contain Spanish and English text using the Multilanguage Content (v2) filter syntax, for example `{mlang es}Texto{mlang}{mlang other}Text{mlang}`. Enable the corresponding Moodle filter to display the appropriate language. Each review record retains the original selected option text and filter tags even if the administrator later changes the options.
+
 ## Installation
 
 1. Download the plugin ZIP file from the [Moodle Plugins Directory](https://moodle.org/plugins/) or GitHub repository.

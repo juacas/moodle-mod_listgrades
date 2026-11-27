@@ -379,7 +379,7 @@ if (listgrades_review_is_enabled($listgrades) && (int) $listgrades->reviewdate >
         }
         if ($reviewstate['comments']) {
             echo html_writer::tag('h4', get_string('reviewcommenthistory', 'listgrades'));
-            echo listgrades_render_review_history($reviewstate['comments']);
+            echo listgrades_render_review_history($reviewstate['comments'], $context);
         } else if ($reviewopen && $reviewstate['active'] && $reviewstate['lastaction'] === 'requested') {
             echo html_writer::tag('p', get_string('reviewwaiting', 'listgrades'));
         }
@@ -400,14 +400,16 @@ if (listgrades_review_is_enabled($listgrades) && (int) $listgrades->reviewdate >
             if ($draftvalid) {
                 echo $OUTPUT->notification(get_string('reviewselectionrequired', 'listgrades'), 'notifyproblem');
             }
-            foreach (listgrades_review_response_options() as $identifier) {
+            foreach (listgrades_review_response_options() as $identifier => $label) {
                 $inputid = 'review-statement-' . $identifier;
                 echo html_writer::start_div('form-check');
                 echo html_writer::empty_tag('input', [
                     'type' => 'checkbox', 'name' => 'statements[]', 'value' => $identifier,
                     'id' => $inputid, 'class' => 'form-check-input',
                 ]);
-                echo html_writer::tag('label', get_string($identifier, 'listgrades'), [
+                echo html_writer::tag('label', format_text($label, FORMAT_HTML, [
+                    'context' => $context, 'para' => false,
+                ]), [
                     'for' => $inputid, 'class' => 'form-check-label',
                 ]);
                 echo html_writer::end_div();

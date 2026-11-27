@@ -66,6 +66,7 @@ final class lib_test extends \advanced_testcase {
         $instance = $this->getDataGenerator()->create_module('listgrades', ['course' => $course->id]);
         $student = $this->getDataGenerator()->create_user();
         $teacher = $this->getDataGenerator()->create_user();
+        $options = array_keys(listgrades_review_response_options());
 
         set_config('reviewprocess', 0, 'listgrades');
         $this->assertFalse(listgrades_review_is_enabled((object) ['reviewenabled' => 1]));
@@ -103,7 +104,7 @@ final class lib_test extends \advanced_testcase {
             'userid' => $student->id,
             'actorid' => $student->id,
             'action' => 'commented',
-            'comment' => listgrades_serialize_review_message(['reviewseen', 'reviewobservations'], 'The review took place.'),
+            'comment' => listgrades_serialize_review_message([$options[0], $options[3]], 'The review took place.'),
             'snapshot' => '<table><tr><td>Published grade</td></tr></table>',
             'timecreated' => 130,
         ]);
@@ -125,7 +126,7 @@ final class lib_test extends \advanced_testcase {
         $this->assertSame(130, $states[$student->id]['lasttime']);
         $this->assertSame('<table><tr><td>Published grade</td></tr></table>', $states[$student->id]['snapshot']);
         $this->assertSame($states[$student->id]['snapshot'], $states[$student->id]['comments'][0]['snapshot']);
-        $history = listgrades_render_review_history($states[$student->id]['comments']);
+        $history = listgrades_render_review_history($states[$student->id]['comments'], \context_module::instance($instance->cmid));
         $this->assertStringContainsString(get_string('reviewpublishedgrade', 'listgrades'), $history);
         $this->assertStringContainsString('Published grade', $history);
         $this->assertStringNotContainsString('<table>', $history);
@@ -153,15 +154,50 @@ final class lib_test extends \advanced_testcase {
      * Review statements support multiple selections and reject unexpected values.
      */
     public function test_review_response_statements(): void {
+        $this->resetAfterTest();
+        $options = array_keys(listgrades_review_response_options());
         $this->assertSame('', listgrades_serialize_review_message([], ''));
-        $output = listgrades_serialize_review_message(['reviewseen', 'reviewcopyavailable', 'reviewobservations'], 'My comment');
+        $output = listgrades_serialize_review_message([$options[0], $options[2], $options[3]], 'My comment');
         $this->assertStringContainsString(get_string('reviewseen', 'listgrades'), $output);
         $this->assertStringContainsString(get_string('reviewcopyavailable', 'listgrades'), $output);
         $this->assertStringContainsString(get_string('reviewobservations', 'listgrades'), $output);
         $this->assertStringContainsString('My comment', $output);
         $this->assertStringNotContainsString(get_string('reviewcopyrequested', 'listgrades'), $output);
+        $this->assertStringContainsString('{mlang es}', $output);
+        set_config('reviewresponseoptions', '{mlang es}Nueva opción{mlang}{mlang other}New option{mlang}', 'listgrades');
+        $newoptions = listgrades_review_response_options();
+        $saved = listgrades_serialize_review_message(array_keys($newoptions), '');
+        set_config('reviewresponseoptions', 'Changed option', 'listgrades');
+        $this->assertStringContainsString('{mlang es}Nueva opción{mlang}', $saved);
+        $this->assertStringContainsString('{mlang other}New option{mlang}', $saved);
         $this->expectException(\moodle_exception::class);
         listgrades_serialize_review_message(['invalid'], '');
+    }
+
+    /**
+     * Recorded options retain filter tags and are filtered when the history is displayed.
+     */
+    public function test_review_history_filters_recorded_options(): void {
+        global $SESSION, $USER;
+
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        filter_set_global_state('multilang', TEXTFILTER_ON);
+        $SESSION->forcelang = 'en';
+        $option = '<span lang="en" class="multilang">English option</span>' .
+            '<span lang="es" class="multilang">Opción española</span>';
+        set_config('reviewresponseoptions', $option, 'listgrades');
+        $message = listgrades_serialize_review_message(array_keys(listgrades_review_response_options()), '');
+        set_config('reviewresponseoptions', 'Another option', 'listgrades');
+        $html = listgrades_render_review_history([[
+            'actorid' => $USER->id,
+            'action' => 'commented',
+            'comment' => $message,
+            'timecreated' => time(),
+        ]], \context_system::instance());
+        $this->assertStringContainsString($option, $message);
+        $this->assertStringContainsString('English option', $html);
+        $this->assertStringNotContainsString('Opción española', $html);
     }
 
     /**
@@ -175,6 +211,7 @@ final class lib_test extends \advanced_testcase {
         $activity = $this->getDataGenerator()->create_module('listgrades', ['course' => $course->id]);
         $student = $this->getDataGenerator()->create_user();
         $teacher = $this->getDataGenerator()->create_user();
+        $options = array_keys(listgrades_review_response_options());
         $insert = static function (
             string $action,
             int $actorid,
@@ -191,14 +228,14 @@ final class lib_test extends \advanced_testcase {
             ]);
         };
         $insert('requested', $student->id, null, 100);
-        $insert('validated', $student->id, listgrades_serialize_review_message(['reviewseen'], ''), 110);
+        $insert('validated', $student->id, listgrades_serialize_review_message([$options[0]], ''), 110);
         $opportunityid = $insert('reopened', $teacher->id, null, 120);
         $pending = listgrades_get_review_states($activity->id, (int) $student->id)[$student->id];
         $this->assertSame('requested', $pending['lastaction']);
         $this->assertSame($opportunityid, $pending['requestid']);
         $this->assertCount(2, $pending['comments']);
         $insert('commented', $student->id, listgrades_serialize_review_message(
-            ['reviewcopyrequested', 'reviewobservations'],
+            [$options[1], $options[3]],
             'Second response'
         ), 130);
 
@@ -208,7 +245,7 @@ final class lib_test extends \advanced_testcase {
         $this->assertStringContainsString(get_string('reviewseen', 'listgrades'), $state['comments'][0]['comment']);
         $this->assertSame('reopened', $state['comments'][1]['action']);
         $this->assertStringContainsString(get_string('reviewobservations', 'listgrades'), $state['comments'][2]['comment']);
-        $html = listgrades_render_review_history($state['comments']);
+        $html = listgrades_render_review_history($state['comments'], \context_module::instance($activity->cmid));
         $this->assertStringContainsString(get_string('reviewseen', 'listgrades'), $html);
         $this->assertStringContainsString(get_string('reviewobservations', 'listgrades'), $html);
         $this->assertStringContainsString('Second response', $html);
@@ -331,6 +368,7 @@ final class lib_test extends \advanced_testcase {
         $student = $this->getDataGenerator()->create_user();
         $this->getDataGenerator()->enrol_user($student->id, $course->id, 'student');
         $instance = $this->getDataGenerator()->create_module('listgrades', ['course' => $course->id]);
+        $options = array_keys(listgrades_review_response_options());
         $DB->insert_record('listgrades_review', (object) [
             'listgradesid' => $instance->id,
             'userid' => $student->id,
@@ -344,7 +382,7 @@ final class lib_test extends \advanced_testcase {
             'userid' => $student->id,
             'actorid' => $student->id,
             'action' => 'commented',
-            'comment' => listgrades_serialize_review_message(['reviewseen', 'reviewobservations'], 'Student comment'),
+            'comment' => listgrades_serialize_review_message([$options[0], $options[3]], 'Student comment'),
             'timecreated' => 12346,
         ]);
         $CFG->backup_file_logger_level = \backup::LOG_NONE;

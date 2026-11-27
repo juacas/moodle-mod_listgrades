@@ -34,12 +34,41 @@ define('LISTGRADES_DISPLAY_INDIVIDUAL', 'individual');
 define('LISTGRADES_ALLOWED_BOTH', 'both');
 
 /**
- * Return the supported review statement identifiers.
+ * Return the default multilingual review statements, one per line.
  *
- * @return array Statement identifiers.
+ * @return string Default statements.
+ */
+function listgrades_default_review_response_options(): string {
+    return implode("\n", [
+        '{mlang es}He visto mis pruebas y recibido las explicaciones.{mlang}' .
+            '{mlang other}I have seen my assessment work and received explanations.{mlang}',
+        '{mlang es}He reclamado una copia de mis pruebas de evaluación.{mlang}' .
+            '{mlang other}I have requested a copy of my assessment work.{mlang}',
+        '{mlang es}Tengo acceso online o a una copia de mis pruebas de evaluación.{mlang}' .
+            '{mlang other}I have online access to or a copy of my assessment work.{mlang}',
+        '{mlang es}Tengo observaciones que hacer sobre el proceso de revisión.{mlang}' .
+            '{mlang other}I have observations about the review process.{mlang}',
+    ]);
+}
+
+/**
+ * Return configured review statements indexed by a hash of their unfiltered text.
+ *
+ * @return array Statement identifiers and text.
  */
 function listgrades_review_response_options(): array {
-    return ['reviewseen', 'reviewcopyrequested', 'reviewcopyavailable', 'reviewobservations'];
+    $configured = get_config('listgrades', 'reviewresponseoptions');
+    if ($configured === false) {
+        $configured = listgrades_default_review_response_options();
+    }
+    $options = [];
+    foreach (preg_split('/\R/u', $configured) as $line) {
+        $line = trim($line);
+        if ($line !== '') {
+            $options[hash('sha256', $line)] = $line;
+        }
+    }
+    return $options;
 }
 
 /**
@@ -51,11 +80,12 @@ function listgrades_review_response_options(): array {
  */
 function listgrades_serialize_review_message(array $selected, string $comment): string {
     $lines = [];
+    $options = listgrades_review_response_options();
     foreach (array_unique($selected) as $identifier) {
-        if (!in_array($identifier, listgrades_review_response_options(), true)) {
+        if (!isset($options[$identifier])) {
             throw new moodle_exception('reviewinvalidaction', 'listgrades');
         }
-        $lines[] = '- ' . get_string($identifier, 'listgrades');
+        $lines[] = '- ' . $options[$identifier];
     }
     if ($comment !== '') {
         $lines[] = get_string('comments') . ': ' . $comment;
@@ -92,9 +122,10 @@ function listgrades_format_review_snapshot(string $snapshot): string {
  * Render review messages and recorded statements with authors and timestamps.
  *
  * @param array $messages Review history entries.
+ * @param context $context Module context for text filters.
  * @return string HTML history.
  */
-function listgrades_render_review_history(array $messages): string {
+function listgrades_render_review_history(array $messages, context $context): string {
     global $DB;
 
     $output = '';
@@ -110,7 +141,10 @@ function listgrades_render_review_history(array $messages): string {
         if (($message['action'] ?? '') === 'reopened') {
             $body = get_string('reviewreopened', 'listgrades');
         } else {
-            $body = nl2br(s($message['comment']));
+            $body = format_text(nl2br($message['comment']), FORMAT_HTML, [
+                'context' => $context,
+                'para' => false,
+            ]);
         }
         if (!empty($message['snapshot'])) {
             $snapshot = html_writer::tag('strong', get_string('reviewpublishedgrade', 'listgrades'));

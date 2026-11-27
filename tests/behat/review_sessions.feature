@@ -26,6 +26,8 @@ Feature: Review sessions are private to each student
       | student2 | GB    |
     And the following config values are set as admin:
       | reviewprocess | 1 | listgrades |
+    And the following config values are set as admin:
+      | reviewresponseoptions | I have seen my assessment work and received explanations.\nI have requested a copy of my assessment work.\nI have online access to or a copy of my assessment work.\nI have observations about the review process. | listgrades |
     And the following "activity" exists:
       | activity      | listgrades    |
       | course        | C1            |

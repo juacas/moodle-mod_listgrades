@@ -106,7 +106,7 @@ foreach ($rows as $row) {
     } else if ($state['lastaction'] === 'cancelled') {
         $status = get_string('reviewoutcomecancelled', 'listgrades');
     }
-    $comments = [listgrades_render_review_history($state['comments'])];
+    $comments = [listgrades_render_review_history($state['comments'], $context)];
     if ($state['active']) {
         $form = html_writer::start_tag('form', ['method' => 'post', 'action' => $reviewurl->out(false)]);
         $form .= html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
