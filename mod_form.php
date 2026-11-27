@@ -210,6 +210,22 @@ class mod_listgrades_mod_form extends moodleform_mod {
         $mform->addElement('date_time_selector', 'closedate', get_string('closedate', 'listgrades'), ['optional' => true]);
         $mform->addHelpButton('closedate', 'closedate', 'listgrades');
 
+        if (($config->reviewprocess ?? '0') === '1' || ($config->reviewprocess ?? 0) === 1) {
+            $mform->addElement('header', 'reviewsection', get_string('reviewsection', 'listgrades'));
+            $mform->addElement('advcheckbox', 'reviewenabled', get_string('reviewenabled', 'listgrades'));
+            $mform->addHelpButton('reviewenabled', 'reviewenabled', 'listgrades');
+            $mform->setDefault('reviewenabled', 0);
+            $mform->addElement(
+                'date_time_selector',
+                'reviewdate',
+                get_string('reviewdate', 'listgrades'),
+                ['optional' => true]
+            );
+            $mform->addHelpButton('reviewdate', 'reviewdate', 'listgrades');
+            $mform->setDefault('reviewdate', 0);
+            $mform->hideIf('reviewdate', 'reviewenabled', 'notchecked');
+        }
+
         $this->standard_coursemodule_elements();
 
         $this->add_action_buttons();
@@ -306,6 +322,13 @@ class mod_listgrades_mod_form extends moodleform_mod {
                 'selectatleastonegradeitem',
                 'listgrades'
             );
+        }
+        $config = get_config('listgrades');
+        if (
+            (($config->reviewprocess ?? '0') === '1' || ($config->reviewprocess ?? 0) === 1) &&
+                !empty($data['reviewenabled']) && empty($data['reviewdate'])
+        ) {
+            $errors['reviewdate'] = get_string('reviewdaterequired', 'listgrades');
         }
         return $errors;
     }

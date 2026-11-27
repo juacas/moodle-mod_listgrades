@@ -266,13 +266,13 @@ if ($isopen || has_capability('moodle/course:manageactivities', $context)) {
             foreach ($listeditems as $itemid => $item) {
                 if ($itemid < 0) {
                     $gradevalue = $grade[$item->id];
-                    $gradestr = $gradevalue->feedback ? $gradevalue->feedback : '--';
+                    $gradestr = listgrades_format_feedback($gradevalue, $context);
                 } else {
                     $gradevalue = $grade[$item->id];
                     $gradestr = $gradevalue->finalgrade !== null
                         ? format_float($gradevalue->finalgrade, $gradevalue->grade_item->get_decimals()) : '--';
                 }
-                if ($USER->id == $user->id) {
+                if ($USER->id == $user->id && $itemid > 0) {
                     $row[] = html_writer::link($graderurl, $gradestr);
                 } else {
                     $row[] = $gradestr;
@@ -314,6 +314,120 @@ if ($isopen || has_capability('moodle/course:manageactivities', $context)) {
     $formatoptions->context = $context;
     $signature = format_text($signature, $listgrades->footerformat, $formatoptions);
     echo $OUTPUT->box($signature, "generalbox center clearfix");
+}
+
+// Review actions are available independently of grade-publication dates.
+if (listgrades_review_is_enabled($listgrades) && (int) $listgrades->reviewdate > 0) {
+    $reviewstates = listgrades_get_review_states((int) $listgrades->id, (int) $USER->id);
+    $reviewstate = $reviewstates[$USER->id] ?? [
+        'active' => false,
+        'requesttime' => 0,
+        'requestid' => 0,
+        'lastaction' => '',
+        'lastcomment' => '',
+        'lasttime' => 0,
+        'snapshot' => '',
+        'comments' => [],
+    ];
+    $reviewurl = new moodle_url('/mod/listgrades/review.php', ['id' => $cm->id]);
+    $reviewdate = (int) $listgrades->reviewdate;
+    $reviewopen = time() < $reviewdate;
+    $canmanagereviews = has_capability('mod/listgrades:managereviews', $context);
+
+    echo $OUTPUT->heading(get_string('reviewsection', 'listgrades'), 3);
+    echo $OUTPUT->box(get_string('reviewdate', 'listgrades') . ': ' . userdate($reviewdate), 'generalbox');
+
+    if ($canmanagereviews) {
+        $allreviewstates = listgrades_get_review_states((int) $listgrades->id);
+        $reviewcount = count(array_filter($allreviewstates, static fn(array $state): bool => $state['active']));
+        $countstring = $reviewcount === 1 ? 'reviewrequestcountone' : 'reviewrequestcount';
+        echo $OUTPUT->notification(get_string($countstring, 'listgrades', $reviewcount), 'info');
+        $manageurl = new moodle_url('/mod/listgrades/reviews.php', ['id' => $cm->id]);
+        echo html_writer::link($manageurl, get_string('reviewmanage', 'listgrades'), ['class' => 'btn btn-primary']);
+    } else {
+        echo $OUTPUT->box_start('generalbox listgrades-review-student');
+        if (!$reviewstate['active']) {
+            if ($reviewopen) {
+                echo html_writer::tag('p', get_string('reviewnotrequested', 'listgrades'));
+                echo html_writer::start_tag('form', ['method' => 'post', 'action' => $reviewurl->out(false)]);
+                echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
+                echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => 'request']);
+                echo html_writer::tag('button', get_string('reviewrequest', 'listgrades'), [
+                    'type' => 'submit',
+                    'class' => 'btn btn-primary',
+                ]);
+                echo html_writer::end_tag('form');
+            } else {
+                echo html_writer::tag('p', get_string('reviewnotrequested', 'listgrades'));
+            }
+        } else if ($reviewopen && $reviewstate['lastaction'] === 'requested') {
+            echo html_writer::tag('p', get_string('reviewrequestedmessage', 'listgrades', userdate($reviewstate['requesttime'])));
+            echo html_writer::start_tag('form', ['method' => 'post', 'action' => $reviewurl->out(false)]);
+            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
+            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => 'cancel']);
+            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'requestid', 'value' => $reviewstate['requestid']]);
+            echo html_writer::tag('button', get_string('reviewcancel', 'listgrades'), [
+                'type' => 'submit',
+                'class' => 'btn btn-secondary',
+            ]);
+            echo html_writer::end_tag('form');
+        } else if (in_array($reviewstate['lastaction'], ['validated', 'commented'], true)) {
+            $outcome = $reviewstate['lastaction'] === 'validated'
+                ? get_string('reviewoutcomevalidated', 'listgrades')
+                : get_string('reviewoutcomecommented', 'listgrades');
+            echo html_writer::tag('p', $outcome . ' (' . userdate($reviewstate['lasttime']) . ')');
+        }
+        if ($reviewstate['comments']) {
+            echo html_writer::tag('h4', get_string('reviewcommenthistory', 'listgrades'));
+            echo listgrades_render_review_history($reviewstate['comments']);
+        } else if ($reviewopen && $reviewstate['active'] && $reviewstate['lastaction'] === 'requested') {
+            echo html_writer::tag('p', get_string('reviewwaiting', 'listgrades'));
+        }
+        if ($reviewstate['active'] && !$reviewopen && $reviewstate['lastaction'] === 'requested') {
+            $draft = $SESSION->listgradesreviewdrafts[$cm->id] ?? null;
+            unset($SESSION->listgradesreviewdrafts[$cm->id]);
+            $draftvalid = $draft && $draft['userid'] === (int) $USER->id &&
+                $draft['requestid'] === $reviewstate['requestid'];
+            echo html_writer::tag('p', get_string('reviewresult_help', 'listgrades'));
+            echo html_writer::start_tag('form', [
+                'method' => 'post', 'action' => $reviewurl->out(false), 'id' => 'review-response',
+            ]);
+            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
+            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => 'complete']);
+            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'requestid', 'value' => $reviewstate['requestid']]);
+            echo html_writer::start_tag('fieldset', ['class' => 'mb-3']);
+            echo html_writer::tag('legend', get_string('reviewresult', 'listgrades'), ['class' => 'h6']);
+            if ($draftvalid) {
+                echo $OUTPUT->notification(get_string('reviewselectionrequired', 'listgrades'), 'notifyproblem');
+            }
+            foreach (listgrades_review_response_options() as $identifier) {
+                $inputid = 'review-statement-' . $identifier;
+                echo html_writer::start_div('form-check');
+                echo html_writer::empty_tag('input', [
+                    'type' => 'checkbox', 'name' => 'statements[]', 'value' => $identifier,
+                    'id' => $inputid, 'class' => 'form-check-input',
+                ]);
+                echo html_writer::tag('label', get_string($identifier, 'listgrades'), [
+                    'for' => $inputid, 'class' => 'form-check-label',
+                ]);
+                echo html_writer::end_div();
+            }
+            echo html_writer::end_tag('fieldset');
+            echo html_writer::tag('label', get_string('comments'), ['for' => 'review-comment']);
+            echo html_writer::tag('textarea', $draftvalid ? s($draft['comment']) : '', [
+                'id' => 'review-comment',
+                'name' => 'comment',
+                'class' => 'form-control mb-2',
+                'rows' => 3,
+            ]);
+            echo html_writer::tag('button', get_string('reviewrecordcompletion', 'listgrades'), [
+                'type' => 'submit',
+                'class' => 'btn btn-primary',
+            ]);
+            echo html_writer::end_tag('form');
+        }
+        echo $OUTPUT->box_end();
+    }
 }
 
 echo $OUTPUT->footer();

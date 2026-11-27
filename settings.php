@@ -35,6 +35,13 @@ if ($ADMIN->fulltree) {
         1
     ));
 
+    $settings->add(new admin_setting_configcheckbox(
+        'listgrades/reviewprocess',
+        get_string('reviewprocess', 'listgrades'),
+        get_string('reviewprocess_help', 'listgrades'),
+        1
+    ));
+
     // Modedit defaults.
     // Add the activity defaults section to the settings page.
     $settings->add(new admin_setting_heading(

@@ -33,6 +33,15 @@ $capabilities = [
             'user' => CAP_ALLOW,
         ],
     ],
+    'mod/listgrades:managereviews' => [
+        'riskbitmask' => RISK_PERSONAL,
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => [
+            'editingteacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW,
+        ],
+    ],
     'mod/listgrades:addinstance' => [
         'riskbitmask' => RISK_XSS,
 

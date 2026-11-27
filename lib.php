@@ -63,11 +63,50 @@ function listgrades_supports($feature) {
  * @return array status array
  */
 function listgrades_reset_userdata($data) {
+    global $DB;
 
-    // Any changes to the list of dates that needs to be rolled should be same during course restore and course reset.
-    // See MDL-9367.
+    $status = [];
+    if (!empty($data->reset_listgrades_reviews)) {
+        $instanceids = $DB->get_fieldset_select('listgrades', 'id', 'course = :courseid', [
+            'courseid' => $data->courseid,
+        ]);
+        if ($instanceids) {
+            [$insql, $params] = $DB->get_in_or_equal($instanceids, SQL_PARAMS_NAMED, 'listgradesid');
+            $DB->delete_records_select('listgrades_review', "listgradesid $insql", $params);
+        }
+        $status[] = [
+            'component' => get_string('modulenameplural', 'listgrades'),
+            'item' => get_string('resetreviewprocess', 'listgrades'),
+            'error' => false,
+        ];
+    }
+    return $status;
+}
 
-    return [];
+/**
+ * Add review history options to the course reset form.
+ *
+ * @param MoodleQuickForm $mform Form.
+ * @return void
+ */
+function listgrades_reset_course_form_definition(&$mform): void {
+    global $COURSE, $DB;
+
+    if (!$DB->record_exists('listgrades', ['course' => $COURSE->id])) {
+        return;
+    }
+    $mform->addElement('header', 'listgradesheader', get_string('modulenameplural', 'listgrades'));
+    $mform->addElement('advcheckbox', 'reset_listgrades_reviews', get_string('resetreviewprocess', 'listgrades'));
+}
+
+/**
+ * Course reset defaults.
+ *
+ * @param stdClass $course Course record.
+ * @return array
+ */
+function listgrades_reset_course_form_defaults($course): array {
+    return ['reset_listgrades_reviews' => 0];
 }
 
 /**
@@ -286,6 +325,7 @@ function listgrades_delete_instance($id) {
     listgrades_update_calendar($listgrades);
 
     // Note: all context files are deleted automatically.
+    $DB->delete_records('listgrades_review', ['listgradesid' => $listgrades->id]);
     $DB->delete_records('listgrades', ['id' => $listgrades->id]);
     return true;
 }
