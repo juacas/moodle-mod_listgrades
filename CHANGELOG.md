@@ -1,5 +1,26 @@
 # Changelog
 
+## v1.2.0 (2026-11-27)
+
+Changes since [v1.1.3](https://github.com/juacas/moodle-mod_listgrades/tree/v1.1.3).
+
+### Added
+
+- Optional grade review workflow with a review date and student requests and cancellations.
+- Private review histories with configurable, filterable response options, student and teacher comments, timestamps, and a snapshot of published grades when the student responds.
+- A teacher management page for review requests, with the ability to allow another student response.
+- Moodle logging, privacy export and deletion, backup and restore support for review records.
+- A bilingual website section describing the review workflow.
+
+### Security and privacy
+
+- Review responses do not capture grades while the activity's publication window is closed to the student.
+- Footer files and exported contents respect the activity's publication window.
+
+### Fixed
+
+- Load the gradebook components required to record a review response on Moodle 4.5.
+
 ## [v1.1.3](https://github.com/juacas/moodle-mod_listgrades/tree/v1.1.3) (2026-11-23)
 
 [Full Changelog](https://github.com/juacas/moodle-mod_listgrades/compare/v1.1.2...v1.1.3)

@@ -21,6 +21,7 @@
  * @copyright  2023 Juan Pablo de Castro <juanpablo.decastro@uva.es>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+
 namespace mod_listgrades\privacy;
 
 use core_privacy\local\metadata\collection;

@@ -23,6 +23,7 @@
  */
 
 namespace mod_listgrades\event;
+
 /**
  * The mod_listgrades course module viewed event class.
  *
