@@ -1,0 +1,30 @@
+{{!
+    @template mod_listgrades/review_actions
+    History and teacher actions for a student review.
+
+    Example context (json):
+    {"history": "", "active": true, "url": "/review.php", "sesskey": "key", "userid": 1, "requestid": 2}
+}}
+<details class="listgrades-review-history mb-2">
+    <summary>{{#str}}reviewcommenthistory, mod_listgrades{{/str}}</summary>
+    {{{history}}}
+</details>
+{{#active}}
+    <form method="post" action="{{url}}">
+        <input type="hidden" name="sesskey" value="{{sesskey}}">
+        <input type="hidden" name="action" value="teachercomment">
+        <input type="hidden" name="targetuserid" value="{{userid}}">
+        <input type="hidden" name="requestid" value="{{requestid}}">
+        <textarea name="comment" class="form-control mb-2" rows="2" required="required" aria-label="{{#str}}reviewteachercomment, mod_listgrades{{/str}}"></textarea>
+        <button type="submit" class="btn btn-secondary btn-sm">{{#str}}reviewaddcomment, mod_listgrades{{/str}}</button>
+    </form>
+{{/active}}
+{{#canreopen}}
+    <form method="post" action="{{url}}" class="mt-2">
+        <input type="hidden" name="sesskey" value="{{sesskey}}">
+        <input type="hidden" name="action" value="reopen">
+        <input type="hidden" name="targetuserid" value="{{userid}}">
+        <input type="hidden" name="requestid" value="{{requestid}}">
+        <button type="submit" class="btn btn-secondary btn-sm">{{#str}}reviewreopen, mod_listgrades{{/str}}</button>
+    </form>
+{{/canreopen}}

@@ -74,6 +74,54 @@ Feature: Review sessions are private to each student
     And I should not see "The review date has not yet arrived."
     And "Request a review" "button" should not exist
 
+  @javascript
+  Scenario: Cancellation and a new request preserve the review conversation
+    Given I am on the "Grade review" "listgrades activity" page logged in as student1
+    And I press "Request a review"
+    And I log out
+    And I am on the "Grade review" "listgrades activity" page logged in as teacher1
+    And I follow "Manage reviews"
+    And I set the field "comment" in the "Alice" "table_row" to "A retained comment"
+    And I click on "Add comment" "button" in the "Alice" "table_row"
+    And I log out
+    And I am on the "Grade review" "listgrades activity" page logged in as student1
+    When I press "Cancel review request"
+    Then I should see "A retained comment"
+    And I should see "Request cancelled" in the ".listgrades-review-chat" "css_element"
+    And I press "Request a review"
+    And I should see "A retained comment"
+    And I should see "Request cancelled" in the ".listgrades-review-chat" "css_element"
+    And I log out
+    And I am on the "Grade review" "listgrades activity" page logged in as teacher1
+    And I follow "Manage reviews"
+    And ".listgrades-review-history:not([open])" "css_element" should exist in the "Alice" "table_row"
+    And I should not see "A retained comment" in the "Alice" "table_row"
+    And I click on ".listgrades-review-history summary" "css_element" in the "Alice" "table_row"
+    And I should see "A retained comment" in the "Alice" "table_row"
+    And I should see "Request cancelled" in the "Alice" "table_row"
+    And I click on ".listgrades-review-history summary" "css_element" in the "Alice" "table_row"
+    And I should not see "A retained comment" in the "Alice" "table_row"
+    And "Add comment" "button" should exist in the "Alice" "table_row"
+
+  Scenario: The review date can be displayed without enabling the review process
+    Given the following config values are set as admin:
+      | reviewprocess | 0 | listgrades |
+    And the following "activity" exists:
+      | activity   | listgrades       |
+      | course     | C1               |
+      | name       | Review date only |
+      | reviewdate | ##tomorrow##     |
+      | footer     | End of report    |
+    When I am on the "Review date only" "listgrades activity" page logged in as student1
+    Then I should see "Review date"
+    And I should see "End of report"
+    And I should not see "Grade review process"
+    And "//*[contains(@class, 'generalbox') and contains(., 'Review date')]/following-sibling::*[contains(., 'End of report')]" "xpath_element" should exist
+    And I log out
+    And I am on the "Review date only" "listgrades activity editing" page logged in as admin
+    And I expand all fieldsets
+    And I should see "Review date"
+
   Scenario: A review response does not reveal grades after publication closes
     Given I am on the "Grade review" "listgrades activity" page logged in as student1
     And I press "Request a review"
@@ -91,6 +139,7 @@ Feature: Review sessions are private to each student
     Then I should see "I have observations about the review process."
     And I should not see "Published grade:"
 
+  @javascript
   Scenario: An incomplete review response shows a friendly validation message
     Given I am on the "Grade review" "listgrades activity" page logged in as student1
     And I press "Request a review"
@@ -114,6 +163,7 @@ Feature: Review sessions are private to each student
     And I log out
     And I am on the "Grade review" "listgrades activity" page logged in as teacher1
     And I follow "Manage reviews"
+    And I click on ".listgrades-review-history summary" "css_element" in the "Alice" "table_row"
     And I should see "My review comment"
     And I should see "I have observations about the review process."
     And I should see "Published grade:"

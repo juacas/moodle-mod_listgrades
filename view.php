@@ -306,6 +306,9 @@ if ($isopen || has_capability('moodle/course:manageactivities', $context)) {
         );
     }
 
+    if (!empty($listgrades->reviewdate)) {
+        echo $OUTPUT->box(get_string('reviewdate', 'listgrades') . ': ' . userdate($listgrades->reviewdate), 'generalbox');
+    }
     $signature = file_rewrite_pluginfile_urls($listgrades->footer, 'pluginfile.php', $context->id, 'mod_listgrades', 'footer', 0);
     $formatoptions = new stdClass();
     $formatoptions->noclean = true;
@@ -327,6 +330,7 @@ if (listgrades_review_is_enabled($listgrades) && (int) $listgrades->reviewdate >
         'lasttime' => 0,
         'snapshot' => '',
         'comments' => [],
+        'history' => [],
     ];
     $reviewurl = new moodle_url('/mod/listgrades/review.php', ['id' => $cm->id]);
     $reviewdate = (int) $listgrades->reviewdate;
@@ -334,7 +338,9 @@ if (listgrades_review_is_enabled($listgrades) && (int) $listgrades->reviewdate >
     $canmanagereviews = has_capability('mod/listgrades:managereviews', $context);
 
     echo $OUTPUT->heading(get_string('reviewsection', 'listgrades'), 3);
-    echo $OUTPUT->box(get_string('reviewdate', 'listgrades') . ': ' . userdate($reviewdate), 'generalbox');
+    if (!$isopen && !has_capability('moodle/course:manageactivities', $context)) {
+        echo $OUTPUT->box(get_string('reviewdate', 'listgrades') . ': ' . userdate($reviewdate), 'generalbox');
+    }
 
     if ($canmanagereviews) {
         $allreviewstates = listgrades_get_review_states((int) $listgrades->id);
@@ -346,40 +352,57 @@ if (listgrades_review_is_enabled($listgrades) && (int) $listgrades->reviewdate >
     } else {
         echo $OUTPUT->box_start('generalbox listgrades-review-student');
         if (!$reviewstate['active']) {
+            $status = $reviewstate['lastaction'] === 'cancelled' ? 'reviewoutcomecancelled' : 'reviewnotrequested';
             if ($reviewopen) {
-                echo html_writer::tag('p', get_string('reviewnotrequested', 'listgrades'));
-                echo html_writer::start_tag('form', ['method' => 'post', 'action' => $reviewurl->out(false)]);
-                echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
-                echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => 'request']);
-                echo html_writer::tag('button', get_string('reviewrequest', 'listgrades'), [
-                    'type' => 'submit',
-                    'class' => 'btn btn-primary',
-                ]);
-                echo html_writer::end_tag('form');
+                echo html_writer::tag('p', get_string($status, 'listgrades'));
+                if (empty($listgrades->reviewchoicecmid)) {
+                    echo html_writer::start_tag('form', ['method' => 'post', 'action' => $reviewurl->out(false)]);
+                    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
+                    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => 'request']);
+                    echo html_writer::tag('button', get_string('reviewrequest', 'listgrades'), [
+                        'type' => 'submit',
+                        'class' => 'btn btn-primary',
+                    ]);
+                    echo html_writer::end_tag('form');
+                }
             } else {
-                echo html_writer::tag('p', get_string('reviewnotrequested', 'listgrades'));
+                echo html_writer::tag('p', get_string($status, 'listgrades'));
             }
         } else if ($reviewopen && $reviewstate['lastaction'] === 'requested') {
             echo html_writer::tag('p', get_string('reviewrequestedmessage', 'listgrades', userdate($reviewstate['requesttime'])));
-            echo html_writer::start_tag('form', ['method' => 'post', 'action' => $reviewurl->out(false)]);
-            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
-            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => 'cancel']);
-            echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'requestid', 'value' => $reviewstate['requestid']]);
-            echo html_writer::tag('button', get_string('reviewcancel', 'listgrades'), [
-                'type' => 'submit',
-                'class' => 'btn btn-secondary',
-            ]);
-            echo html_writer::end_tag('form');
+            if (empty($listgrades->reviewchoicecmid)) {
+                echo html_writer::start_tag('form', ['method' => 'post', 'action' => $reviewurl->out(false)]);
+                echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
+                echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => 'cancel']);
+                echo html_writer::empty_tag('input', [
+                    'type' => 'hidden', 'name' => 'requestid', 'value' => $reviewstate['requestid'],
+                ]);
+                echo html_writer::tag('button', get_string('reviewcancel', 'listgrades'), [
+                    'type' => 'submit',
+                    'class' => 'btn btn-secondary',
+                ]);
+                echo html_writer::end_tag('form');
+            }
         } else if (in_array($reviewstate['lastaction'], ['validated', 'commented'], true)) {
             $outcome = $reviewstate['lastaction'] === 'validated'
                 ? get_string('reviewoutcomevalidated', 'listgrades')
                 : get_string('reviewoutcomecommented', 'listgrades');
             echo html_writer::tag('p', $outcome . ' (' . userdate($reviewstate['lasttime']) . ')');
         }
-        if ($reviewstate['comments']) {
+        if ($reviewopen && !empty($listgrades->reviewchoicecmid)) {
+            $choicecm = get_fast_modinfo($course)->get_cms()[$listgrades->reviewchoicecmid] ?? null;
+            if ($choicecm && $choicecm->modname === 'choice' && $choicecm->uservisible) {
+                echo html_writer::tag('p', get_string('reviewchoiceinstruction', 'listgrades'));
+                echo html_writer::link($choicecm->url, format_string($choicecm->name, true, ['context' => $choicecm->context]));
+            } else {
+                echo html_writer::tag('p', get_string('reviewchoiceunavailable', 'listgrades'));
+            }
+        }
+        if ($reviewstate['history']) {
             echo html_writer::tag('h4', get_string('reviewcommenthistory', 'listgrades'));
-            echo listgrades_render_review_history($reviewstate['comments'], $context);
-        } else if ($reviewopen && $reviewstate['active'] && $reviewstate['lastaction'] === 'requested') {
+            echo $PAGE->get_renderer('mod_listgrades')->review_history($reviewstate['history'], $context);
+        }
+        if (!$reviewstate['comments'] && $reviewopen && $reviewstate['active'] && $reviewstate['lastaction'] === 'requested') {
             echo html_writer::tag('p', get_string('reviewwaiting', 'listgrades'));
         }
         if ($reviewstate['active'] && !$reviewopen && $reviewstate['lastaction'] === 'requested') {

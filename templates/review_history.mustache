@@ -1,0 +1,29 @@
+{{!
+    @template mod_listgrades/review_history
+    Review history displayed as a conversation.
+
+    Example context (json):
+    {"hasmessages": true, "messages": [{"heading": "Student", "date": "Today", "datetime": "2026-01-01T00:00:00Z", "body": "Message", "student": true}]}
+}}
+{{#hasmessages}}
+<div class="listgrades-review-chat">
+    {{#messages}}
+    <div class="listgrades-review-chat-message {{#student}}listgrades-review-chat-student{{/student}}{{^student}}listgrades-review-chat-teacher{{/student}}">
+        <div class="listgrades-review-chat-meta">
+            <strong class="listgrades-review-chat-author">{{heading}}</strong>
+            <time class="listgrades-review-chat-time" datetime="{{datetime}}">{{date}}</time>
+        </div>
+        <div class="listgrades-review-chat-body">
+            {{{body}}}
+            {{#recordedby}}<div class="listgrades-review-chat-time">{{recordedby}}</div>{{/recordedby}}
+            {{#snapshot}}
+                <div class="listgrades-review-chat-snapshot mt-2">
+                    <strong>{{#str}}reviewpublishedgrade, mod_listgrades{{/str}}</strong>
+                    <div class="listgrades-review-chat-body">{{{snapshot}}}</div>
+                </div>
+            {{/snapshot}}
+        </div>
+    </div>
+    {{/messages}}
+</div>
+{{/hasmessages}}

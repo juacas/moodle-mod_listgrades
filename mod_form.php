@@ -210,20 +210,33 @@ class mod_listgrades_mod_form extends moodleform_mod {
         $mform->addElement('date_time_selector', 'closedate', get_string('closedate', 'listgrades'), ['optional' => true]);
         $mform->addHelpButton('closedate', 'closedate', 'listgrades');
 
+        $mform->addElement(
+            'date_time_selector',
+            'reviewdate',
+            get_string('reviewdate', 'listgrades'),
+            ['optional' => true]
+        );
+        $mform->addHelpButton('reviewdate', 'reviewdate', 'listgrades');
+        $mform->setDefault('reviewdate', 0);
+
         if (($config->reviewprocess ?? '0') === '1' || ($config->reviewprocess ?? 0) === 1) {
             $mform->addElement('header', 'reviewsection', get_string('reviewsection', 'listgrades'));
             $mform->addElement('advcheckbox', 'reviewenabled', get_string('reviewenabled', 'listgrades'));
             $mform->addHelpButton('reviewenabled', 'reviewenabled', 'listgrades');
             $mform->setDefault('reviewenabled', 0);
-            $mform->addElement(
-                'date_time_selector',
-                'reviewdate',
-                get_string('reviewdate', 'listgrades'),
-                ['optional' => true]
-            );
-            $mform->addHelpButton('reviewdate', 'reviewdate', 'listgrades');
-            $mform->setDefault('reviewdate', 0);
-            $mform->hideIf('reviewdate', 'reviewenabled', 'notchecked');
+            $choices = get_fast_modinfo($course)->get_instances_of('choice');
+            if ($choices) {
+                $options = [0 => get_string('choose')];
+                foreach ($choices as $choice) {
+                    $options[$choice->id] = format_string($choice->name, true, ['context' => $choice->context]);
+                }
+                $mform->addElement('advcheckbox', 'reviewusechoice', get_string('reviewusechoice', 'listgrades'));
+                $mform->addHelpButton('reviewusechoice', 'reviewusechoice', 'listgrades');
+                $mform->hideIf('reviewusechoice', 'reviewenabled', 'notchecked');
+                $mform->addElement('select', 'reviewchoicecmid', get_string('reviewchoice', 'listgrades'), $options);
+                $mform->hideIf('reviewchoicecmid', 'reviewenabled', 'notchecked');
+                $mform->hideIf('reviewchoicecmid', 'reviewusechoice', 'notchecked');
+            }
         }
 
         $this->standard_coursemodule_elements();
@@ -243,6 +256,8 @@ class mod_listgrades_mod_form extends moodleform_mod {
      **/
     public function data_preprocessing(&$defaultvalues) {
         global $DB;
+
+        $defaultvalues['reviewusechoice'] = !empty($defaultvalues['reviewchoicecmid']) ? 1 : 0;
 
         if ($this->current->instance) {
             $draftitemid = file_get_submitted_draft_itemid('signature');
@@ -303,6 +318,11 @@ class mod_listgrades_mod_form extends moodleform_mod {
         $grades = (array) ($data->gradeitems ?? []);
         $feedback = (array) ($data->feedbackitems ?? []);
         $data->items = listgrades_build_item_selection($this->gradeitemids, $grades, $feedback);
+        if (($config = get_config('listgrades', 'reviewprocess')) === '1' || $config === 1) {
+            if (empty($data->reviewusechoice) || empty($data->reviewenabled)) {
+                $data->reviewchoicecmid = 0;
+            }
+        }
         unset($data->gradeitems, $data->feedbackitems);
     }
 
@@ -329,6 +349,12 @@ class mod_listgrades_mod_form extends moodleform_mod {
                 !empty($data['reviewenabled']) && empty($data['reviewdate'])
         ) {
             $errors['reviewdate'] = get_string('reviewdaterequired', 'listgrades');
+        }
+        if (!empty($data['reviewenabled']) && !empty($data['reviewusechoice'])) {
+            $choice = get_fast_modinfo($this->current->course)->get_cms()[$data['reviewchoicecmid'] ?? 0] ?? null;
+            if (!$choice || $choice->modname !== 'choice') {
+                $errors['reviewchoicecmid'] = get_string('reviewchoicerequired', 'listgrades');
+            }
         }
         return $errors;
     }

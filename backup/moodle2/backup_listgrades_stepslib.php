@@ -53,6 +53,7 @@ class backup_listgrades_activity_structure_step extends backup_activity_structur
             'closedate',
             'reviewenabled',
             'reviewdate',
+            'reviewchoicecmid',
             'timemodified']
         );
 

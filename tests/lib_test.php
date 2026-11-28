@@ -40,6 +40,18 @@ namespace mod_listgrades;
 #[\PHPUnit\Framework\Attributes\CoversNothing]
 final class lib_test extends \advanced_testcase {
     /**
+     * Render history using the activity renderer.
+     *
+     * @param array $messages Review history entries.
+     * @param \context $context Activity context.
+     * @return string Rendered history.
+     */
+    private function render_review_history(array $messages, \context $context): string {
+        global $PAGE;
+        return $PAGE->get_renderer('mod_listgrades')->review_history($messages, $context);
+    }
+
+    /**
      * Prepares things before this test case is initialised
      * @return void
      */
@@ -47,6 +59,52 @@ final class lib_test extends \advanced_testcase {
         global $CFG;
         require_once($CFG->dirroot . '/mod/listgrades/lib.php');
         parent::setUpBeforeClass();
+    }
+
+    /**
+     * The management table shows the current status date without a separate request-date column.
+     */
+    public function test_reviews_page_renderer(): void {
+        global $DB, $PAGE;
+
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        $course = $this->getDataGenerator()->create_course();
+        $instance = $this->getDataGenerator()->create_module('listgrades', [
+            'course' => $course->id, 'reviewdate' => time() + DAYSECS,
+        ]);
+        $student = $this->getDataGenerator()->create_user(['firstname' => 'Example', 'lastname' => 'Student']);
+        $cm = get_coursemodule_from_instance('listgrades', $instance->id, $course->id, false, MUST_EXIST);
+        $context = \context_module::instance($cm->id);
+        $requesttime = time() - DAYSECS;
+        $responsetime = time() - HOURSECS;
+        foreach (['requested' => $requesttime, 'commented' => $responsetime] as $action => $timestamp) {
+            $DB->insert_record('listgrades_review', (object) [
+                'listgradesid' => $instance->id, 'userid' => $student->id, 'actorid' => $student->id,
+                'action' => $action, 'timecreated' => $timestamp,
+            ]);
+        }
+        $PAGE->set_url('/mod/listgrades/reviews.php', ['id' => $cm->id]);
+        $PAGE->set_context($context);
+        $renderer = $PAGE->get_renderer('mod_listgrades');
+        $html = $renderer->reviews_page($cm, $course, $instance, $context, listgrades_get_review_states($instance->id));
+        $document = new \DOMDocument();
+        @$document->loadHTML($html);
+        $xpath = new \DOMXPath($document);
+        $headers = [];
+        foreach ($xpath->query('//table//th') as $header) {
+            $headers[] = trim($header->textContent);
+        }
+        $this->assertNotContains(get_string('reviewrequested', 'listgrades'), $headers);
+        $this->assertContains(get_string('reviewstatus', 'listgrades'), $headers);
+        $this->assertStringContainsString(
+            userdate($responsetime) . ' (' . get_string('reviewoutcomecommented', 'listgrades') . ')',
+            $html
+        );
+        $this->assertStringContainsString('listgrades-review-history', $html);
+        $this->assertStringContainsString('name="action" value="teachercomment"', $html);
+        $this->assertStringContainsString('name="action" value="reopen"', $html);
+        $this->assertStringContainsString('Example', $html);
     }
 
     /**
@@ -157,7 +215,7 @@ final class lib_test extends \advanced_testcase {
         $this->assertSame(130, $states[$student->id]['lasttime']);
         $this->assertSame('<table><tr><td>Published grade</td></tr></table>', $states[$student->id]['snapshot']);
         $this->assertSame($states[$student->id]['snapshot'], $states[$student->id]['comments'][0]['snapshot']);
-        $history = listgrades_render_review_history($states[$student->id]['comments'], \context_module::instance($instance->cmid));
+        $history = $this->render_review_history($states[$student->id]['comments'], \context_module::instance($instance->cmid));
         $this->assertStringContainsString(get_string('reviewpublishedgrade', 'listgrades'), $history);
         $this->assertStringContainsString('Published grade', $history);
         $this->assertStringNotContainsString('<table>', $history);
@@ -168,6 +226,16 @@ final class lib_test extends \advanced_testcase {
         $this->assertSame((int) $student->id, $states[$student->id]['comments'][0]['actorid']);
         $this->assertSame((int) $teacher->id, $states[$student->id]['comments'][1]['actorid']);
         $this->assertSame(140, $states[$student->id]['comments'][1]['timecreated']);
+        $this->assertSame(
+            ['requested', 'cancelled', 'requested', 'commented', 'teachercommented'],
+            array_column($states[$student->id]['history'], 'action')
+        );
+        $fullhistory = $this->render_review_history(
+            $states[$student->id]['history'],
+            \context_module::instance($instance->cmid)
+        );
+        $this->assertStringContainsString(get_string('reviewoutcomecancelled', 'listgrades'), $fullhistory);
+        $this->assertStringContainsString('The review took place.', $fullhistory);
 
         $snapshot = '<p>Unwanted introduction</p><table><tr><th>Item header</th><th>Grade header</th></tr>' .
             '<tr><td>Class &amp; sessions</td><td>-/100</td><td>Feedback</td></tr></table><p>Unwanted date</p>';
@@ -179,6 +247,52 @@ final class lib_test extends \advanced_testcase {
         ]);
         $this->assertCount(1, $resetstatus);
         $this->assertSame([], listgrades_get_review_states($instance->id));
+    }
+
+    /**
+     * The review API stores the supplied action and emits its matching event.
+     */
+    public function test_record_review_action(): void {
+        global $DB;
+
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        $course = $this->getDataGenerator()->create_course();
+        $instance = $this->getDataGenerator()->create_module('listgrades', ['course' => $course->id]);
+        $student = $this->getDataGenerator()->create_user();
+        $teacher = $this->getDataGenerator()->create_user();
+        $context = \context_module::instance($instance->cmid);
+        $sink = $this->redirectEvents();
+        $lock = \core\lock\lock_config::get_lock_factory('mod_listgrades_review')->get_lock(
+            $instance->id . ':' . $student->id,
+            10
+        );
+        try {
+            $recordid = listgrades_record_review_action(
+                $instance,
+                $context,
+                (int) $student->id,
+                (int) $teacher->id,
+                'commented',
+                123456,
+                'Comment',
+                'Snapshot'
+            );
+        } finally {
+            $lock->release();
+        }
+        $record = $DB->get_record('listgrades_review', ['id' => $recordid], '*', MUST_EXIST);
+        $this->assertEquals($student->id, $record->userid);
+        $this->assertEquals($teacher->id, $record->actorid);
+        $this->assertSame('Comment', $record->comment);
+        $this->assertSame('Snapshot', $record->snapshot);
+        $this->assertEquals(123456, $record->timecreated);
+        $events = $sink->get_events();
+        $this->assertCount(1, $events);
+        $this->assertInstanceOf(\mod_listgrades\event\review_action::class, $events[0]);
+        $this->assertEquals($recordid, $events[0]->objectid);
+        $this->assertEquals($student->id, $events[0]->relateduserid);
+        $this->assertEquals($teacher->id, $events[0]->userid);
     }
 
     /**
@@ -220,7 +334,7 @@ final class lib_test extends \advanced_testcase {
         set_config('reviewresponseoptions', $option, 'listgrades');
         $message = listgrades_serialize_review_message(array_keys(listgrades_review_response_options()), '');
         set_config('reviewresponseoptions', 'Another option', 'listgrades');
-        $html = listgrades_render_review_history([[
+        $html = $this->render_review_history([[
             'actorid' => $USER->id,
             'action' => 'commented',
             'comment' => $message,
@@ -276,7 +390,7 @@ final class lib_test extends \advanced_testcase {
         $this->assertStringContainsString(get_string('reviewseen', 'listgrades'), $state['comments'][0]['comment']);
         $this->assertSame('reopened', $state['comments'][1]['action']);
         $this->assertStringContainsString(get_string('reviewobservations', 'listgrades'), $state['comments'][2]['comment']);
-        $html = listgrades_render_review_history($state['comments'], \context_module::instance($activity->cmid));
+        $html = $this->render_review_history($state['comments'], \context_module::instance($activity->cmid));
         $this->assertStringContainsString(get_string('reviewseen', 'listgrades'), $html);
         $this->assertStringContainsString(get_string('reviewobservations', 'listgrades'), $html);
         $this->assertStringContainsString('Second response', $html);
@@ -322,12 +436,285 @@ final class lib_test extends \advanced_testcase {
         $this->assertSame('Second student only', $secondstates[$second->id]['comments'][0]['comment']);
         $this->assertCount(2, listgrades_get_review_states($instance->id));
 
+        $originalrecords = $DB->get_records('listgrades_review', ['listgradesid' => $instance->id]);
         $insert($first->id, $first->id, 'cancelled', null);
+        $cancelled = listgrades_get_review_states($instance->id, (int) $first->id)[$first->id];
+        $this->assertFalse($cancelled['active']);
+        $this->assertSame(['requested', 'teachercommented', 'cancelled'], array_column($cancelled['history'], 'action'));
+        $this->assertStringContainsString('First student only', $this->render_review_history(
+            $cancelled['history'],
+            \context_module::instance($instance->cmid)
+        ));
         $newrequest = $insert($first->id, $first->id, 'requested', null);
         $newstate = listgrades_get_review_states($instance->id, (int) $first->id)[$first->id];
         $this->assertSame($newrequest, $newstate['requestid']);
         $this->assertNotSame($firstrequest, $newstate['requestid']);
         $this->assertSame([], $newstate['comments']);
+        $this->assertSame(
+            ['requested', 'teachercommented', 'cancelled', 'requested'],
+            array_column($newstate['history'], 'action')
+        );
+        $historyhtml = $this->render_review_history($newstate['history'], \context_module::instance($instance->cmid));
+        $this->assertStringContainsString('First student only', $historyhtml);
+        $this->assertStringContainsString(get_string('reviewoutcomecancelled', 'listgrades'), $historyhtml);
+        $this->assertStringNotContainsString('Second student only', $historyhtml);
+        $this->assertSame(
+            ['requested', 'teachercommented'],
+            array_column(listgrades_get_review_states($instance->id, (int) $second->id)[$second->id]['history'], 'action')
+        );
+        foreach ($originalrecords as $recordid => $record) {
+            $this->assertEquals($record, $DB->get_record('listgrades_review', ['id' => $recordid], '*', MUST_EXIST));
+        }
+    }
+
+    /**
+     * A later cancellation and request retain completed responses and grade snapshots.
+     */
+    public function test_review_history_keeps_prior_snapshots(): void {
+        global $DB;
+
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        $activity = $this->getDataGenerator()->create_module('listgrades', ['course' => $course->id]);
+        $student = $this->getDataGenerator()->create_user();
+        $snapshot = '<table><tr><td>Exam</td><td>8/10</td></tr></table>';
+        foreach (['requested', 'commented', 'reopened', 'cancelled', 'requested'] as $index => $action) {
+            $DB->insert_record('listgrades_review', (object) [
+                'listgradesid' => $activity->id,
+                'userid' => $student->id,
+                'actorid' => $student->id,
+                'action' => $action,
+                'comment' => $action === 'commented' ? 'My observation' : null,
+                'snapshot' => $action === 'commented' ? $snapshot : null,
+                'timecreated' => 100 + $index,
+            ]);
+        }
+        $state = listgrades_get_review_states((int) $activity->id, (int) $student->id)[$student->id];
+        $this->assertTrue($state['active']);
+        $this->assertSame('requested', $state['lastaction']);
+        $this->assertSame($snapshot, $state['history'][1]['snapshot']);
+        $history = $this->render_review_history($state['history'], \context_module::instance($activity->cmid));
+        $this->assertStringContainsString('My observation', $history);
+        $this->assertStringContainsString('Exam : 8/10', $history);
+        $this->assertStringContainsString(get_string('reviewoutcomecancelled', 'listgrades'), $history);
+    }
+
+    /**
+     * Choice answers create and cancel only the appropriate students' reservations.
+     */
+    public function test_choice_review_reservations(): void {
+        global $DB, $CFG, $USER;
+        require_once($CFG->dirroot . '/mod/choice/lib.php');
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        set_config('reviewprocess', 1, 'listgrades');
+        $course = $this->getDataGenerator()->create_course();
+        $choice = $this->getDataGenerator()->create_module('choice', [
+            'course' => $course->id, 'allowmultiple' => 1, 'name' => 'Choice & review',
+        ]);
+        $cm = get_coursemodule_from_instance('choice', $choice->id, $course->id, false, MUST_EXIST);
+        $activity = $this->getDataGenerator()->create_module('listgrades', [
+            'course' => $course->id, 'reviewenabled' => 1, 'reviewdate' => time() + DAYSECS,
+            'reviewchoicecmid' => $cm->id,
+        ]);
+        $student = $this->getDataGenerator()->create_user();
+        $other = $this->getDataGenerator()->create_user();
+        $options = array_values($DB->get_fieldset_select('choice_options', 'id', 'choiceid = ?', [$choice->id]));
+        $choice = $DB->get_record('choice', ['id' => $choice->id], '*', MUST_EXIST);
+        choice_user_submit_response([$options[0], $options[1]], $choice, $student->id, $course, $cm);
+        choice_user_submit_response([$options[0]], $choice, $other->id, $course, $cm);
+        $this->assertCount(2, $DB->get_records('listgrades_review', ['listgradesid' => $activity->id]));
+        choice_user_submit_response([$options[1], $options[2]], $choice, $student->id, $course, $cm);
+        $this->assertCount(2, $DB->get_records('listgrades_review', ['listgradesid' => $activity->id]));
+        $answers = $DB->get_records('choice_answers', ['choiceid' => $choice->id, 'userid' => $student->id]);
+        choice_delete_responses(array_keys($answers), $choice, $cm, $course);
+        $states = listgrades_get_review_states($activity->id);
+        $this->assertFalse($states[$student->id]['active']);
+        $this->assertTrue($states[$other->id]['active']);
+        $request = $DB->get_record('listgrades_review', [
+            'listgradesid' => $activity->id, 'userid' => $student->id, 'action' => 'requested',
+        ], '*', MUST_EXIST);
+        $requestsource = listgrades_get_choice_review_source($request->comment);
+        $this->assertSame((int) $cm->id, $requestsource['cmid']);
+        $this->assertSame($choice->name, $requestsource['name']);
+        $requesthistory = $this->render_review_history(
+            [$states[$student->id]['history'][0]],
+            \context_module::instance($activity->cmid)
+        );
+        $this->assertStringContainsString(s(get_string('reviewrecordedbychoice', 'listgrades', (object) [
+            'user' => fullname($USER), 'choice' => $choice->name,
+        ])), $requesthistory);
+        $history = $this->render_review_history(
+            $states[$student->id]['history'],
+            \context_module::instance($activity->cmid)
+        );
+        $this->assertStringContainsString(s(get_string('reviewcancelstudent', 'listgrades', fullname($student))), $history);
+        $this->assertStringContainsString(s(get_string('reviewrecordedby', 'listgrades', fullname($USER))), $history);
+        $this->assertStringContainsString(s($choice->name), $history);
+        $this->assertStringContainsString(s(get_string('reviewrecordedbychoice', 'listgrades', (object) [
+            'user' => fullname($USER), 'choice' => $choice->name,
+        ])), $history);
+        $cancel = $DB->get_record('listgrades_review', [
+            'listgradesid' => $activity->id, 'userid' => $student->id, 'action' => 'cancelled',
+        ], '*', MUST_EXIST);
+        $source = listgrades_get_choice_review_source($cancel->comment);
+        $this->assertSame((int) $cm->id, $source['cmid']);
+        $this->assertSame($choice->name, $source['name']);
+        $DB->set_field('choice', 'name', 'Renamed choice', ['id' => $choice->id]);
+        $history = $this->render_review_history($states[$student->id]['history'], \context_module::instance($activity->cmid));
+        $this->assertStringContainsString(s($choice->name), $history);
+        $this->assertStringNotContainsString('Renamed choice', $history);
+        $this->getDataGenerator()->enrol_user($student->id, $course->id, 'student');
+        set_coursemodule_visible($cm->id, 0);
+        $this->setUser($student);
+        $history = $this->render_review_history($states[$student->id]['history'], \context_module::instance($activity->cmid));
+        $this->assertStringNotContainsString(s($choice->name), $history);
+        $this->assertFalse(listgrades_can_view_choice_review_source(
+            $source,
+            \context_module::instance($activity->cmid),
+            $student->id
+        ));
+        $this->setAdminUser();
+        $this->assertCount(3, $DB->get_records('listgrades_review', ['listgradesid' => $activity->id]));
+        $DB->set_field('listgrades', 'reviewdate', time() - 1, ['id' => $activity->id]);
+        choice_user_submit_response([$options[0]], $choice, $student->id, $course, $cm);
+        $this->assertCount(3, $DB->get_records('listgrades_review', ['listgradesid' => $activity->id]));
+    }
+
+    /**
+     * Linking a choice reconciles existing responses without duplicating or replacing completed reviews.
+     */
+    public function test_link_choice_syncs_existing_responses(): void {
+        global $DB, $CFG, $USER;
+
+        require_once($CFG->dirroot . '/mod/choice/lib.php');
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        set_config('reviewprocess', 1, 'listgrades');
+        $course = $this->getDataGenerator()->create_course();
+        $choice = $this->getDataGenerator()->create_module('choice', ['course' => $course->id, 'allowmultiple' => 1]);
+        $choicecm = get_coursemodule_from_instance('choice', $choice->id, $course->id, false, MUST_EXIST);
+        $choice = $DB->get_record('choice', ['id' => $choice->id], '*', MUST_EXIST);
+        $options = array_values($DB->get_fieldset_select('choice_options', 'id', 'choiceid = ?', [$choice->id]));
+        $student = $this->getDataGenerator()->create_user();
+        $pendingstudent = $this->getDataGenerator()->create_user();
+        $completedstudent = $this->getDataGenerator()->create_user();
+        choice_user_submit_response([$options[0], $options[1]], $choice, $student->id, $course, $choicecm);
+        $earliest = time() - 2 * DAYSECS;
+        $DB->set_field('choice_answers', 'timemodified', $earliest, [
+            'choiceid' => $choice->id, 'userid' => $student->id, 'optionid' => $options[0],
+        ]);
+        $DB->set_field('choice_answers', 'timemodified', $earliest + DAYSECS, [
+            'choiceid' => $choice->id, 'userid' => $student->id, 'optionid' => $options[1],
+        ]);
+        $activity = $this->getDataGenerator()->create_module('listgrades', [
+            'course' => $course->id, 'reviewenabled' => 1, 'reviewdate' => time() - HOURSECS,
+        ]);
+        $context = \context_module::instance($activity->cmid);
+        $DB->insert_record('listgrades_review', (object) [
+            'listgradesid' => $activity->id, 'userid' => $pendingstudent->id, 'actorid' => $pendingstudent->id,
+            'action' => 'requested', 'timecreated' => $earliest,
+        ]);
+        $DB->insert_record('listgrades_review', (object) [
+            'listgradesid' => $activity->id, 'userid' => $completedstudent->id, 'actorid' => $completedstudent->id,
+            'action' => 'requested', 'timecreated' => $earliest,
+        ]);
+        $DB->insert_record('listgrades_review', (object) [
+            'listgradesid' => $activity->id, 'userid' => $completedstudent->id, 'actorid' => $completedstudent->id,
+            'action' => 'commented', 'comment' => 'Completed review', 'timecreated' => $earliest + HOURSECS,
+        ]);
+        $data = $DB->get_record('listgrades', ['id' => $activity->id], '*', MUST_EXIST);
+        $data->items = array_keys((array) unserialize_array($data->items));
+        $data->instance = $activity->id;
+        $data->coursemodule = $activity->cmid;
+        $data->revision = 1;
+        $data->signature = ['format' => $data->footerformat, 'text' => $data->footer, 'itemid' => 0];
+        $data->reviewchoicecmid = $choicecm->id;
+        $sink = $this->redirectEvents();
+        $syncstart = time();
+        listgrades_update_instance($data, null);
+
+        $states = listgrades_get_review_states((int) $activity->id);
+        $this->assertTrue($states[$student->id]['active']);
+        $this->assertSame($earliest, $states[$student->id]['requesttime']);
+        $request = $DB->get_record('listgrades_review', [
+            'listgradesid' => $activity->id, 'userid' => $student->id, 'action' => 'requested',
+        ], '*', MUST_EXIST);
+        $this->assertEquals($USER->id, $request->actorid);
+        $requestsource = listgrades_get_choice_review_source($request->comment);
+        $this->assertSame((int) $choicecm->id, $requestsource['cmid']);
+        $this->assertSame($choice->name, $requestsource['name']);
+        $this->assertGreaterThanOrEqual($syncstart, $requestsource['recordedat']);
+        $requesthistory = $this->render_review_history($states[$student->id]['history'], $context);
+        $this->assertStringContainsString(s(get_string('reviewcancelstudent', 'listgrades', fullname($student))), $requesthistory);
+        $this->assertStringContainsString(s(get_string('reviewrecordedbychoice', 'listgrades', (object) [
+            'user' => fullname($USER), 'choice' => $choice->name,
+        ])), $requesthistory);
+        $this->assertStringContainsString(userdate($requestsource['recordedat']), $requesthistory);
+        $this->assertFalse($states[$pendingstudent->id]['active']);
+        $this->assertSame('cancelled', $states[$pendingstudent->id]['lastaction']);
+        $cancellation = $DB->get_record('listgrades_review', [
+            'listgradesid' => $activity->id, 'userid' => $pendingstudent->id, 'action' => 'cancelled',
+        ], '*', MUST_EXIST);
+        $this->assertEquals($USER->id, $cancellation->actorid);
+        $history = $this->render_review_history($states[$pendingstudent->id]['history'], $context);
+        $this->assertStringContainsString(s(get_string('reviewcancelstudent', 'listgrades', fullname($pendingstudent))), $history);
+        $this->assertStringContainsString(s(get_string('reviewrecordedby', 'listgrades', fullname($USER))), $history);
+        $this->assertStringContainsString(s($choice->name), $history);
+        $this->assertStringContainsString(s(get_string('reviewrecordedbychoice', 'listgrades', (object) [
+            'user' => fullname($USER), 'choice' => $choice->name,
+        ])), $history);
+        $source = listgrades_get_choice_review_source($cancellation->comment);
+        $this->assertSame((int) $choicecm->id, $source['cmid']);
+        $this->assertSame($choice->name, $source['name']);
+        $this->assertEquals($cancellation, $DB->get_record('listgrades_review', ['id' => $cancellation->id], '*', MUST_EXIST));
+        $this->assertTrue($states[$completedstudent->id]['active']);
+        $this->assertSame('commented', $states[$completedstudent->id]['lastaction']);
+        $this->assertSame('Completed review', $states[$completedstudent->id]['lastcomment']);
+        $events = array_values(array_filter($sink->get_events(), static fn($event): bool =>
+            $event instanceof \mod_listgrades\event\review_action));
+        $this->assertCount(2, $events);
+        $cancellationevents = array_values(array_filter($events, static fn($event): bool =>
+            $event->other['action'] === 'cancelled'));
+        $this->assertCount(1, $cancellationevents);
+        $this->assertEquals($USER->id, $cancellationevents[0]->userid);
+        $this->assertEquals($pendingstudent->id, $cancellationevents[0]->relateduserid);
+        $count = $DB->count_records('listgrades_review', ['listgradesid' => $activity->id]);
+        $saved = $DB->get_record('listgrades', ['id' => $activity->id], '*', MUST_EXIST);
+        listgrades_sync_choice_reservations($saved, $context);
+        $saved->items = array_keys((array) unserialize_array($saved->items));
+        $saved->instance = $activity->id;
+        $saved->coursemodule = $activity->cmid;
+        $saved->revision = 1;
+        $saved->signature = ['format' => $saved->footerformat, 'text' => $saved->footer, 'itemid' => 0];
+        listgrades_update_instance($saved, null);
+        $this->assertEquals($count, $DB->count_records('listgrades_review', ['listgradesid' => $activity->id]));
+
+        $newactivity = $this->getDataGenerator()->create_module('listgrades', [
+            'course' => $course->id, 'reviewenabled' => 1, 'reviewdate' => time() - HOURSECS,
+            'reviewchoicecmid' => $choicecm->id,
+        ]);
+        $newstates = listgrades_get_review_states((int) $newactivity->id);
+        $this->assertTrue($newstates[$student->id]['active']);
+        $this->assertSame($earliest, $newstates[$student->id]['requesttime']);
+
+        $otherchoice = $this->getDataGenerator()->create_module('choice', ['course' => $course->id]);
+        $othercm = get_coursemodule_from_instance('choice', $otherchoice->id, $course->id, false, MUST_EXIST);
+        $otherchoice = $DB->get_record('choice', ['id' => $otherchoice->id], '*', MUST_EXIST);
+        $otheroption = $DB->get_field_select('choice_options', 'id', 'choiceid = ?', [$otherchoice->id], IGNORE_MULTIPLE);
+        choice_user_submit_response($otheroption, $otherchoice, $pendingstudent->id, $course, $othercm);
+        $data = $DB->get_record('listgrades', ['id' => $activity->id], '*', MUST_EXIST);
+        $data->items = array_keys((array) unserialize_array($data->items));
+        $data->instance = $activity->id;
+        $data->coursemodule = $activity->cmid;
+        $data->revision = 1;
+        $data->signature = ['format' => $data->footerformat, 'text' => $data->footer, 'itemid' => 0];
+        $data->reviewchoicecmid = $othercm->id;
+        listgrades_update_instance($data, null);
+        $states = listgrades_get_review_states((int) $activity->id);
+        $this->assertFalse($states[$student->id]['active']);
+        $this->assertTrue($states[$pendingstudent->id]['active']);
+        $this->assertSame('commented', $states[$completedstudent->id]['lastaction']);
     }
 
     /**
@@ -398,7 +785,11 @@ final class lib_test extends \advanced_testcase {
         $course = $this->getDataGenerator()->create_course();
         $student = $this->getDataGenerator()->create_user();
         $this->getDataGenerator()->enrol_user($student->id, $course->id, 'student');
-        $instance = $this->getDataGenerator()->create_module('listgrades', ['course' => $course->id]);
+        $choice = $this->getDataGenerator()->create_module('choice', ['course' => $course->id]);
+        $choicecm = get_coursemodule_from_instance('choice', $choice->id, $course->id, false, MUST_EXIST);
+        $instance = $this->getDataGenerator()->create_module('listgrades', [
+            'course' => $course->id, 'reviewchoicecmid' => $choicecm->id,
+        ]);
         $options = array_keys(listgrades_review_response_options());
         $DB->insert_record('listgrades_review', (object) [
             'listgradesid' => $instance->id,
@@ -446,6 +837,9 @@ final class lib_test extends \advanced_testcase {
         $restore->execute_plan();
         $restore->destroy();
         $restoredinstance = $DB->get_record('listgrades', ['course' => $newcourseid], '*', MUST_EXIST);
+        $restoredchoice = $DB->get_record('choice', ['course' => $newcourseid], '*', MUST_EXIST);
+        $restoredchoicecm = get_coursemodule_from_instance('choice', $restoredchoice->id, $newcourseid, false, MUST_EXIST);
+        $this->assertEquals($restoredchoicecm->id, $restoredinstance->reviewchoicecmid);
         $record = $DB->get_record('listgrades_review', [
             'listgradesid' => $restoredinstance->id,
             'action' => 'teachercommented',

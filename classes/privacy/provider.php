@@ -113,7 +113,9 @@ class provider implements \core_privacy\local\metadata\provider, core_userlist_p
      * @return void
      */
     public static function export_user_data(approved_contextlist $contextlist): void {
-        global $DB;
+        global $DB, $CFG;
+
+        require_once($CFG->dirroot . '/mod/listgrades/locallib.php');
 
         $userid = $contextlist->get_user()->id;
         foreach ($contextlist->get_contexts() as $context) {
@@ -135,13 +137,22 @@ class provider implements \core_privacy\local\metadata\provider, core_userlist_p
             }
             $export = [];
             foreach ($actions as $action) {
+                $comment = $action->comment;
+                $source = in_array($action->action, ['requested', 'cancelled'], true)
+                    ? listgrades_get_choice_review_source($comment) : null;
+                if ($source) {
+                    $comment = listgrades_can_view_choice_review_source($source, $context, (int) $userid)
+                        ? get_string('modulename', 'choice') . ': ' . $source['name'] : null;
+                }
                 $export[] = [
                     'action' => $action->action,
-                    'comment' => $action->comment,
+                    'comment' => $comment,
                     'snapshot' => $action->snapshot,
                     'studentid' => $action->userid,
                     'actorid' => $action->actorid,
                     'timecreated' => transform::datetime($action->timecreated),
+                    'recordedat' => isset($source['recordedat']) && is_int($source['recordedat'])
+                        ? transform::datetime($source['recordedat']) : null,
                 ];
             }
             writer::with_context($context)->export_data([get_string('reviewsection', 'listgrades')], (object) [

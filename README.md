@@ -57,6 +57,12 @@ Statistics can be enabled independently of the publication mode and therefore di
 
 Administrators can enable the review process and configure its response options, one option per line. The defaults contain Spanish and English text using the Multilanguage Content (v2) filter syntax, for example `{mlang es}Texto{mlang}{mlang other}Text{mlang}`. Enable the corresponding Moodle filter to display the appropriate language. Each review record retains the original selected option text and filter tags even if the administrator later changes the options.
 
+The review conversation retains requests, cancellations, comments and published-grade snapshots across subsequent requests. Cancelling a request adds a dated entry; it does not remove or rewrite earlier records. Moodle's course reset and privacy deletion tools remain available when data must be erased.
+
+Teachers can optionally manage reservations through a Choice activity in the same course. A student's first answer creates a review request; removing all answers cancels it. Changing an option or removing only one of several answers does not cancel the request. When saving a linked choice, existing responses are synchronised; the earliest available modification time is used for each new request, because Choice stores modification times rather than original response times. Pending requests without an answer are cancelled, while completed reviews are preserved. Later reservations are recorded before the review date, so configure the choice availability accordingly. The link is restored when both activities are included in a course backup.
+
+When Activity Rescheduler (`local_reschedule`) is installed, teachers can edit the publication opening and closing dates and the independent review-date milestone in its course timeline. Publication date changes also update the activity's calendar events.
+
 ## Installation
 
 1. Download the plugin ZIP file from the [Moodle Plugins Directory](https://moodle.org/plugins/) or GitHub repository.

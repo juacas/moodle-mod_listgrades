@@ -132,50 +132,57 @@ function listgrades_format_review_snapshot(string $snapshot): string {
 }
 
 /**
- * Render review messages and recorded statements with authors and timestamps.
+ * Encode the choice that caused a review action without changing the review schema.
  *
- * @param array $messages Review history entries.
- * @param context $context Module context for text filters.
- * @return string HTML history.
+ * @param int $cmid Choice course module id.
+ * @param string $name Choice name at the time of the action.
+ * @param int|null $recordedat Actual registration time when importing an existing answer.
+ * @return string Serialized source.
  */
-function listgrades_render_review_history(array $messages, context $context): string {
-    global $DB;
-
-    $output = '';
-    foreach ($messages as $message) {
-        $author = $DB->get_record('user', ['id' => $message['actorid']], '*', IGNORE_MISSING);
-        $name = $author && (int) $author->id !== (int) guest_user()->id && empty($author->deleted)
-            ? fullname($author) : get_string('deleteduser');
-        $metadata = html_writer::tag('strong', s($name), ['class' => 'listgrades-review-chat-author']);
-        $metadata .= html_writer::tag('time', userdate($message['timecreated']), [
-            'class' => 'listgrades-review-chat-time',
-            'datetime' => gmdate('c', $message['timecreated']),
-        ]);
-        if (($message['action'] ?? '') === 'reopened') {
-            $body = get_string('reviewreopened', 'listgrades');
-        } else {
-            $body = format_text(nl2br($message['comment']), FORMAT_HTML, [
-                'context' => $context,
-                'para' => false,
-            ]);
-        }
-        if (!empty($message['snapshot'])) {
-            $snapshot = html_writer::tag('strong', get_string('reviewpublishedgrade', 'listgrades'));
-            $snapshot .= html_writer::tag('div', nl2br(s(listgrades_format_review_snapshot($message['snapshot']))), [
-                'class' => 'listgrades-review-chat-body',
-            ]);
-            $body .= html_writer::tag('div', $snapshot, ['class' => 'listgrades-review-chat-snapshot mt-2']);
-        }
-        if ($body !== '') {
-            $content = html_writer::tag('div', $metadata, ['class' => 'listgrades-review-chat-meta']);
-            $content .= html_writer::tag('div', $body, ['class' => 'listgrades-review-chat-body']);
-            $student = in_array($message['action'] ?? '', ['validated', 'commented'], true);
-            $class = 'listgrades-review-chat-message ' .
-                ($student ? 'listgrades-review-chat-student' : 'listgrades-review-chat-teacher');
-            $output .= html_writer::tag('div', $content, ['class' => $class]);
-        }
+function listgrades_serialize_choice_review_source(int $cmid, string $name, ?int $recordedat = null): string {
+    $source = ['cmid' => $cmid, 'name' => $name];
+    if ($recordedat !== null) {
+        $source['recordedat'] = $recordedat;
     }
-    return $output === '' ? '' : html_writer::tag('div', $output, ['class' => 'listgrades-review-chat']);
+    return 'choice:' . json_encode($source, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+}
+
+/**
+ * Decode a choice source stored with a review action.
+ *
+ * @param string|null $comment Stored action text.
+ * @return array|null Choice source, or null for actions without a source.
+ */
+function listgrades_get_choice_review_source(?string $comment): ?array {
+    if ($comment === null || strpos($comment, 'choice:') !== 0) {
+        return null;
+    }
+    $source = json_decode(substr($comment, 7), true);
+    if (
+        !is_array($source) || !isset($source['cmid'], $source['name']) ||
+            !is_int($source['cmid']) || $source['cmid'] <= 0 || !is_string($source['name'])
+    ) {
+        return null;
+    }
+    return $source;
+}
+
+/**
+ * Check whether a user may see a stored choice name in review history.
+ *
+ * @param array $source Choice source metadata.
+ * @param context_module $context Listgrades context.
+ * @param int $userid Viewer id.
+ * @return bool Whether the source may be displayed.
+ */
+function listgrades_can_view_choice_review_source(array $source, context_module $context, int $userid): bool {
+    if (has_capability('mod/listgrades:managereviews', $context, $userid)) {
+        return true;
+    }
+    $coursecontext = $context->get_course_context();
+    $modules = get_fast_modinfo($coursecontext->instanceid, $userid)->get_cms();
+    $choice = $modules[$source['cmid']] ?? null;
+    return $choice && $choice->modname === 'choice' && $choice->uservisible;
 }
 
 /**
@@ -190,7 +197,170 @@ function listgrades_review_is_enabled(stdClass $instance): bool {
 }
 
 /**
- * Build each user's current review state from the append-only action history.
+ * Persist a review action and dispatch its Moodle event.
+ *
+ * The caller must hold the review lock for this instance and student.
+ *
+ * @param stdClass $instance Listgrades instance.
+ * @param context_module $context Activity context.
+ * @param int $userid Student id.
+ * @param int $actorid Acting user id.
+ * @param string $action Review action.
+ * @param int $timestamp Action timestamp.
+ * @param string|null $comment Review comment.
+ * @param string|null $snapshot Published grade snapshot.
+ * @return int The persisted action id.
+ */
+function listgrades_record_review_action(
+    stdClass $instance,
+    context_module $context,
+    int $userid,
+    int $actorid,
+    string $action,
+    int $timestamp,
+    ?string $comment = null,
+    ?string $snapshot = null
+): int {
+    global $DB;
+
+    $recordid = $DB->insert_record('listgrades_review', (object) [
+        'listgradesid' => $instance->id,
+        'userid' => $userid,
+        'actorid' => $actorid,
+        'action' => $action,
+        'comment' => $comment,
+        'snapshot' => $snapshot,
+        'timecreated' => $timestamp,
+    ]);
+    \mod_listgrades\event\review_action::create_action(
+        $action,
+        $context,
+        (int) $instance->course,
+        (int) $instance->id,
+        $userid,
+        $actorid,
+        $recordid
+    )->trigger();
+    return $recordid;
+}
+
+/**
+ * Synchronise review reservations for a choice response event.
+ *
+ * @param \core\event\base $event Choice answer event.
+ * @param bool $deleted Whether the response was removed.
+ */
+function listgrades_process_choice_review_event(\core\event\base $event, bool $deleted): void {
+    global $DB, $CFG;
+
+    $userid = (int) $event->relateduserid;
+    if (!$userid) {
+        return;
+    }
+    if ($deleted) {
+        require_once($CFG->dirroot . '/mod/choice/lib.php');
+        $choice = (object) ['id' => $event->other['choiceid']];
+        $answers = choice_get_user_response($choice, $userid);
+        // Choice may trigger deletion events either before or after deleting this answer.
+        unset($answers[$event->objectid]);
+        if ($answers) {
+            return;
+        }
+    }
+
+    $instances = $DB->get_records('listgrades', [
+        'course' => $event->courseid,
+        'reviewenabled' => 1,
+        'reviewchoicecmid' => $event->contextinstanceid,
+    ]);
+    foreach ($instances as $instance) {
+        if (!listgrades_review_is_enabled($instance) || !$instance->reviewdate || time() >= $instance->reviewdate) {
+            continue;
+        }
+        $cm = get_coursemodule_from_instance('listgrades', $instance->id, $instance->course, false, MUST_EXIST);
+        $context = context_module::instance($cm->id);
+        $lockfactory = \core\lock\lock_config::get_lock_factory('mod_listgrades_review');
+        $lock = $lockfactory->get_lock($instance->id . ':' . $userid, 10);
+        if (!$lock) {
+            throw new moodle_exception('locktimeout');
+        }
+        try {
+            $states = listgrades_get_review_states((int) $instance->id, $userid);
+            $state = $states[$userid] ?? ['active' => false, 'lastaction' => ''];
+            if (!$deleted && empty($state['active'])) {
+                $action = 'requested';
+            } else if ($deleted && !empty($state['active']) && $state['lastaction'] === 'requested') {
+                $action = 'cancelled';
+            } else {
+                continue;
+            }
+            $choice = $event->get_record_snapshot('choice', (int) $event->other['choiceid']);
+            $source = listgrades_serialize_choice_review_source((int) $event->contextinstanceid, $choice->name);
+            listgrades_record_review_action($instance, $context, $userid, (int) $event->userid, $action, time(), $source);
+        } finally {
+            $lock->release();
+        }
+    }
+}
+
+/**
+ * Reconcile pending review reservations with an activity's linked choice.
+ *
+ * Existing choice rows contain the last modification time, not the original
+ * response time. For multiple responses the earliest available time is used.
+ * Completed review sessions and their evidence are never replaced.
+ *
+ * @param stdClass $instance Listgrades instance.
+ * @param context_module $context Activity context.
+ */
+function listgrades_sync_choice_reservations(stdClass $instance, context_module $context): void {
+    global $CFG, $USER;
+
+    if (!listgrades_review_is_enabled($instance)) {
+        return;
+    }
+    require_once($CFG->dirroot . '/mod/choice/lib.php');
+    $choicecm = get_coursemodule_from_id('choice', $instance->reviewchoicecmid, $instance->course, false, MUST_EXIST);
+    $choice = (object) ['id' => $choicecm->instance];
+    $userids = [];
+    foreach (choice_get_all_responses($choice) as $answer) {
+        $userids[(int) $answer->userid] = true;
+    }
+    foreach (listgrades_get_review_states((int) $instance->id) as $userid => $state) {
+        if ($state['active'] && $state['lastaction'] === 'requested') {
+            $userids[(int) $userid] = true;
+        }
+    }
+
+    $lockfactory = \core\lock\lock_config::get_lock_factory('mod_listgrades_review');
+    foreach (array_keys($userids) as $userid) {
+        $lock = $lockfactory->get_lock($instance->id . ':' . $userid, 10);
+        if (!$lock) {
+            throw new moodle_exception('locktimeout');
+        }
+        try {
+            $answers = choice_get_user_response($choice, $userid);
+            $states = listgrades_get_review_states((int) $instance->id, $userid);
+            $state = $states[$userid] ?? ['active' => false, 'lastaction' => ''];
+            if ($answers && empty($state['active'])) {
+                $timestamp = min(array_map(static fn($answer): int => (int) $answer->timemodified, $answers));
+                $source = listgrades_serialize_choice_review_source((int) $choicecm->id, $choicecm->name, time());
+                listgrades_record_review_action($instance, $context, $userid, (int) $USER->id, 'requested', $timestamp, $source);
+            } else if (!$answers && !empty($state['active']) && $state['lastaction'] === 'requested') {
+                $source = listgrades_serialize_choice_review_source((int) $choicecm->id, $choicecm->name);
+                listgrades_record_review_action($instance, $context, $userid, (int) $USER->id, 'cancelled', time(), $source);
+            }
+        } finally {
+            $lock->release();
+        }
+    }
+}
+
+/**
+ * Build each user's current review state and complete append-only history.
+ *
+ * The comments field belongs to the current request; history retains every
+ * request, cancellation, response and comment for that student.
  *
  * @param int $listgradesid Activity instance id.
  * @param int|null $userid Restrict the history to one student, or null for all students.
@@ -216,8 +386,17 @@ function listgrades_get_review_states(int $listgradesid, ?int $userid = null): a
                 'lasttime' => 0,
                 'snapshot' => '',
                 'comments' => [],
+                'history' => [],
             ];
         }
+        $states[$userid]['history'][] = [
+            'userid' => $userid,
+            'actorid' => (int) $event->actorid,
+            'action' => $event->action,
+            'comment' => $event->comment ?? '',
+            'snapshot' => $event->snapshot ?? '',
+            'timecreated' => (int) $event->timecreated,
+        ];
         if ($event->action === 'requested') {
             $states[$userid]['active'] = true;
             $states[$userid]['requesttime'] = (int) $event->timecreated;

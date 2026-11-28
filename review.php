@@ -46,6 +46,9 @@ require_sesskey();
 if (!listgrades_review_is_enabled($listgrades)) {
     throw new moodle_exception('reviewinvalidaction', 'listgrades');
 }
+if (!empty($listgrades->reviewchoicecmid) && in_array($action, ['request', 'cancel'], true)) {
+    throw new moodle_exception('reviewinvalidaction', 'listgrades');
+}
 
 $now = time();
 $reviewdate = (int) $listgrades->reviewdate;
@@ -126,26 +129,16 @@ try {
         throw new moodle_exception('reviewinvalidaction', 'listgrades');
     }
 
-    $recordid = $DB->insert_record('listgrades_review', (object) [
-        'listgradesid' => $listgrades->id,
-        'userid' => $targetuserid,
-        'actorid' => $actorid,
-        'action' => $eventaction,
-        'comment' => $comment,
-        'snapshot' => $snapshot,
-        'timecreated' => $now,
-    ]);
-
-    $event = \mod_listgrades\event\review_action::create_action(
-        $eventaction,
+    listgrades_record_review_action(
+        $listgrades,
         $context,
-        (int) $course->id,
-        (int) $listgrades->id,
-        (int) $targetuserid,
+        $targetuserid,
         $actorid,
-        $recordid
+        $eventaction,
+        $now,
+        $comment,
+        $snapshot
     );
-    $event->trigger();
 } finally {
     if ($lock) {
         $lock->release();

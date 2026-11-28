@@ -182,5 +182,14 @@ function xmldb_listgrades_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026112601, 'listgrades');
     }
 
+    if ($oldversion < 2026112800) {
+        $table = new xmldb_table('listgrades');
+        $field = new xmldb_field('reviewchoicecmid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'reviewdate');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        upgrade_mod_savepoint(true, 2026112800, 'listgrades');
+    }
+
     return true;
 }

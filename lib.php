@@ -256,6 +256,10 @@ function listgrades_add_instance($data, $mform = null) {
     $completiontimeexpected = !empty($data->completionexpected) ? $data->completionexpected : null;
     \core_completion\api::update_completion_date_event($cmid, 'listgrades', $data->id, $completiontimeexpected);
     listgrades_update_calendar($data);
+    if (!empty($data->reviewenabled) && !empty($data->reviewchoicecmid)) {
+        $instance = $DB->get_record('listgrades', ['id' => $data->id], '*', MUST_EXIST);
+        listgrades_sync_choice_reservations($instance, $context);
+    }
     return $data->id;
 }
 
@@ -301,6 +305,10 @@ function listgrades_update_instance($data, $mform) {
     $completiontimeexpected = !empty($data->completionexpected) ? $data->completionexpected : null;
     \core_completion\api::update_completion_date_event($cmid, 'listgrades', $data->id, $completiontimeexpected);
     listgrades_update_calendar($data);
+    $instance = $DB->get_record('listgrades', ['id' => $data->id], '*', MUST_EXIST);
+    if (isset($data->reviewchoicecmid) && !empty($instance->reviewenabled) && !empty($instance->reviewchoicecmid)) {
+        listgrades_sync_choice_reservations($instance, $context);
+    }
     return true;
 }
 

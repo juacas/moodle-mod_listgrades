@@ -31,6 +31,8 @@
  * Structure step to restore one listgrades activity
  */
 class restore_listgrades_activity_structure_step extends restore_activity_structure_step {
+    /** @var int Original course module id of the linked choice. */
+    private int $oldchoicecmid = 0;
     /**
      * Defines the paths restored for the activity.
      *
@@ -57,6 +59,8 @@ class restore_listgrades_activity_structure_step extends restore_activity_struct
         require_once($CFG->dirroot . '/grade/lib.php');
 
         $data = (object)$data;
+        $this->oldchoicecmid = (int) ($data->reviewchoicecmid ?? 0);
+        $data->reviewchoicecmid = 0;
         $oldid = $data->id;
         $data->course = $this->get_courseid();
 
@@ -148,5 +152,18 @@ class restore_listgrades_activity_structure_step extends restore_activity_struct
         // Add listgrades related files, no need to match by itemname (just internally handled context).
         $this->add_related_files('mod_listgrades', 'intro', null);
         $this->add_related_files('mod_listgrades', 'footer', null);
+    }
+
+    /**
+     * Remap the choice after all course activities have been restored.
+     */
+    protected function after_restore() {
+        global $DB;
+        if ($this->oldchoicecmid) {
+            $newcmid = (int) $this->get_mappingid('course_module', $this->oldchoicecmid);
+            if ($newcmid && get_coursemodule_from_id('choice', $newcmid, $this->get_courseid())) {
+                $DB->set_field('listgrades', 'reviewchoicecmid', $newcmid, ['id' => $this->task->get_activityid()]);
+            }
+        }
     }
 }
